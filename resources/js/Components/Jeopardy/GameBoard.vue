@@ -40,13 +40,12 @@ const closeQuestion = () => {
     const total = categoryList.value.length * maxRowCount.value
     if (!done.value && usedQuestions.value.length === total) {
         bonusPending.value = true
-
-        // Delay and show bonus question after transition
-        setTimeout(() => {
-            bonusPending.value = false
-            activeQuestion.value = props.bonusQuestion
-        }, 3000)
     }
+}
+
+const startBonusRound = () => {
+    bonusPending.value = false
+    activeQuestion.value = props.bonusQuestion
 }
 
 // Extract category names
@@ -99,7 +98,12 @@ const gridCells = computed(() => {
         <!-- Bonus Round Transition -->
         <transition name="fade">
             <div v-if="bonusPending" class="absolute inset-0 z-50 bg-black flex items-center justify-center">
-                <h1 class="text-6xl text-yellow-400 font-extrabold uppercase animate-pulse">Bonus Round</h1>
+                <GameCard
+                    text="Show BONUS Question"
+                    clickable
+                    @click="startBonusRound"
+                    class="w-full max-w-md h-64 animate-expand-slow text-yellow-400 bg-blue-600 hover:bg-blue-800 text-6xl"
+                />
             </div>
         </transition>
 
@@ -148,5 +152,16 @@ const gridCells = computed(() => {
 </template>
 
 <style scoped>
+    @keyframes expand-slow {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.1);
+        }
+    }
 
+    .animate-expand-slow {
+        animation: expand-slow 3s ease-in-out infinite;
+    }
 </style>
