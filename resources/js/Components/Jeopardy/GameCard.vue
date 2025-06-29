@@ -15,9 +15,12 @@ const handleClick = () => {
 
 <template>
     <div
-        class="flex items-center justify-center text-white text-lg font-bold rounded py-10
-        transition-transform duration-300 cursor-pointer"
-        :class="props.clicked ? 'bg-blue-950 hover:bg-blue-900' : 'bg-blue-700 hover:bg-blue-800'"
+        class="w-full h-full text-white text-2xl font-bold flex items-center justify-center text-center rounded shadow transition cursor-pointer"
+        :class="{
+            'bg-blue-950 hover:bg-blue-950' : props.clicked,
+            'bg-blue-700 hover:bg-blue-800' : !props.clicked,
+            'opacity-50 pointer-events-none': !clickable
+        }"
         @click="handleClick"
     >
         {{ text }}

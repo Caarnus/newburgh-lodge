@@ -16,6 +16,8 @@ const props = defineProps({
 
 const activeQuestion = ref(null)
 const usedQuestions = ref([])
+const done = ref(false);
+const bonusPending = ref(false)
 
 const openQuestion = (question) => {
     activeQuestion.value = question
@@ -29,9 +31,21 @@ const questionClicked = (questionId) => {
 }
 
 const closeQuestion = () => {
+    if (activeQuestion.value.id === props.bonusQuestion.id) {
+        done.value = true;
+    }
     activeQuestion.value = null;
-    if (usedQuestions.value.length === (categoryList.value.length * maxRowCount.value)) {
-        activeQuestion.value = props.bonusQuestion
+
+    // If all questions used and not done, trigger bonus
+    const total = categoryList.value.length * maxRowCount.value
+    if (!done.value && usedQuestions.value.length === total) {
+        bonusPending.value = true
+
+        // Delay and show bonus question after transition
+        setTimeout(() => {
+            bonusPending.value = false
+            activeQuestion.value = props.bonusQuestion
+        }, 3000)
     }
 }
 
@@ -80,34 +94,48 @@ const gridCells = computed(() => {
 </script>
 
 <template>
-    <div class="p-4 w-full max-w-screen-xl mx-auto">
-        <!-- Category Titles -->
-        <div
-            class="grid gap-2 mb-2"
-            :style="`grid-template-columns: repeat(${categoryList.length}, minmax(0, 1fr))`"
-        >
-            <div
-                v-for="category in categoryList"
-                :key="category"
-                class="text-center font-bold text-xl text-white bg-blue-900 p-2 rounded"
-            >
-                {{ category }}
+    <div class="flex flex-col p-4 w-full max-w-screen-xl mx-auto"
+         :style="`height: calc(100vh - 4rem)`">
+        <!-- Bonus Round Transition -->
+        <transition name="fade">
+            <div v-if="bonusPending" class="absolute inset-0 z-50 bg-black flex items-center justify-center">
+                <h1 class="text-6xl text-yellow-400 font-extrabold uppercase animate-pulse">Bonus Round</h1>
             </div>
-        </div>
+        </transition>
 
-        <!-- Questions Grid -->
-        <div
-            class="grid gap-2"
-            :style="`grid-template-columns: repeat(${categoryList.length}, minmax(0, 1fr))`"
-        >
-            <GameCard
-                v-for="({ category, row, question }) in gridCells"
-                :key="`${category}-${row}`"
-                :text="question ? '$' + (question.difficulty * 100) : ''"
-                :clickable="!!question"
-                :clicked="questionClicked(question.id)"
-                @click="question && openQuestion(question)"
-            />
+        <div v-if="!bonusPending && !done" class="flex-1 flex flex-col overflow-hidden">
+            <!-- Category Titles -->
+            <div
+                class="grid gap-2 mb-2 h-16"
+                :style="`grid-template-columns: repeat(${categoryList.length}, minmax(0, 1fr))`"
+            >
+                <div
+                    v-for="category in categoryList"
+                    :key="category"
+                    class="flex items-center justify-center font-bold text-3xl text-white bg-blue-900 p-2 rounded"
+                >
+                    {{ category }}
+                </div>
+            </div>
+
+            <!-- Questions Grid -->
+            <div
+                class="flex-1 grid gap-2"
+                :style="`
+                    display: grid;
+                    grid-template-columns: repeat(${categoryList.length}, minmax(0, 1fr));
+                    grid-template-rows: repeat(${maxRowCount}, minmax(0, 1fr));
+                  `"
+            >
+                <GameCard
+                    v-for="({ category, row, question }) in gridCells"
+                    :key="`${category}-${row}`"
+                    :text="!questionClicked(question.id) && question ? '$' + (question.difficulty * 100) : ''"
+                    :clickable="!!question"
+                    :clicked="questionClicked(question.id)"
+                    @click="question && openQuestion(question)"
+                />
+            </div>
         </div>
 
         <!-- Question Modal -->
