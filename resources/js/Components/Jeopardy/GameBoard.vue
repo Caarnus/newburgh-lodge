@@ -17,7 +17,7 @@ const props = defineProps({
 const activeQuestion = ref(null)
 const usedQuestions = ref([])
 const done = ref(false);
-const bonusPending = ref(true)
+const bonusPending = ref(false)
 
 const openQuestion = (question) => {
     activeQuestion.value = question
