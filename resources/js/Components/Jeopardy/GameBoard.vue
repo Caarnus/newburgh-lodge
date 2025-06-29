@@ -7,13 +7,32 @@ const props = defineProps({
     board: {
         type: Object,
         required: true
+    },
+    bonusQuestion: {
+        type: Object,
+        required: true
     }
 })
 
 const activeQuestion = ref(null)
+const usedQuestions = ref([])
 
 const openQuestion = (question) => {
     activeQuestion.value = question
+    if (!questionClicked(question.id)) {
+        usedQuestions.value.push(question.id);
+    }
+}
+
+const questionClicked = (questionId) => {
+    return usedQuestions.value.filter(x => x === questionId) > 0;
+}
+
+const closeQuestion = () => {
+    activeQuestion.value = null;
+    if (usedQuestions.value.length === (categoryList.value.length * maxRowCount.value)) {
+        activeQuestion.value = props.bonusQuestion
+    }
 }
 
 // Extract category names
@@ -44,11 +63,6 @@ const maxRowCount = computed(() => {
         })
     )
 })
-
-// Get the question object at a given [category][row]
-const getQuestion = (category, row) => {
-    return props.board[category]?.[row-1] || null
-}
 
 // Flatten to grid cells, row by row
 const gridCells = computed(() => {
@@ -91,6 +105,7 @@ const gridCells = computed(() => {
                 :key="`${category}-${row}`"
                 :text="question ? '$' + (question.difficulty * 100) : ''"
                 :clickable="!!question"
+                :clicked="questionClicked(question.id)"
                 @click="question && openQuestion(question)"
             />
         </div>
@@ -99,7 +114,7 @@ const gridCells = computed(() => {
         <QuestionModal
             v-if="activeQuestion"
             :question="activeQuestion"
-            @close="activeQuestion = null"
+            @close="closeQuestion"
         />
     </div>
 </template>

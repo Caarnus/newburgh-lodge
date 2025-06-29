@@ -41,7 +41,7 @@ class JeopardyQuestionController extends Controller
         }
         foreach ($selectedCategories as $category) {
             $categoryQuestions = JeopardyQuestion::where('category', $category)->get()
-                ->random(AppConstants::JEOPARDY_CATEGORY_NUM)
+                ->random(AppConstants::JEOPARDY_QUESTION_PER_CATEGORY)
                 ->sortBy('difficulty');
 
             $board[$category] = $categoryQuestions;
@@ -52,8 +52,7 @@ class JeopardyQuestionController extends Controller
 
     public function getBonusQuestion(): JsonResponse
     {
-        $questions = JeopardyQuestion::where('category','Bonus')->get();
-        $question = array_rand($questions);
+        $question = JeopardyQuestion::where('category','Bonus')->get()->random();
 
         return response()->json(['question' => $question]);
     }

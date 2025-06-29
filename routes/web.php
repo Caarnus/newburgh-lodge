@@ -46,4 +46,6 @@ Route::middleware([
         ->name('jeopardy.index');
     Route::get('/jeopardy/board', [JeopardyQuestionController::class,'getBoard'])
         ->name('jeopardy.board');
+    Route::get('/jeopardy/bonus', [JeopardyQuestionController::class,'getBonusQuestion'])
+        ->name('jeopardy.bonus');
 });
