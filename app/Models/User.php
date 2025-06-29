@@ -3,7 +3,10 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Helpers\RoleEnum;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -14,7 +17,7 @@ class User extends Authenticatable
 {
     use HasApiTokens;
 
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory;
     use HasProfilePhoto;
     use Notifiable;
@@ -50,6 +53,11 @@ class User extends Authenticatable
      */
     protected $appends = [
         'profile_photo_url',
+        'member',
+        'degree',
+        'officer',
+        'secretary',
+        'admin',
     ];
 
     /**
@@ -63,5 +71,112 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function getMemberAttribute(): bool
+    {
+        return $this->isMember();
+    }
+
+    public function getDegreeAttribute(): RoleEnum
+    {
+        if ($this->isMasterMason())
+            return RoleEnum::MASTER_MASON;
+        elseif ($this->isFellowcraft())
+            return RoleEnum::FELLOWCRAFT;
+        elseif ($this->isEnteredApprentice())
+            return RoleEnum::ENTERED_APPRENTICE;
+        else
+            return RoleEnum::NONE;
+    }
+
+    public function getOfficerAttribute(): bool
+    {
+        return $this->isOfficer();
+    }
+
+    public function getSecretaryAttribute(): bool
+    {
+        return $this->isSecretary();
+    }
+
+    public function getAdminAttribute(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class);
+    }
+
+    public function isMember(): bool
+    {
+        foreach ($this->roles()->get() as $role) {
+            if ($role->code === RoleEnum::MEMBER->value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function isEnteredApprentice(): bool
+    {
+        foreach ($this->roles()->get() as $role) {
+            if ($role->code === RoleEnum::ENTERED_APPRENTICE->value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function isFellowcraft(): bool
+    {
+        foreach ($this->roles()->get() as $role) {
+            if ($role->code === RoleEnum::FELLOWCRAFT->value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function isMasterMason(): bool
+    {
+        foreach ($this->roles()->get() as $role) {
+            if ($role->code === RoleEnum::MASTER_MASON->value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function isOfficer(): bool
+    {
+        foreach ($this->roles()->get() as $role) {
+            if ($role->code === RoleEnum::OFFICER->value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function isSecretary(): bool
+    {
+        foreach ($this->roles()->get() as $role) {
+            if ($role->code === RoleEnum::SECRETARY->value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function isAdmin(): bool
+    {
+        foreach ($this->roles()->get() as $role) {
+            if ($role->code === RoleEnum::ADMIN->value) {
+                return true;
+            }
+        }
+        return false;
     }
 }

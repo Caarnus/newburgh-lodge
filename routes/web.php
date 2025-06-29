@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\JeopardyQuestionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -40,4 +41,9 @@ Route::middleware([
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
+
+    Route::get('/jeopardy', [JeopardyQuestionController::class,'index'])
+        ->name('jeopardy.index');
+    Route::get('/jeopardy/board', [JeopardyQuestionController::class,'getBoard'])
+        ->name('jeopardy.board');
 });
