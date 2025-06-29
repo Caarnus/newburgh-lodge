@@ -17,7 +17,7 @@ const props = defineProps({
 const activeQuestion = ref(null)
 const usedQuestions = ref([])
 const done = ref(false);
-const bonusPending = ref(false)
+const bonusPending = ref(true)
 
 const openQuestion = (question) => {
     activeQuestion.value = question
@@ -99,10 +99,11 @@ const gridCells = computed(() => {
         <transition name="fade">
             <div v-if="bonusPending" class="absolute inset-0 z-50 bg-black flex items-center justify-center">
                 <GameCard
-                    text="Show BONUS Question"
+                    text="BONUS Question"
                     clickable
                     @click="startBonusRound"
-                    class="w-full max-w-md h-64 animate-expand-slow text-yellow-400 bg-blue-600 hover:bg-blue-800 text-6xl"
+                    class="w-full max-w-md h-52 animate-expand-slow text-yellow-400
+                    bg-blue-600 hover:bg-blue-800 text-6xl rounded-3xl"
                 />
             </div>
         </transition>
