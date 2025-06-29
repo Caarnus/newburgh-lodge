@@ -102,7 +102,8 @@ const gridCells = computed(() => {
                     text="BONUS Question"
                     clickable
                     @click="startBonusRound"
-                    class="w-full max-w-md h-52 animate-expand-slow text-yellow-400
+                    :limitHeight="false"
+                    class="w-full max-w-md max-h-64 animate-expand-slow text-yellow-400
                     bg-blue-600 hover:bg-blue-800 text-6xl rounded-3xl"
                 />
             </div>
