@@ -21,6 +21,7 @@
         "vue": "^3.3.13"
     },
     "dependencies": {
+        "@fullcalendar/vue3": "^6.1.18",
         "@vueuse/core": "^12.4.0",
         "primeicons": "^7.0.0",
         "primevue": "^4.2.5",
