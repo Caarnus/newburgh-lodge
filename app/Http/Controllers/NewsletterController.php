@@ -12,9 +12,10 @@ class NewsletterController extends Controller
 
     public function index()
     {
-        $this->authorize('viewAny', Newsletter::class);
-
-        return Newsletter::all();
+        $newsletters = Newsletter::latest()->paginate(10);
+        return inertia('Newsletters/Index', [
+            'newsletters' => $newsletters,
+        ]);
     }
 
     public function store(Request $request)
@@ -22,15 +23,16 @@ class NewsletterController extends Controller
         $this->authorize('create', Newsletter::class);
 
         $data = $request->validate([
-            'title' => ['required'],
-            'issue' => ['nullable'],
-            'summary' => ['nullable'],
-            'body' => ['required'],
-            'is_public' => ['boolean'],
-            'created_by' => ['nullable', 'exists:users'],
+            'title' => ['required','string','max:255'],
+            'body' => ['required','string'],
         ]);
 
-        return Newsletter::create($data);
+        Newsletter::create([
+            ...$data,
+            'created_by' => auth()->id(),
+        ]);
+
+        return redirect()->route('newsletters.index');
     }
 
     public function show(Newsletter $newsletter)
@@ -38,6 +40,12 @@ class NewsletterController extends Controller
         $this->authorize('view', $newsletter);
 
         return $newsletter;
+    }
+
+    public function create(Newsletter $newsletter)
+    {
+        $this->authorize('create', $newsletter);
+        return inertia('Newsletters/Create');
     }
 
     public function update(Request $request, Newsletter $newsletter)

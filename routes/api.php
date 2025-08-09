@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\LodgeEvent;
+use App\Models\OrgEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -9,5 +9,5 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/api/events', function() {
-    return LodgeEvent::where('is_public', true)->get(['id','title','start','end']);
+    return OrgEvent::where('is_public', true)->get(['id','title','start','end']);
 });

@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class LodgeEvent extends Model
+class OrgEvent extends Model
 {
     protected function casts(): array
     {

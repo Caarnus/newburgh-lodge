@@ -14,6 +14,6 @@ class AssignDefaultRoleListener
 
     public function handle($event): void
     {
-        $event->user->assignRole(RoleEnum::USER);
+        $event->user->assignRole(RoleEnum::USER->value);
     }
 }

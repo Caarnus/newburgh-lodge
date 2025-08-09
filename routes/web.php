@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\JeopardyQuestionController;
+use App\Http\Controllers\NewsletterController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -10,6 +11,14 @@ Route::get('/', function () {
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
     ]);
+});
+
+Route::get('/compass-points', [NewsLetterController::class, 'index'])->name('compass-points.index');
+Route::get('/compass-points/{compassPoint}', [NewsLetterController::class, 'show'])->name('compass-points.show');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/compass-points/create', [NewsLetterController::class, 'create'])->name('compass-points.create');
+    Route::post('/compass-points', [NewsLetterController::class, 'store'])->name('compass-points.store');
 });
 
 Route::get('/contact', function () {
