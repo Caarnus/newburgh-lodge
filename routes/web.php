@@ -13,12 +13,12 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/compass-points', [NewsLetterController::class, 'index'])->name('compass-points.index');
-Route::get('/compass-points/{compassPoint}', [NewsLetterController::class, 'show'])->name('compass-points.show');
+Route::get('/'.config('site.newsletter_route'), [NewsLetterController::class, 'index'])->name('newsletters.index');
+Route::get('/'.config('site.newsletter_route').'/{newsletter}', [NewsLetterController::class, 'show'])->name('newsletters.show');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/compass-points/create', [NewsLetterController::class, 'create'])->name('compass-points.create');
-    Route::post('/compass-points', [NewsLetterController::class, 'store'])->name('compass-points.store');
+    Route::get('/'.config('site.newsletter_route').'/create', [NewsLetterController::class, 'create'])->name('newsletters.create');
+    Route::post('/'.config('site.newsletter_route'), [NewsLetterController::class, 'store'])->name('newsletters.store');
 });
 
 Route::get('/contact', function () {

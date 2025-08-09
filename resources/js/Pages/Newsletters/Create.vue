@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import {useForm} from "@inertiajs/vue3";
+import {useForm, usePage} from "@inertiajs/vue3";
 import {InputText, Button} from "primevue";
 import Editor from "primevue/editor";
 
+const $page = usePage();
 const form = useForm({
     title: '',
     body: '',
@@ -17,7 +18,7 @@ function submit() {
 
 <template>
     <div>
-        <h1>Create Compass Points</h1>
+        <h1>Create {{ $page.props.site.newsletterLabel }}</h1>
         <form @submit.prevent="submit">
             <InputText v-model="form.title" />
             <Editor v-model="form.body" />
