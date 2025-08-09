@@ -9,7 +9,7 @@ class Newsletter extends Model
 {
     public function createdBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 
     protected function casts(): array

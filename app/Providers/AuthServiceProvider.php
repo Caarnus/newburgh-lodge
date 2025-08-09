@@ -3,23 +3,31 @@
 namespace App\Providers;
 
 use App\Models\Newsletter;
+use App\Models\OrgEvent;
+use App\Models\User;
 use App\Policies\NewsletterPolicy;
+use App\Policies\OrgEventPolicy;
+use App\Policies\UserAdminPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
 {
-    /**
-     * The policy mappings for the application.
-     *
-     * @var array<class-string, class-string>
-     */
     protected $policies = [
-        // 'App\Models\Model' => 'App\Policies\ModelPolicy',
         Newsletter::class => NewsletterPolicy::class,
+        OrgEvent::class => OrgEventPolicy::class,
+        User::class => UserAdminPolicy::class,
     ];
 
     /**
-     * Register any authentication / authorization services.
+     * Register services.
+     */
+    public function register(): void
+    {
+        //
+    }
+
+    /**
+     * Bootstrap services.
      */
     public function boot(): void
     {

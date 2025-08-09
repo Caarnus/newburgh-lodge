@@ -28,25 +28,25 @@ class NewsletterPolicy
             || $user->hasRole(RoleEnum::SECRETARY->value);
     }
 
-    public function update(User $user, Newsletter $newsletter): bool
+    public function update(User $user): bool
     {
         return $user->hasRole(RoleEnum::OFFICER->value)
             || $user->hasRole(RoleEnum::ADMIN->value)
             || $user->hasRole(RoleEnum::SECRETARY->value);
     }
 
-    public function delete(User $user, Newsletter $newsletter): bool
+    public function delete(User $user): bool
     {
         return $user->hasRole(RoleEnum::ADMIN->value)
             || $user->hasRole(RoleEnum::SECRETARY->value);
     }
 
-    public function restore(User $user, Newsletter $newsletter): bool
+    public function restore(User $user): bool
     {
         return $user->hasRole(RoleEnum::ADMIN->value);
     }
 
-    public function forceDelete(User $user, Newsletter $newsletter): bool
+    public function forceDelete(User $user): bool
     {
         return $user->hasRole(RoleEnum::ADMIN->value);
     }

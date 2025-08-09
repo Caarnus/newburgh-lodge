@@ -2,11 +2,12 @@
 import { ref } from 'vue';
 import {Head, router, usePage} from '@inertiajs/vue3';
 import Banner from '@/Components/Banner.vue';
-import {ConfirmDialog, ConfirmPopup, DynamicDialog, Menubar, Toast} from "primevue";
+import {ConfirmDialog, ConfirmPopup, DynamicDialog, Menubar, Toast, Badge} from "primevue";
 import {useDark, useToggle} from "@vueuse/core";
 
 const isDark = useDark({valueDark: "app-dark"});
 const toggleDark = useToggle(isDark);
+const $page = usePage();
 
 defineProps({
     title: String,
@@ -17,7 +18,7 @@ const page = usePage();
 const navMenuItems = ref([
     { label: 'Home', url: route('dashboard'), },
     { label: "News", items: [
-            { label: "Compass Points", url: route('dashboard')},
+            { label: $page.props.site.newsletterLabel, url: route('newsletters.index')},
             { label: "Upcoming Events", url: route('dashboard')},
             { label: "Photo Gallery", url: route('dashboard')},
         ]
@@ -39,6 +40,10 @@ const navMenuItems = ref([
             { label: "Reed Lodge #316 F&AM", url: "https://www.reedlodge316.org/", target: "_blank"},
             { label: "Hadi Shrine", url: "https://www.hadishrine.org/", target: "_blank"},
             { label: "Newburgh Lodge Facebook", url: "https://www.facebook.com/newburghlodge174", target: "_blank"},
+        ]
+    },
+    { label: "Admin", visible: $page.props.can.admin.users, items: [
+            { label: "Users", url: route('admin.users.index')},
         ]
     },
     { label: page.props.auth?.user?.name ?? "Sign In", class: 'ml-auto', items: [

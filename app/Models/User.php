@@ -107,78 +107,39 @@ class User extends Authenticatable
         return $this->isAdmin();
     }
 
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class);
-    }
-
     public function isMember(): bool
     {
-        foreach ($this->roles()->get() as $role) {
-            if ($role->code === RoleEnum::MEMBER->value) {
-                return true;
-            }
-        }
-        return false;
+        return $this->hasRole(RoleEnum::MEMBER);
     }
 
     public function isEnteredApprentice(): bool
     {
-        foreach ($this->roles()->get() as $role) {
-            if ($role->code === RoleEnum::ENTERED_APPRENTICE->value) {
-                return true;
-            }
-        }
-        return false;
+        return $this->hasRole(RoleEnum::ENTERED_APPRENTICE);
     }
 
     public function isFellowcraft(): bool
     {
-        foreach ($this->roles()->get() as $role) {
-            if ($role->code === RoleEnum::FELLOWCRAFT->value) {
-                return true;
-            }
-        }
-        return false;
+        return $this->hasRole(RoleEnum::FELLOWCRAFT);
     }
 
     public function isMasterMason(): bool
     {
-        foreach ($this->roles()->get() as $role) {
-            if ($role->code === RoleEnum::MASTER_MASON->value) {
-                return true;
-            }
-        }
-        return false;
+        return $this->hasRole(RoleEnum::MASTER_MASON);
     }
 
     public function isOfficer(): bool
     {
-        foreach ($this->roles()->get() as $role) {
-            if ($role->code === RoleEnum::OFFICER->value) {
-                return true;
-            }
-        }
-        return false;
+        return $this->hasRole(RoleEnum::OFFICER);
     }
 
     public function isSecretary(): bool
     {
-        foreach ($this->roles()->get() as $role) {
-            if ($role->code === RoleEnum::SECRETARY->value) {
-                return true;
-            }
-        }
-        return false;
+
+        return $this->hasRole(RoleEnum::SECRETARY);
     }
 
     public function isAdmin(): bool
     {
-        foreach ($this->roles()->get() as $role) {
-            if ($role->code === RoleEnum::ADMIN->value) {
-                return true;
-            }
-        }
-        return false;
+        return $this->hasRole(RoleEnum::ADMIN);
     }
 }
