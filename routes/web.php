@@ -3,9 +3,11 @@
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\JeopardyQuestionController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\OrgEventController;
 use App\Http\Controllers\PastMasterController;
 use App\Http\Controllers\UserAdminController;
 use App\Models\Newsletter;
+use App\Models\OrgEvent;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -27,7 +29,14 @@ Route::get('/dashboard', function () {
 Route::get('/'.config('site.newsletter_route'), [NewsLetterController::class, 'index'])
     ->name('newsletters.index');
 Route::get('/'.config('site.newsletter_route').'/{newsletter}', [NewsLetterController::class, 'show'])
+    ->where('newsletter', '[0-9]+')
     ->name('newsletters.show');
+
+Route::get('/events', [OrgEventController::class, 'index'])
+    ->name('events.index');
+Route::get('/events/{event}', [OrgEventController::class, 'show'])
+    ->where('event', '[0-9]+')
+    ->name('events.show');
 
 Route::get('/contact', function () {
     return Inertia::render('Contact');
@@ -70,6 +79,7 @@ Route::middleware([
     Route::put('/admin/users/bulk', [UserAdminController::class, 'bulkUpdate'])
         ->name('admin.users.bulkUpdate');
     Route::put('/admin/users/{user}', [UserAdminController::class, 'update'])
+        ->where('user', '[0-9]+')
         ->name('admin.users.update');
     Route::put('/admin/users/{user}/password', [UserAdminController::class, 'setPassword'])
         ->name('admin.users.setPassword');
@@ -85,6 +95,26 @@ Route::middleware([
         ->name('newsletters.edit')
         ->can('update', NewsLetter::class);
     Route::put('/'.config('site.newsletter_route').'/{newsletter}', [NewsLetterController::class, 'update'])
+        ->where('newsletter', '[0-9]+')
         ->name('newsletters.update')
         ->can('update', NewsLetter::class);
+
+    Route::get('/events/create', [OrgEventController::class, 'create'])
+        ->name('events.create')
+        ->can('create', OrgEvent::class);
+    Route::post('/events', [OrgEventController::class, 'store'])
+        ->name('events.store')
+        ->can('create', OrgEvent::class);
+
+    Route::get('/events/{event}/edit', [OrgEventController::class, 'edit'])
+        ->where('event', '[0-9]+')
+        ->name('events.edit');
+    Route::put('/events/{event}', [OrgEventController::class, 'update'])
+        ->where('event', '[0-9]+')
+        ->name('events.update');
+
+    Route::delete('/events/{event}', [OrgEventController::class, 'destroy'])
+        ->where('event', '[0-9]+')
+        ->name('events.destroy')
+        ->can('delete', OrgEvent::class);
 });
