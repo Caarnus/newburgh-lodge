@@ -273,7 +273,7 @@ const calendarOptions = computed(() => ({
     fixedWeekCount: true,
     showNonCurrentDates: true,
     firstDay: 0,
-    height: 'auto',
+    aspectRatio: 1.1,
     eventClick: onEventClick,
     dateClick: onDateClick,
     eventDidMount

@@ -19,7 +19,7 @@ const navMenuItems = ref([
     { label: 'Home', url: route('dashboard'), },
     { label: "News", items: [
             { label: $page.props.site.newsletterLabel, url: route('newsletters.index')},
-            { label: "Upcoming Events", url: route('dashboard')},
+            { label: "Upcoming Events", url: route('events.index')},
             { label: "Photo Gallery", url: route('dashboard')},
         ]
     },
@@ -44,6 +44,7 @@ const navMenuItems = ref([
     },
     { label: "Admin", visible: $page.props.can.admin.users, items: [
             { label: "Users", url: route('admin.users.index')},
+            { label: "Jeopardy", url: route('jeopardy.index')},
         ]
     },
     { label: page.props.auth?.user?.name ?? "Sign In", class: 'ml-auto', items: [

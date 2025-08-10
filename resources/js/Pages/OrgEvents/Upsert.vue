@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {computed, onMounted, watch} from 'vue'
 import { Link, useForm, usePage } from '@inertiajs/vue3'
+import {route} from "ziggy-js";
+import { RRule } from 'rrule'
 import AppLayout from '@/Layouts/AppLayout.vue'
 
 import Card from 'primevue/card'
@@ -13,7 +15,6 @@ import MultiSelect from 'primevue/multiselect'
 import DatePicker from 'primevue/datepicker'
 import InputNumber from 'primevue/inputnumber'
 import Editor from 'primevue/editor'
-import {route} from "ziggy-js";
 
 type DateLike = string | number | Date | null | undefined
 
@@ -152,8 +153,120 @@ const form = useForm<Required<OrgEventDto>>({
 
 function pad(n: number) { return (n < 10 ? '0' : '') + String(n)}
 
-function toLocalISO(dt: Date) {
-    return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`
+// Parse "DTSTART:YYYYMMDDTHHMMSSZ" and return a UTC ISO
+function extractDtstartIso(rruleStr: string): string | null {
+    const m = rruleStr.match(/DTSTART:(\d{8}T\d{6}Z?)/)
+    if (!m) return null
+    const stamp = m[1] // YYYYMMDDTHHMMSSZ?
+    const y = Number(stamp.slice(0, 4))
+    const M = Number(stamp.slice(4, 6)) - 1
+    const d = Number(stamp.slice(6, 8))
+    const h = Number(stamp.slice(9, 11))
+    const i = Number(stamp.slice(11, 13))
+    const s = Number(stamp.slice(13, 15))
+    // Construct explicit UTC
+    const dt = new Date(Date.UTC(y, M, d, h, i, s))
+    return dt.toISOString()
+}
+
+function stripDtstart(rruleStr: string): string {
+    return rruleStr
+        .split(/\r?\n/)
+        .filter(line => !/^DTSTART:/i.test(line.trim()))
+        .join('\n')
+}
+
+const WKD = ['MO','TU','WE','TH','FR','SA','SU'] as const
+
+function wkToStrings(byweekday?: any): string[] {
+    if (!byweekday) return []
+    // byweekday can be Weekday | Weekday[]
+    const arr = Array.isArray(byweekday) ? byweekday : [byweekday]
+    return arr.map(w => {
+        // rrule Weekday has .weekday (0..6) where 0=MO
+        const idx = typeof w.weekday === 'number' ? w.weekday : (typeof w === 'number' ? w : 0)
+        return WKD[idx] || 'MO'
+    })
+}
+
+function populateRepeatFromRRule(rruleStr: string) {
+    if (!rruleStr) return
+
+    // Prefer DTSTART (UTC) for start if present
+    const dtstartIso = extractDtstartIso(rruleStr)
+    if (dtstartIso && !form.start) {
+        form.start = dtstartIso // keep UTC ISO ...Z
+    }
+
+    const core = stripDtstart(rruleStr).trim()
+    if (!core) return
+
+    let rule: RRule
+    try {
+        rule = RRule.fromString(core)
+    } catch {
+        return
+    }
+
+    const o = rule.options
+    const freqMap: Record<number, 'DAILY'|'WEEKLY'|'MONTHLY'|'YEARLY'> = {
+        [RRule.DAILY]: 'DAILY',
+        [RRule.WEEKLY]: 'WEEKLY',
+        [RRule.MONTHLY]: 'MONTHLY',
+        [RRule.YEARLY]: 'YEARLY'
+    }
+
+    const freq = freqMap[o.freq] ?? 'MONTHLY'
+    const interval = o.interval ?? 1
+
+    // bysetpos can be number or array
+    const bysetpos = (Array.isArray(o.bysetpos) ? o.bysetpos[0] : o.bysetpos) ?? null
+
+    // byweekday → ['MO','TU',...]
+    const byweekdayArr = wkToStrings(o.byweekday)
+    const firstWeekday = byweekdayArr.length ? byweekdayArr[0] : null
+
+    // Ending
+    const hasCount = typeof o.count === 'number'
+    const untilDate = o.until ? o.until.toISOString().slice(0, 10) : ''
+    const ends: 'never' | 'until' | 'count' = hasCount ? 'count' : (untilDate ? 'until' : 'never')
+
+    form.repeats = true
+    form.rrule = rruleStr
+
+    // Map to your two UI modes:
+    // 1) Monthly "nth weekday": FREQ=MONTHLY + BYSETPOS + BYDAY
+    if (freq === 'MONTHLY' && bysetpos !== null && firstWeekday) {
+        form.repeat_options = {
+            ...form.repeat_options,
+            mode: 'nth-weekday',
+            nth: bysetpos,                     // 1..5 or -1
+            weekday: firstWeekday,             // 'MO'..'SU'
+            interval,                          // months between
+            // clear interval-mode-specific fields
+            freq: 'MONTHLY',
+            byweekday: null,
+            ends,
+            until: ends === 'until' ? untilDate : '',
+            count: ends === 'count' ? (o.count ?? null) : null
+        }
+        return
+    }
+
+    // 2) General interval mode (DAILY/WEEKLY/MONTHLY without nth, YEARLY)
+    form.repeat_options = {
+        ...form.repeat_options,
+        mode: 'interval',
+        freq,                                 // 'DAILY'|'WEEKLY'|'MONTHLY'|'YEARLY'
+        interval,
+        byweekday: byweekdayArr.length ? byweekdayArr : null, // only meaningful for WEEKLY
+        // clear nth-weekday-specific fields
+        nth: null,
+        weekday: null,
+        ends,
+        until: ends === 'until' ? untilDate : '',
+        count: ends === 'count' ? (o.count ?? null) : null
+    }
 }
 
 /** Next half-hour from now in local time */
@@ -203,7 +316,7 @@ const endModel = computed({
 })
 
 const untilModel = computed({
-    get: () => parseISOToDateLocal(form.repeat_options?.until || ''),
+    get: () => form.repeat_options?.until || '',
     set: (d: Date | null) => { if (form.repeat_options) form.repeat_options.until = d ? new Date(d as any).toISOString().substring(0,10) : '' }
 })
 
@@ -233,7 +346,7 @@ function buildRRule(): string | '' {
 
     // End conditions
     if (form.repeat_options.ends === 'until' && form.repeat_options.until) {
-        const u = (form.repeat_options.until as string).replace('-', '')
+        const u = (form.repeat_options.until as string).replace(/-/g, '')
         rule += `;UNTIL=${u}T235959Z`
     } else if (form.repeat_options.ends === 'count' && form.repeat_options.count) {
         rule += `;COUNT=${form.repeat_options.count}`
@@ -267,6 +380,9 @@ watch(() => form.all_day, (isAll) => {
 
 /** Convenience: if all_day, zero-out times (let backend treat end_at exclusive for multi-day) */
 onMounted(() => {
+    if (isEdit.value && props.event?.rrule) {
+        populateRepeatFromRRule(props.event.rrule)
+    }
     if (form.all_day) {
         // if only start provided, set end to same day (or leave blank for single-day)
         if (form.start && !form.end) {
@@ -382,7 +498,7 @@ onMounted(() => {
                             </div>
                             <div class="flex items-center gap-3">
                                 <ToggleSwitch v-model="form.is_public" inputId="is_public" />
-                                <label for="is_public" class="text-sm text-gray-700 dark:text-gray-300">Public</label>
+                                <label for="is_public" class="text-sm text-gray-700 dark:text-gray-300">Publish</label>
                             </div>
                         </div>
 
