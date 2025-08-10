@@ -131,7 +131,7 @@ class OrgEventController extends Controller
 
         $event->delete();
 
-        return response()->json();
+        return redirect()->route('events.index')->with('success', 'Event deleted.');
     }
 
     //Helper functions for controller
@@ -167,26 +167,34 @@ class OrgEventController extends Controller
         $allDay = (bool)($data['all_day'] ?? false);
 
         if (!empty($data['start'])) {
-            $start = Carbon::parse($data['start']);
-            $data['start'] = $allDay ? $start->copy()->startOfDay() : $start;
+            $start = Carbon::parse($data['start'])->utc();
+            if ($allDay) $start = $start->startOfDay();
+            $data['start'] = $start;
         }
 
         if (!empty($data['end'])) {
-            $end = Carbon::parse($data['end']);
-            $data['end'] = $allDay ? $end->copy()->endOfDay() : $end;
+            $end = Carbon::parse($data['end'])->utc();
+            if ($allDay) $end = $end->endOfDay();
+            $data['end'] = $end;
         }
     }
 
     private function toDto(OrgEvent $event, bool $withType = false, ?User $actor = null): array
     {
+        $toIsoUtc = function ($v) {
+            if (!$v) return null;
+            $c = $v instanceof \DateTimeInterface ? Carbon::instance($v) : Carbon::parse($v);
+            return $c->copy()->utc()->toIso8601String();
+        };
+
         $dto = [
             'id'              => $event->id,
             'title'           => $event->title,
             'description'     => $event->description,
             'location'        => $event->location,
             'all_day'         => (bool)$event->all_day,
-            'start'           => $event->start?->toIso8601String(),
-            'end'             => $event->end?->toIso8601String(),
+            'start'           => $toIsoUtc($event->start),
+            'end'             => $toIsoUtc($event->end),
             'type_id'         => $event->type_id,
 
             'masons_only'     => (bool)$event->masons_only,

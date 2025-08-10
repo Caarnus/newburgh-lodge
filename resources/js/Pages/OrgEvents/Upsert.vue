@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import {computed, onMounted, watch} from 'vue'
 import { Link, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 
@@ -14,6 +14,8 @@ import DatePicker from 'primevue/datepicker'
 import InputNumber from 'primevue/inputnumber'
 import Editor from 'primevue/editor'
 import {route} from "ziggy-js";
+
+type DateLike = string | number | Date | null | undefined
 
 type OrgEventType = {
     id: number
@@ -113,7 +115,7 @@ const endChoices = [
     { label: 'After N occurrences…', value: 'count' }
 ]
 
-const defaultStart = props.preselectStart
+const defaultStartLocal = props.preselectStart
     ? combineDateWithNextHalfHour(props.preselectStart)
     : nextHalfHour()
 
@@ -124,7 +126,7 @@ const form = useForm<Required<OrgEventDto>>({
     description: props.event?.description ?? '',
     location: props.event?.location ?? '',
     all_day: props.event?.all_day ?? false,
-    start: props.event?.start ?? toLocalISO(defaultStart), // default 7pm
+    start: props.event?.start ?? defaultStartLocal.toISOString(),
     end: props.event?.end ?? '',
     type_id: props.event?.type_id ?? (props.types[0]?.id ?? null),
 
@@ -155,12 +157,13 @@ function toLocalISO(dt: Date) {
 }
 
 /** Next half-hour from now in local time */
-function nextHalfHour(base?: string | number | Date | null) {
-    const d = base != null ? new Date(base as any) : new Date()
+function nextHalfHour(base?: DateLike): Date {
+    const d = base instanceof Date ? new Date(base as any) : base ? new Date(base) : new Date()
     d.setSeconds(0, 0)
     const m = d.getMinutes()
-    const add = m === 0 || m <= 30 ? (30 - (m % 30 || 30)) : (60 - m)
-    d.setMinutes(m + add)
+    if (m === 0) d.setMinutes(30)
+    else if (m <= 30) d.setMinutes(30)
+    else d.setHours(d.getHours() + 1, 0, 0, 0)
     return d
 }
 
@@ -190,18 +193,18 @@ function parseISOToDateLocal(v?: string | null) {
 }
 
 const startModel = computed({
-    get: () => parseISOToDateLocal(form.start),
-    set: (d: Date | null) => { form.start = d ? toLocalISO(d) : '' }
+    get: () => form.start ? new Date(form.start) : null,              // UTC → Date (local)
+    set: (d) => { form.start = d ? new Date(d as any).toISOString() : '' }   // Date (local) → UTC ISO
 })
 
 const endModel = computed({
-    get: () => parseISOToDateLocal(form.end),
-    set: (d: Date | null) => { form.end = d ? toLocalISO(d) : '' }
+    get: () => form.end ? new Date(form.end) : null,
+    set: (d) => { form.end = d ? new Date(d as any).toISOString() : '' }
 })
 
 const untilModel = computed({
     get: () => parseISOToDateLocal(form.repeat_options?.until || ''),
-    set: (d: Date | null) => { if (form.repeat_options) form.repeat_options.until = d ? toLocalISO(d).substring(0,10) : '' }
+    set: (d: Date | null) => { if (form.repeat_options) form.repeat_options.until = d ? new Date(d as any).toISOString().substring(0,10) : '' }
 })
 
 /** Generate RRULE string (stored in DB) from the chosen options */
@@ -252,6 +255,15 @@ function submit() {
         form.post(route('events.store'), { preserveScroll: true })
     }
 }
+
+watch(() => form.all_day, (isAll) => {
+    if (isAll && startModel.value) {
+        const s = new Date(startModel.value as any); s.setHours(0,0,0,0)
+        const e = new Date(startModel.value as any); e.setHours(23,59,59,0)
+        form.start = s.toISOString()
+        form.end = e.toISOString()
+    }
+})
 
 /** Convenience: if all_day, zero-out times (let backend treat end_at exclusive for multi-day) */
 onMounted(() => {

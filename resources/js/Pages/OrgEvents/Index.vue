@@ -119,48 +119,55 @@ function canViewDetails(event: OrgEventDto): boolean {
     return true
 }
 
+function pad2(n: number) { return (n < 10 ? '0' : '') + n }
+function formatDtStartUTC(isoUtc: string) {
+    const d = new Date(isoUtc) // isoUtc has Z already from the server
+    return (
+        d.getUTCFullYear().toString() +
+        pad2(d.getUTCMonth() + 1) +
+        pad2(d.getUTCDate()) + 'T' +
+        pad2(d.getUTCHours()) +
+        pad2(d.getUTCMinutes()) +
+        pad2(d.getUTCSeconds()) + 'Z'
+    )
+}
+
 function toDuration(startIso?: string | null, endIso?: string | null) {
     if (!startIso || !endIso) return undefined
-    const start = new Date(startIso).getTime()
-    const end = new Date(endIso).getTime()
-    const ms = Math.max(0, end - start)
+    const ms = new Date(endIso).getTime() - new Date(startIso).getTime()
+    if (ms <= 0) return undefined
     const totalMinutes = Math.round(ms / 60000)
-    const hours = Math.floor(totalMinutes / 60)
-    const minutes = totalMinutes % 60
-    return { hours, minutes }
+    return { minutes: totalMinutes }
 }
 
 const calendarEvents = computed(() =>
     props.events
-        .filter(ev => ev.is_public || ev.can_edit || canManage.value)
-        .map(ev => {
+        .filter(event => event.is_public || event.can_edit || canManage.value)
+        .map(event => {
             const base = {
-                id: String(ev.id),
-                title: ev.title,
-                allDay: !!ev.all_day,
-                backgroundColor: ev.type?.color || 'var(--p-primary-color, #5868fc)',
-                borderColor: ev.type?.color || 'var(--p-primary-color, #5868fc)',
-                textColor: '#fff',
-                classNames: !ev.is_public ? ['fc-draft'] : [],
-                extendedProps: ev
+                id: String(event.id),
+                title: event.title,
+                allDay: !!event.all_day,
+                classNames: !event.is_public ? ['fc-draft'] : [],
+                extendedProps: event
             }
 
-            if (ev.rrule) {
+            if (event.rrule) {
                 // recurring event
-                const startTime = ev.all_day ? undefined : ev.start?.substring(11, 16) // "HH:mm"
-                const duration = ev.all_day ? undefined : toDuration(ev.start, ev.end)
+                const rruleWithDtstart = event.start
+                    ? `DTSTART:${formatDtStartUTC(event.start)}\n${event.rrule}`
+                    : event.rrule
+
                 return {
                     ...base,
-                    rrule: ev.rrule,
-                    startTime,
-                    duration
+                    rrule: rruleWithDtstart,
                 }
             } else {
                 // single instance
                 return {
                     ...base,
-                    start: ev.start,
-                    end: ev.end ?? undefined
+                    start: event.start,
+                    end: event.end ?? undefined
                 }
             }
         })
@@ -197,6 +204,12 @@ function onEditSelected() {
     if (url) window.location.href = url
 }
 
+function onDeleteSelected() {
+    if (!canManage.value || !selected.value) return
+    const url = route('events.destroy', selected.value.id) // adjust
+    if (url) window.location.href = url
+}
+
 /** ---- FullCalendar options ---- */
 const todayISO = new Date().toISOString().slice(0, 10)
 const initialDate = computed(() => props.currentMonth ?? todayISO)
@@ -207,28 +220,51 @@ const headerToolbar = {
     right: 'dayGridMonth'
 }
 
+function isOverflowing(el?: Element | null) {
+    if (!el) return false
+    const e = el as HTMLElement
+    return e.scrollWidth > e.clientWidth
+}
+
 function eventDidMount(info: any) {
-    // Add a small lock badge for restricted-detail events
-    const event: OrgEventDto = info.event.extendedProps
+    const event = info.event.extendedProps as OrgEventDto
+    const main = (info.el.querySelector('.fc-event-main') as HTMLElement) || (info.el as HTMLElement)
+
+    // guarantee colors (some themes don’t apply backgroundColor reliably)
+    const bg = event.type?.color || 'var(--p-primary-color, #5868fc)'
+    main.style.backgroundColor = bg
+    main.style.borderColor = bg
+    main.style.color = '#fff'
+
+    // add tooltip only if truncated
+    const titleEl = info.el.querySelector('.fc-event-title')
+    if (isOverflowing(titleEl)) {
+        info.el.setAttribute('title', event.title)
+    }
+
+    // draft badge + class
+    if (!event.is_public) {
+        info.el.classList.add('fc-draft')
+        const badge = document.createElement('span')
+        badge.className = 'fc-draft-badge'
+        badge.textContent = 'Draft'
+        main.appendChild(badge)
+    }
+
+    // lock icon for restricted-detail events (optional, keep if you like)
     const allowed = canViewDetails(event)
     if (!allowed) {
         const lock = document.createElement('span')
         lock.className = 'pi pi-lock fc-lock-icon'
-        lock.setAttribute('aria-label', 'Restricted details')
-        // tiny inline badge
-        Object.assign(lock.style, {
-            fontSize: '0.75rem',
-            marginLeft: '0.375rem',
-            verticalAlign: 'middle'
-        })
+        Object.assign(lock.style, { fontSize: '0.75rem', marginLeft: '0.375rem', verticalAlign: 'middle' })
         info.el.querySelector('.fc-event-title')?.append(lock)
-        // subdue the event background slightly to hint it’s restricted (but still visible)
-        info.el.style.filter = 'saturate(0.7) brightness(0.95)'
+        info.el.style.filter = 'saturate(0.85) brightness(0.98)'
     }
 }
 
 const calendarOptions = computed(() => ({
     plugins: [dayGridPlugin, interactionPlugin, rrulePlugin],
+    timeZone: 'local',
     initialView: 'dayGridMonth',
     initialDate: initialDate.value,
     headerToolbar,
@@ -345,20 +381,31 @@ const legendTypes = computed(() => props.types || [])
 
             <!-- footer MUST be a direct child slot -->
             <template #footer>
-                <div class="flex justify-end gap-2">
-                    <Button
-                        v-if="canManage && selected"
-                        icon="pi pi-pencil"
-                        label="Edit"
-                        @click="onEditSelected"
-                    />
-                    <Button
-                        icon="pi pi-times"
-                        label="Close"
-                        severity="secondary"
-                        text
-                        @click="showDialog = false"
-                    />
+                <div class="w-full flex justify-between gap-2">
+                    <div class="flex">
+                        <Button
+                            v-if="canManage && selected"
+                            icon="pi pi-delete"
+                            label="Delete"
+                            severity="danger"
+                            @click="onDeleteSelected"
+                        />
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <Button
+                            v-if="canManage && selected"
+                            icon="pi pi-pencil"
+                            label="Edit"
+                            @click="onEditSelected"
+                        />
+                        <Button
+                            icon="pi pi-times"
+                            label="Close"
+                            severity="secondary"
+                            text
+                            @click="showDialog = false"
+                        />
+                    </div>
                 </div>
             </template>
         </Dialog>
@@ -366,50 +413,55 @@ const legendTypes = computed(() => props.types || [])
 </template>
 
 <style scoped>
-/* Make restricted lock icon sit nicely inline with title */
-:deep(.fc-lock-icon) {
-    opacity: .9
+/* Ensure inline background/border applied by eventDidMount take effect */
+:deep(.fc .fc-daygrid-event .fc-event-main) {
+    background-color: inherit;
+    border-color: inherit;
+    color: inherit;
 }
 
-/* Day grid minor polish for dark */
-:deep(.fc) {
-    --fc-page-bg-color: transparent;
-}
-
-:deep(.fc .fc-daygrid-day) {
-    border-color: rgba(0, 0, 0, .08);
-}
-
-:deep(.app-dark .fc .fc-daygrid-day) {
-    border-color: rgba(255, 255, 255, .08);
-}
-
-/* Draft event stripe overlay + dashed border */
+/* Draft: diagonal stripes + dashed border */
 :deep(.fc-draft .fc-event-main) {
     position: relative;
-    /* overlay subtle white stripes on top of the event color */
     background-image: repeating-linear-gradient(
         45deg,
-        rgba(255,255,255,0.18) 0,
-        rgba(255,255,255,0.18) 6px,
-        rgba(255,255,255,0) 6px,
-        rgba(255,255,255,0) 12px
+        rgba(255, 255, 255, 0.18) 0,
+        rgba(255, 255, 255, 0.18) 6px,
+        rgba(255, 255, 255, 0) 6px,
+        rgba(255, 255, 255, 0) 12px
     ) !important;
+    border-style: dashed !important;
 }
 
 :deep(.app-dark .fc-draft .fc-event-main) {
-    /* slightly stronger in dark mode for visibility */
     background-image: repeating-linear-gradient(
         45deg,
-        rgba(255,255,255,0.25) 0,
-        rgba(255,255,255,0.25) 6px,
-        rgba(255,255,255,0) 6px,
-        rgba(255,255,255,0) 12px
+        rgba(255, 255, 255, 0.25) 0,
+        rgba(255, 255, 255, 0.25) 6px,
+        rgba(255, 255, 255, 0) 6px,
+        rgba(255, 255, 255, 0) 12px
     ) !important;
 }
 
-:deep(.fc-draft) {
-    border-style: dashed !important;
-    opacity: 0.95; /* tiny hint it's different without hiding it */
+/* Small 'Draft' badge in top-right */
+:deep(.fc-draft-badge) {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 10px;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 9999px;
+    background: rgba(0, 0, 0, .35);
+    color: #fff;
+    pointer-events: none;
 }
+
+:deep(.app-dark .fc-draft-badge) {
+    background: rgba(0, 0, 0, .5);
+}
+
+/* Optional: lock icon polish */
+:deep(.fc-lock-icon) { opacity: .95 }
+
 </style>
