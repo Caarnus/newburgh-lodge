@@ -1,4 +1,4 @@
-@import './paginator';
+@import './paginator.css';
 
 .p-datatable {
     @apply relative
@@ -405,4 +405,16 @@
 
 .p-datatable-row-toggle-icon:dir(rtl) {
     @apply rotate-180
+}
+
+@layer components {
+    .p-datatable .p-datatable-thead > tr > th {
+        @apply bg-surface-50 text-surface-700 border-surface-200 dark:bg-surface-800 dark:text-surface-100 dark:border-surface-700;
+    }
+    .p-datatable .p-datatable-tbody > tr > td {
+        @apply border-surface-200 dark:border-surface-700;
+    }
+    .app-dark .p-datatable .p-datatable-tbody > tr:hover {
+        @apply bg-surface-0/5;
+    }
 }

@@ -26,7 +26,7 @@ const navMenuItems = ref([
     { label: "About", items: [
             { label: "History", url: route('history')},
             { label: "Officers", url: route('officers')},
-            { label: "Past Masters", url: route('past-masters')},
+            { label: "Past Masters", url: route('past-masters.index')},
             { label: "Masonic FAQ", url: route('faq')},
             { label: "Directions", url: "https://www.google.com/maps/dir/?api=1&destination=720+Filmore+St+Newburgh+IN+47630&travelmode=driving", target: "_blank"},
         ]
@@ -53,7 +53,7 @@ const navMenuItems = ref([
             { label: "Log Out", command: () => logout(), visible: !!page.props.auth.user },
         ]
     },
-    { icon: isDark ? 'pi pi-sun' : 'pi pi-moon', class: "ml-20", command: () => toggleDark(),}
+    { icon: isDark ? 'pi pi-sun' : 'pi pi-moon', class: "ml-10 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800", command: () => toggleDark(),}
 ])
 
 const logout = () => {
@@ -76,7 +76,7 @@ const logout = () => {
 
         <Banner />
 
-        <div class="min-h-screen bg-gray-100 dark:bg-surface-800">
+        <div class="min-h-screen bg-surface-100 dark:bg-surface-800">
             <nav class="bg-surface-0 dark:bg-surface-800">
                 <div class="flex">
                     <Menubar :model="navMenuItems" class="w-full rounded-b-none gap-2">
@@ -100,8 +100,8 @@ const logout = () => {
             </nav>
 
             <!-- Page Heading -->
-            <header v-if="$slots.header" class="bg-white shadow">
-                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <header v-if="$slots.header" class="bg-surface-50 dark:bg-surface-900 shadow">
+                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 text-surface-900 dark:text-surface-100">
                     <slot name="header" />
                 </div>
             </header>

@@ -1,5 +1,7 @@
 import './bootstrap';
+import 'quill/dist/quill.snow.css'
 import '../css/app.css';
+import '../css/quill-overrides.css';
 
 import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';

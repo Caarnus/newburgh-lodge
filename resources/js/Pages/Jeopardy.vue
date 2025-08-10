@@ -46,7 +46,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
+  <div class="min-h-screen bg-surface-900 text-surface-0 flex flex-col items-center justify-center">
     <h1 class="text-4xl font-bold mb-6">Masonic Jeopardy!</h1>
 
     <div v-if="isLoading" class="text-xl text-blue-300">Loading board...</div>

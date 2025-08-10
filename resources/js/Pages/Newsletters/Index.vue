@@ -27,30 +27,32 @@ const latest = computed(() => {
 <template>
     <AppLayout :title="$page.props.site.newsletterLabel">
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-                {{ $page.props.site.newsletterLabel }}
-            </h2>
-            <div v-if="$page.props.can?.newsletter?.create" class="flex justify-end">
-                <Link :href="route('newsletters.create')">
-                    <Button icon="pi pi-plus" label="New" />
-                </Link>
+            <div class="flex flex-row justify-between">
+                <h2 class="font-semibold text-xl text-surface-800 dark:text-surface-100 leading-tight">
+                    {{ $page.props.site.newsletterLabel }}
+                </h2>
+                <div v-if="$page.props.can?.newsletter?.create" class="flex justify-end">
+                    <Link :href="route('newsletters.create')">
+                        <Button icon="pi pi-plus" label="New" />
+                    </Link>
+                </div>
             </div>
         </template>
 
         <div class="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8 space-y-8">
             <!-- Latest Newsletter Card -->
-            <Card v-if="latest" class="shadow-lg border border-gray-200 dark:border-gray-700 rounded-xl">
+            <Card v-if="latest" class="shadow-lg border border-surface-200 dark:border-surface-700 rounded-xl">
                 <template #title>
                     <div class="flex items-center justify-between">
-                        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">
+                        <h2 class="text-xl font-bold text-surface-900 dark:text-surface-100">
                             Latest {{ $page.props.site.newsletterLabel }}
                         </h2>
                         <Tag value="New" severity="success" />
                     </div>
                 </template>
                 <template #content>
-                    <p class="text-lg font-semibold text-gray-800 dark:text-gray-200">{{ latest.title }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                    <p class="text-lg font-semibold text-surface-800 dark:text-surface-200">{{ latest.title }}</p>
+                    <p class="text-sm text-surface-500 dark:text-surface-400">
                         Published {{ new Date(latest.created_at).toLocaleDateString() }}
                     </p>
                 </template>
@@ -63,7 +65,7 @@ const latest = computed(() => {
 
             <!-- Search + Table -->
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">
+                <h2 class="text-lg font-bold text-surface-900 dark:text-surface-100">
                     All {{ $page.props.site.newsletterLabel }}
                 </h2>
                 <span class="p-input-icon-left w-full sm:w-auto">
@@ -76,7 +78,7 @@ const latest = computed(() => {
                 </span>
             </div>
 
-            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <div class="bg-surface-0 dark:bg-surface-800 shadow rounded-lg p-4">
                 <DataTable
                     :value="filteredNewsletters"
                     paginator

@@ -1,0 +1,77 @@
+/* Toolbar: no border; background only */
+.pv-editor .ql-toolbar.ql-snow {
+    background-color: var(--p-surface-0) !important;
+    color: var(--p-text-color) !important;
+    border: 0 !important;                 /* wrapper handles border/radius */
+}
+
+/* Container: no outer border; add top divider only */
+.pv-editor .ql-container.ql-snow {
+    background-color: var(--p-surface-0) !important;
+    border: 0 !important;
+    border-top: 1px solid var(--p-content-border-color) !important;  /* divider between toolbar & editor */
+}
+
+/* Editor area: solid background + min height */
+.pv-editor .ql-container.ql-snow .ql-editor {
+    background-color: var(--p-surface-0) !important;
+    color: var(--p-text-color) !important;
+    min-height: 16rem;  /* adjust to taste */
+}
+
+/* Dark mode */
+html.app-dark .pv-editor .ql-toolbar.ql-snow {
+    background-color: var(--p-surface-950) !important;
+    color: var(--p-text-color) !important;
+}
+html.app-dark .pv-editor .ql-container.ql-snow {
+    background-color: var(--p-surface-950) !important;
+    border-top-color: var(--p-content-border-color) !important;
+}
+html.app-dark .pv-editor .ql-container.ql-snow .ql-editor {
+    background-color: var(--p-surface-950) !important;
+    color: var(--p-text-color) !important;
+}
+
+/* Dark mode: brighten toolbar buttons & icons */
+html.app-dark .pv-editor .ql-toolbar.ql-snow button,
+html.app-dark .pv-editor .ql-toolbar.ql-snow .ql-picker-label,
+html.app-dark .pv-editor .ql-toolbar.ql-snow .ql-picker-item {
+    color: var(--p-surface-200) !important; /* lighter text */
+}
+
+/* Dark mode: brighten SVG icons (strokes/fills) */
+html.app-dark .pv-editor .ql-toolbar.ql-snow .ql-stroke {
+    stroke: var(--p-surface-400) !important;
+}
+html.app-dark .pv-editor .ql-toolbar.ql-snow .ql-fill {
+    fill: var(--p-surface-400) !important;
+}
+
+/* Optional: hover state a bit brighter */
+html.app-dark .pv-editor .ql-toolbar.ql-snow button:hover,
+html.app-dark .pv-editor .ql-toolbar.ql-snow .ql-picker-label:hover,
+html.app-dark .pv-editor .ql-toolbar.ql-snow .ql-picker-item:hover {
+    color: var(--p-primary-400) !important;
+}
+html.app-dark .pv-editor .ql-toolbar.ql-snow button:hover .ql-stroke {
+    stroke: var(--p-primary-400) !important;
+}
+html.app-dark .pv-editor .ql-toolbar.ql-snow button:hover .ql-fill {
+    fill: var(--p-primary-400) !important;
+}
+
+/* Dark mode: dropdown background & text for Quill pickers */
+html.app-dark .pv-editor .ql-toolbar.ql-snow .ql-picker-options {
+    background-color: var(--p-surface-950) !important;
+    border-color: var(--p-surface-700) !important;
+}
+
+html.app-dark .pv-editor .ql-toolbar.ql-snow .ql-picker-options .ql-picker-item {
+    color: var(--p-surface-100) !important;
+}
+
+html.app-dark .pv-editor .ql-toolbar.ql-snow .ql-picker-options .ql-picker-item:hover {
+    background-color: var(--p-surface-900) !important;
+    color: var(--p-primary-400) !important;
+}

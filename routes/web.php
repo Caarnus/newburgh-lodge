@@ -3,6 +3,7 @@
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\JeopardyQuestionController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\PastMasterController;
 use App\Http\Controllers\UserAdminController;
 use App\Models\Newsletter;
 use Illuminate\Support\Facades\Route;
@@ -66,9 +67,9 @@ Route::get('/officers', function () {
     return Inertia::render('Officers');
 })->name('officers');
 
-Route::get('/past-masters', function () {
-    return Inertia::render('PastMasters');
-})->name('past-masters');
+
+Route::get('/past-masters', [PastMasterController::class, 'index'])
+    ->name('past-masters.index');
 
 Route::get('/faq', function () {
     return Inertia::render('Questions');

@@ -49,7 +49,7 @@ function submit() {
     <AppLayout :title="pageTitle">
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
+                <h2 class="font-semibold text-xl text-surface-800 dark:text-surface-100 leading-tight">
                     {{ pageTitle }}
                 </h2>
                 <div class="hidden sm:flex gap-2">
@@ -69,10 +69,10 @@ function submit() {
                 <Button icon="pi pi-save" :label="isEdit ? 'Update' : 'Create'" class="w-full" @click="submit" />
             </div>
 
-            <Card class="shadow-lg rounded-xl overflow-hidden bg-white dark:bg-gray-900">
+            <Card class="shadow-lg rounded-xl overflow-hidden bg-surface-0 dark:bg-surface-900">
                 <template #header>
                     <div class="px-6 sm:px-10 pt-8">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-100">
                             {{ isEdit ? 'Edit' : 'New' }} {{ $page.props?.site?.newsletterLabel ?? 'Newsletter' }}
                         </h3>
                         <Divider class="mt-4" />
@@ -83,39 +83,57 @@ function submit() {
                     <form class="px-6 sm:px-10 pb-8 space-y-6" @submit.prevent="submit">
                         <!-- Title -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+                            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Title</label>
                             <InputText v-model="form.title" class="w-full mt-1" :invalid="!!form.errors.title" />
                             <p v-if="form.errors.title" class="mt-1 text-sm text-red-500">{{ form.errors.title }}</p>
                         </div>
 
-                        <!-- Issue -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Issue (e.g. May 2025)</label>
-                                <InputText v-model="form.issue" class="w-full mt-1" :invalid="!!form.errors.issue" />
-                                <p v-if="form.errors.issue" class="mt-1 text-sm text-red-500">{{ form.errors.issue }}</p>
+                        <!-- Issue + Public toggle -->
+                        <div class="flex flex-wrap items-center gap-6">
+                            <!-- Issue -->
+                            <div class="flex-1 min-w-[200px]">
+                                <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">
+                                    Issue (e.g. May 2025)
+                                </label>
+                                <InputText
+                                    v-model="form.issue"
+                                    class="w-full mt-1"
+                                    :invalid="!!form.errors.issue"
+                                />
+                                <p v-if="form.errors.issue" class="mt-1 text-sm text-red-500">
+                                    {{ form.errors.issue }}
+                                </p>
                             </div>
 
                             <!-- Public toggle -->
-                            <div class="flex items-center gap-3 mt-6 sm:mt-0">
-                                <InputSwitch v-model="form.is_public" inputId="is_public" />
-                                <label for="is_public" class="text-sm text-gray-700 dark:text-gray-300">Public</label>
+                            <div class="flex items-center gap-3 pt-6 sm:pt-[1.625rem]">
+                                <label for="is_public" class="text-sm text-surface-700 dark:text-surface-300 select-none">
+                                    Public
+                                </label>
+                                <InputSwitch
+                                    v-model="form.is_public"
+                                    inputId="is_public"
+                                    class="scale-90 origin-center"
+                                />
                             </div>
                         </div>
 
                         <!-- Summary -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Summary</label>
+                            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Summary</label>
                             <Textarea v-model="form.summary" class="w-full mt-1" rows="3" :invalid="!!form.errors.summary" />
                             <p v-if="form.errors.summary" class="mt-1 text-sm text-red-500">{{ form.errors.summary }}</p>
                         </div>
 
                         <!-- Body (HTML) -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Body</label>
-                            <Editor v-model="form.body" class="mt-2" :pt="{ toolbar: { class: 'sticky top-0 z-10' } }" />
+                            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Body</label>
+<!--                            <Editor v-model="form.body" class="mt-2" :pt="{ toolbar: { class: 'sticky top-0 z-10' } }" />-->
+                            <div class="pv-editor rounded-md border border-[color:var(--p-content-border-color)] overflow-hidden">
+                                <Editor v-model="form.body" class="pv-editor__inner" />
+                            </div>
                             <p v-if="form.errors.body" class="mt-1 text-sm text-red-500">{{ form.errors.body }}</p>
-                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            <p class="mt-2 text-xs text-surface-500 dark:text-surface-400">
                                 Printing will automatically format into two columns (letter size), matching the PDF layout.
                             </p>
                         </div>

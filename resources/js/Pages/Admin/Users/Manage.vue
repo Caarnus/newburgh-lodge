@@ -194,7 +194,7 @@ watch(() => props.users, (u) => {
     <AppLayout title="User Management">
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
+                <h2 class="font-semibold text-xl text-surface-800 dark:text-surface-100 leading-tight">
                     User Management
                 </h2>
                 <div class="flex items-center gap-2">
@@ -214,7 +214,7 @@ watch(() => props.users, (u) => {
         </template>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <Card class="bg-white dark:bg-gray-900 shadow">
+            <Card class="bg-surface-0 dark:bg-surface-900 shadow">
                 <template #content>
                     <DataTable :value="props.users" paginator :rows="10" striped-rows responsive-layout="scroll">
                         <Column field="name" header="Name" :sortable="true">

@@ -42,7 +42,7 @@ function printPage() {
     <AppLayout :title="title">
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
+                <h2 class="font-semibold text-xl text-surface-800 dark:text-surface-100 leading-tight">
                     {{ label }}
                 </h2>
                 <div class="hidden sm:flex gap-2 print:hidden">
@@ -63,20 +63,20 @@ function printPage() {
                 <Button icon="pi pi-print" label="Print" class="w-full" @click="printPage" />
             </div>
 
-            <Card class="print-area shadow-lg rounded-xl overflow-hidden bg-white dark:bg-gray-900 print:bg-white">
+            <Card class="print-area shadow-lg rounded-xl overflow-hidden bg-surface-0 dark:bg-surface-900 print:bg-surface-0">
                 <!-- header slot -->
                 <template #header>
                     <div class="px-6 sm:px-10 pt-8 text-center">
-                        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-wide text-gray-900 dark:text-gray-100 uppercase">
+                        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-wide text-surface-900 dark:text-surface-100 uppercase">
                             {{ orgName }}
                         </h1>
-                        <p class="mt-1 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+                        <p class="mt-1 text-sm sm:text-base text-surface-700 dark:text-surface-300">
                             {{ title }}
                         </p>
-                        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        <p class="text-xs sm:text-sm text-surface-500 dark:text-surface-400">
                             {{ subhead }}
                         </p>
-                        <p v-if="byLine" class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        <p v-if="byLine" class="text-xs sm:text-sm text-surface-500 dark:text-surface-400">
                             {{ byLine }}
                         </p>
                         <Divider class="mt-4" />
@@ -87,7 +87,7 @@ function printPage() {
                 <template #content>
                     <div class="px-6 sm:px-10 pb-8">
                         <article
-                            class="newsletter-content prose prose-neutral dark:prose-invert max-w-none text-gray-800 dark:text-gray-100"
+                            class="newsletter-content prose prose-neutral dark:prose-invert max-w-none text-surface-800 dark:text-surface-100"
                             v-html="html"
                         />
                     </div>
@@ -95,7 +95,7 @@ function printPage() {
 
                 <!-- footer slot -->
                 <template #footer>
-                    <div class="px-6 sm:px-10 pb-8 text-center text-xs text-gray-500 dark:text-gray-400">
+                    <div class="px-6 sm:px-10 pb-8 text-center text-xs text-surface-500 dark:text-surface-400">
                         <Divider class="mb-2" />
                         <p>
                             {{ orgName }}<span v-if="publishedDate"> • Published {{ publishedDate }}</span>

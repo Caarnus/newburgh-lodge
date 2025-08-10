@@ -6,19 +6,19 @@ import AppLayout from "@/Layouts/AppLayout.vue";
 <template>
     <AppLayout title="History">
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <h2 class="font-semibold text-xl leading-tight">
                 Lodge History
             </h2>
         </template>
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
+                <div class="bg-surface-0 overflow-hidden shadow-xl sm:rounded-lg">
                     <div class="dark:bg-surface-900 dark:text-surface-200 font-sans">
                         <div class="max-w-3xl mx-auto p-6">
                             <section class="mb-6">
                                 <h1 class="text-3xl font-bold text-center text-primary-700 dark:text-primary-400">Newburgh Lodge No. 174 F&AM</h1>
-                                <p class="text-center text-gray-400">Chartered by the Grand Lodge of Indiana on May 29, 1855</p>
+                                <p class="text-center text-surface-400">Chartered by the Grand Lodge of Indiana on May 29, 1855</p>
                             </section>
 
                             <section class="mb-6">

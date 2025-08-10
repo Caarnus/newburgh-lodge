@@ -97,7 +97,7 @@ const gridCells = computed(() => {
          :style="`height: calc(100vh - 4rem)`">
         <!-- Bonus Round Transition -->
         <transition name="fade">
-            <div v-if="bonusPending" class="absolute inset-0 z-50 bg-black flex items-center justify-center">
+            <div v-if="bonusPending" class="absolute inset-0 z-50 bg-surface-950 flex items-center justify-center">
                 <GameCard
                     text="BONUS Question"
                     clickable
@@ -118,7 +118,7 @@ const gridCells = computed(() => {
                 <div
                     v-for="category in categoryList"
                     :key="category"
-                    class="flex items-center justify-center font-bold text-3xl text-white bg-blue-900 p-2 rounded"
+                    class="flex items-center justify-center font-bold text-3xl text-surface-0 bg-blue-900 p-2 rounded"
                 >
                     {{ category }}
                 </div>

@@ -6,24 +6,24 @@ import AppLayout from "@/Layouts/AppLayout.vue";
 <template>
     <AppLayout title="Officers">
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <h2 class="font-semibold text-xl leading-tight">
                 Lodge Officers
             </h2>
         </template>
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
+                <div class="bg-surface-0 overflow-hidden shadow-xl sm:rounded-lg">
                     <div class="dark:bg-surface-900 dark:text-surface-200 font-sans">
                         <div class="max-w-3xl mx-auto p-6">
                             <section class="mb-6">
                                 <table class="mt-4 mx-auto w-full max-w-lg text-left">
                                     <thead>
-                                    <tr class="text-primary-700 border-b border-gray-700">
+                                    <tr class="text-primary-700 border-b border-surface-700">
                                         <th class="px-4 py-2 text-right">Title</th>
                                         <th class="px-4 py-2 text-left">Name</th>
                                     </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-700">
+                                    <tbody class="divide-y divide-surface-700">
                                     <tr>
                                         <td class="px-4 py-2 text-right">Worshipful Master:</td>
                                         <td class="px-4 py-2">David Brickey II</td>

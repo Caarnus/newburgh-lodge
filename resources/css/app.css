@@ -65,7 +65,7 @@
  * :root[class="app-dark"] {
 */
 :root[class="app-dark"] {
-    --p-primary-color: var(--p-primary-700);
+    --p-primary-color: var(--p-primary-400);
     --p-primary-contrast-color: var(--p-surface-900);
     --p-primary-hover-color: var(--p-primary-600);
     --p-primary-active-color: var(--p-primary-500);

@@ -16,7 +16,7 @@ const handleClick = () => {
 
 <template>
     <div
-        class="w-full h-full text-white text-2xl font-bold flex items-center justify-center text-center rounded shadow transition cursor-pointer"
+        class="w-full h-full text-surface-0 text-2xl font-bold flex items-center justify-center text-center rounded shadow transition cursor-pointer"
         :class="{
             'h-full' : limitHeight,
             'bg-blue-950 hover:bg-blue-950' : props.clicked,

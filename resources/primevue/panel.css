@@ -1,4 +1,4 @@
-@import './button';
+@import './button.css';
 
 .p-panel {
     @apply border border-surface-200 dark:border-surface-700 rounded-md
@@ -19,9 +19,9 @@
 }
 
 .p-panel-content {
-    @apply pt-0 pb-[1.125rem] px-[1.125rem] 
+    @apply pt-0 pb-[1.125rem] px-[1.125rem]
 }
 
 .p-panel-footer {
-    @apply pt-0 pb-[1.125rem] px-[1.125rem] 
+    @apply pt-0 pb-[1.125rem] px-[1.125rem]
 }

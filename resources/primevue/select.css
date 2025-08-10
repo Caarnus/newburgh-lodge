@@ -1,6 +1,6 @@
-@import './button';
-@import './inputtext';
-@import './iconfield';
+@import './button.css';
+@import './inputtext.css';
+@import './iconfield.css';
 
 .p-select {
     @apply inline-flex cursor-pointer relative select-none rounded-md
@@ -141,4 +141,20 @@ input.p-select-label {
 
 .p-select-lg .p-select-dropdown .p-icon {
     @apply text-lg w-[1.125rem] h-[1.125rem]
+}
+
+@layer components {
+    .p-inputtext,
+    .p-multiselect,
+    .p-dropdown,
+    .p-password {
+        @apply bg-surface-0 text-surface-900 border border-surface-200 dark:bg-surface-800 dark:text-surface-100 dark:border-surface-700;
+    }
+
+    .p-inputtext:focus,
+    .p-multiselect:focus-within,
+    .p-dropdown:focus-within,
+    .p-password:focus-within {
+        @apply outline-none ring-2 ring-primary-500/30 border-primary-500;
+    }
 }
