@@ -4,15 +4,15 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 
 <template>
     <div>
-        <div class="p-6 lg:p-8 bg-surface-0 border-b border-surface-200">
+        <div class="p-6 lg:p-8 bg-surface-200 dark:bg-surface-600 border-b border-surface-200 dark:border-surface-800">
             <div class="flex flex-row gap-x-4">
                 <ApplicationLogo class="block h-48 w-auto" />
                 <div>
-                    <h1 class="mt-8 text-2xl font-medium text-surface-900">
+                    <h1 class="mt-8 text-2xl font-medium text-surface-900 dark:text-surface-100">
                         Newburgh Lodge #174 F&AM
                     </h1>
 
-                    <p class="mt-6 text-surface-500 leading-relaxed">
+                    <p class="mt-6 text-surface-500 dark:text-surface-400 leading-relaxed">
                         Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
                         labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
                         nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit
@@ -23,11 +23,11 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
             </div>
         </div>
 
-        <div class="bg-surface-200 bg-opacity-25 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 p-6 lg:p-8">
+        <div class="bg-surface-200 dark:bg-surface-700 bg-opacity-25 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 p-6 lg:p-8">
             <div>
                 <div class="flex items-center">
                     <i class="pi pi-book text-surface-400"></i>
-                    <h2 class="ms-3 text-xl font-semibold text-surface-900">
+                    <h2 class="ms-3 text-xl font-semibold text-surface-900 dark:text-surface-300">
                         <a href="/">Compass Points</a>
                     </h2>
                 </div>
@@ -38,10 +38,10 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
                 </p>
 
                 <p class="mt-4 text-sm">
-                    <a href="/" class="inline-flex items-center font-semibold text-indigo-700">
+                    <a href="/" class="inline-flex items-center font-semibold text-primary-700 dark:text-primary-300">
                         Read the newsleter
 
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" class="ms-1 size-5 fill-indigo-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" class="ms-1 size-5 fill-primary-500">
                             <path fill-rule="evenodd" d="M5 10a.75.75 0 01.75-.75h6.638L10.23 7.29a.75.75 0
                             111.04-1.08l3.5 3.25a.75.75 0 010 1.08l-3.5 3.25a.75.75 0 11-1.04-1.08l2.158-1.96H5.75A.75.75
                             0 015 10z" clip-rule="evenodd" />
@@ -53,7 +53,7 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
             <div>
                 <div class="flex items-center">
                     <i class="pi pi-camera text-surface-400"></i>
-                    <h2 class="ms-3 text-xl font-semibold text-surface-900">
+                    <h2 class="ms-3 text-xl font-semibold text-surface-900 dark:text-surface-300">
                         <a href="/">Video Message</a>
                     </h2>
                 </div>
@@ -64,10 +64,10 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
                 </p>
 
                 <p class="mt-4 text-sm">
-                    <a href="/" class="inline-flex items-center font-semibold text-indigo-700">
+                    <a href="/" class="inline-flex items-center font-semibold text-primary-700 dark:text-primary-300">
                         Watching the video
 
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" class="ms-1 size-5 fill-indigo-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" class="ms-1 size-5 fill-primary-500">
                             <path fill-rule="evenodd" d="M5 10a.75.75 0 01.75-.75h6.638L10.23 7.29a.75.75 0
                             111.04-1.08l3.5 3.25a.75.75 0 010 1.08l-3.5 3.25a.75.75 0 11-1.04-1.08l2.158-1.96H5.75A.75.75
                             0 015 10z" clip-rule="evenodd" />
@@ -79,7 +79,7 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
             <div>
                 <div class="flex items-center">
                     <i class="pi pi-calendar text-surface-400"></i>
-                    <h2 class="ms-3 text-xl font-semibold text-surface-900">
+                    <h2 class="ms-3 text-xl font-semibold text-surface-900 dark:text-surface-300">
                         <a href="/">Calendar</a>
                     </h2>
                 </div>
@@ -93,7 +93,7 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
             <div>
                 <div class="flex items-center">
                     <i class="pi pi-users text-surface-400"></i>
-                    <h2 class="ms-3 text-xl font-semibold text-surface-900">
+                    <h2 class="ms-3 text-xl font-semibold text-surface-900 dark:text-surface-300">
                         Officers
                     </h2>
                 </div>

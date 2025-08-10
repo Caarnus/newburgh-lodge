@@ -13,7 +13,7 @@ import Welcome from '@/Components/Welcome.vue';
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-surface-0 overflow-hidden shadow-xl sm:rounded-lg">
+                <div class="bg-surface-0 dark:bg-surface-950 overflow-hidden shadow-xl sm:rounded-lg">
                     <Welcome />
                 </div>
             </div>
