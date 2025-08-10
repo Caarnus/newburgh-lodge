@@ -38,10 +38,10 @@ Route::get('/events/{event}', [OrgEventController::class, 'show'])
     ->where('event', '[0-9]+')
     ->name('events.show');
 
-Route::get('/contact', function () {
+Route::get('/contact-us', function () {
     return Inertia::render('Contact');
-})->name('contact');
-Route::post('/contact', [ContactController::class, 'submit'])->name('contact');
+})->name('contact-us.index');
+Route::post('/contact-us', [ContactController::class, 'submit'])->name('contact-us.submit');
 
 Route::get('/history', function () {
     return Inertia::render('History');
