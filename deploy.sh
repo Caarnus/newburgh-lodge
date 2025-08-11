@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="/var/html/lodge"
+APP_DIR="/var/www/lodge"
 BRANCH="${1:-main}"
 WEB_USER="www-data"
 WEB_GROUP="www-data"
