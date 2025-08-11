@@ -370,7 +370,6 @@ function buildRRule(): string | '' {
     }
 
     if (form.repeat_options.ends === 'until' && form.repeat_options.until) {
-        // until is a DATE in UI; RFC expects UTC “YYYYMMDDT235959Z” (end of that day)
         const u = (form.repeat_options.until as string).replace(/-/g,'')
         body += `;UNTIL=${u}T235959`
     } else if (form.repeat_options.ends === 'count' && form.repeat_options.count) {
