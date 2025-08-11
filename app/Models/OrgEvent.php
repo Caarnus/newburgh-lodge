@@ -17,6 +17,7 @@ class OrgEvent extends Model
         'repeats',
         'rrule',
         'location',
+        'timezone',
         'is_public',
         'masons_only',
         'degree_required',

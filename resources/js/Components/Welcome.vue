@@ -1,5 +1,6 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import { route } from 'ziggy-js'
 </script>
 
 <template>
@@ -28,7 +29,7 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
                 <div class="flex items-center">
                     <i class="pi pi-book text-surface-400"></i>
                     <h2 class="ms-3 text-xl font-semibold text-surface-900 dark:text-surface-300">
-                        <a href="/">Compass Points</a>
+                        <a :href="route('newsletters.index')">Compass Points</a>
                     </h2>
                 </div>
 
@@ -38,7 +39,7 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
                 </p>
 
                 <p class="mt-4 text-sm">
-                    <a href="/" class="inline-flex items-center font-semibold text-primary-700 dark:text-primary-300">
+                    <a :href="route('newsletters.index')" class="inline-flex items-center font-semibold text-primary-700 dark:text-primary-300">
                         Read the newsleter
 
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" class="ms-1 size-5 fill-primary-500">
@@ -80,7 +81,7 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
                 <div class="flex items-center">
                     <i class="pi pi-calendar text-surface-400"></i>
                     <h2 class="ms-3 text-xl font-semibold text-surface-900 dark:text-surface-300">
-                        <a href="/">Calendar</a>
+                        <a :href="route('events.index')">Calendar</a>
                     </h2>
                 </div>
 
@@ -94,7 +95,7 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
                 <div class="flex items-center">
                     <i class="pi pi-users text-surface-400"></i>
                     <h2 class="ms-3 text-xl font-semibold text-surface-900 dark:text-surface-300">
-                        Officers
+                        <a :href="route('officers')">Officers</a>
                     </h2>
                 </div>
 

@@ -6,6 +6,7 @@ use App\Models\OrgEvent;
 use App\Models\OrgEventType;
 use App\Models\User;
 use Carbon\Carbon;
+use DateTimeZone;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -74,11 +75,13 @@ class OrgEventController extends Controller
         $data = $this->validateEvent($request);
 
         $this->normalizeDates($data);
+        $tz = $data['timezone'] ?? config('app.timezone', 'UTC');
 
         OrgEvent::create([
             'title'            => $data['title'],
             'description'      => $data['description'] ?? null,
             'location'         => $data['location'] ?? null,
+            'timezone'         => $tz,
             'all_day'          => (bool)($data['all_day'] ?? false),
             'start'            => $data['start'] ?? null,
             'end'              => $data['end'] ?? null,
@@ -103,11 +106,13 @@ class OrgEventController extends Controller
         $data = $this->validateEvent($request);
 
         $this->normalizeDates($data);
+        $tz = $data['timezone'] ?? config('app.timezone', 'UTC');
 
         $event->update([
             'title'            => $data['title'],
             'description'      => $data['description'] ?? null,
             'location'         => $data['location'] ?? null,
+            'timezone'         => $tz,
             'all_day'          => (bool)($data['all_day'] ?? false),
             'start'            => $data['start'] ?? null,
             'end'              => $data['end'] ?? null,
@@ -146,6 +151,9 @@ class OrgEventController extends Controller
             'title'            => ['required', 'string', 'max:255'],
             'description'      => ['nullable', 'string'],
             'location'         => ['nullable', 'string', 'max:255'],
+            'timezone'         => ['nullable','string', function($attr,$val,$fail){
+                if ($val && !in_array($val, DateTimeZone::listIdentifiers())) $fail('Invalid timezone.');
+            }],
 
             'all_day'          => ['sometimes', 'boolean'],
             'start'            => ['nullable', 'date'],
@@ -192,6 +200,7 @@ class OrgEventController extends Controller
             'title'           => $event->title,
             'description'     => $event->description,
             'location'        => $event->location,
+            'timezone'        => $event->timezone,
             'all_day'         => (bool)$event->all_day,
             'start'           => $toIsoUtc($event->start),
             'end'             => $toIsoUtc($event->end),

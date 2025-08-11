@@ -144,6 +144,14 @@ const calendarEvents = computed(() =>
     props.events
         .filter(event => event.is_public || event.can_edit || canManage.value)
         .map(event => {
+            let duration: { minutes: number } | undefined
+            if (event.start && event.end) {
+                const ms = Date.parse(event.end) - Date.parse(event.start)
+                if (ms > 0) {
+                    duration = { minutes: Math.round(ms / 60000) }
+                }
+            }
+
             const base = {
                 id: String(event.id),
                 title: event.title,
@@ -154,13 +162,10 @@ const calendarEvents = computed(() =>
 
             if (event.rrule) {
                 // recurring event
-                const rruleWithDtstart = event.start
-                    ? `DTSTART:${formatDtStartUTC(event.start)}\n${event.rrule}`
-                    : event.rrule
-
                 return {
                     ...base,
-                    rrule: rruleWithDtstart,
+                    rrule: event.rrule,
+                    ...(duration ? { duration } : {}),
                 }
             } else {
                 // single instance
@@ -357,8 +362,8 @@ const legendTypes = computed(() => props.types || [])
                     <div class="mb-1">
                         <i class="pi pi-calendar mr-2" />
                         <span>
-          {{ new Date(selected.start).toLocaleString() }}
-          <template v-if="selected.end"> – {{ new Date(selected.end).toLocaleString() }}</template>
+          {{ new Date(selected.start).toLocaleString('en-US', {month: 'numeric', year: 'numeric', day: 'numeric', hour: 'numeric', minute: "numeric"}) }}
+          <template v-if="selected.end"> – {{ new Date(selected.end).toLocaleString('en-US', {month: 'numeric', year: 'numeric', day: 'numeric', hour: 'numeric', minute: "numeric"}) }}</template>
         </span>
                     </div>
                     <div v-if="selected.location" class="mb-2">

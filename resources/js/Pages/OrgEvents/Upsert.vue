@@ -29,6 +29,7 @@ type OrgEventDto = {
     title?: string
     description?: string | null
     location?: string | null
+    timezone?: string | null
     all_day?: boolean
     start?: string | null // ISO
     end?: string | null   // ISO
@@ -116,6 +117,13 @@ const endChoices = [
     { label: 'After N occurrences…', value: 'count' }
 ]
 
+const tzOptions = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone')
+    : ['America/Chicago','America/New_York','America/Denver','America/Los_Angeles','UTC']
+
+const browserTz = (() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch { return 'UTC' }
+})()
+
 const defaultStartLocal = props.preselectStart
     ? combineDateWithNextHalfHour(props.preselectStart)
     : nextHalfHour()
@@ -126,6 +134,7 @@ const form = useForm<Required<OrgEventDto>>({
     title: props.event?.title ?? '',
     description: props.event?.description ?? '',
     location: props.event?.location ?? '',
+    timezone: props.event?.timezone ?? browserTz,
     all_day: props.event?.all_day ?? false,
     start: props.event?.start ?? defaultStartLocal.toISOString(),
     end: props.event?.end ?? '',
@@ -152,22 +161,36 @@ const form = useForm<Required<OrgEventDto>>({
 })
 
 function pad(n: number) { return (n < 10 ? '0' : '') + String(n)}
-
-// Parse "DTSTART:YYYYMMDDTHHMMSSZ" and return a UTC ISO
-function extractDtstartIso(rruleStr: string): string | null {
-    const m = rruleStr.match(/DTSTART:(\d{8}T\d{6}Z?)/)
-    if (!m) return null
-    const stamp = m[1] // YYYYMMDDTHHMMSSZ?
-    const y = Number(stamp.slice(0, 4))
-    const M = Number(stamp.slice(4, 6)) - 1
-    const d = Number(stamp.slice(6, 8))
-    const h = Number(stamp.slice(9, 11))
-    const i = Number(stamp.slice(11, 13))
-    const s = Number(stamp.slice(13, 15))
-    // Construct explicit UTC
-    const dt = new Date(Date.UTC(y, M, d, h, i, s))
-    return dt.toISOString()
+function formatLocalStamp(d: Date) {
+    return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
 }
+
+// returns { tz?: string, isoUtc?: string, localParts?: {y,M,d,h,i,s} }
+function extractDtstart(rruleStr: string) {
+    // TZID form: DTSTART;TZID=America/Chicago:20250819T180000
+    const tzid = rruleStr.match(/DTSTART;TZID=([^:]+):(\d{8}T\d{6})/)
+    if (tzid) {
+        const tz = tzid[1]
+        const stamp = tzid[2] // local wall time
+        const y = +stamp.slice(0,4), M = +stamp.slice(4,6)-1, d = +stamp.slice(6,8)
+        const h = +stamp.slice(9,11), i = +stamp.slice(11,13), s = +stamp.slice(13,15)
+        // Build a Date as if in that TZ, then convert to UTC ISO for form.start
+        // We can approximate by constructing a date string and letting Date parse in local,
+        // then adjust with Intl if you prefer. Easiest: use the saved UTC start if present.
+        return { tz, localParts: {y, M, d, h, i, s} }
+    }
+    // Zulu form: DTSTART:YYYYMMDDTHHMMSSZ
+    const zulu = rruleStr.match(/DTSTART:(\d{8}T\d{6})Z/)
+    if (zulu) {
+        const stamp = zulu[1]
+        const y = +stamp.slice(0,4), M = +stamp.slice(4,6)-1, d = +stamp.slice(6,8)
+        const h = +stamp.slice(9,11), i = +stamp.slice(11,13), s = +stamp.slice(13,15)
+        const dt = new Date(Date.UTC(y,M,d,h,i,s))
+        return { isoUtc: dt.toISOString() }
+    }
+    return {}
+}
+
 
 function stripDtstart(rruleStr: string): string {
     return rruleStr
@@ -193,9 +216,13 @@ function populateRepeatFromRRule(rruleStr: string) {
     if (!rruleStr) return
 
     // Prefer DTSTART (UTC) for start if present
-    const dtstartIso = extractDtstartIso(rruleStr)
-    if (dtstartIso && !form.start) {
-        form.start = dtstartIso // keep UTC ISO ...Z
+    const dt = extractDtstart(rruleStr)
+    if (dt.tz) {
+        form.timezone = dt.tz
+        // keep form.start as the persisted UTC (props.event.start) if present
+        // otherwise, approximate: create a Date in that TZ and convert to UTC
+    } else if (dt.isoUtc && !form.start) {
+        form.start = dt.isoUtc
     }
 
     const core = stripDtstart(rruleStr).trim()
@@ -324,38 +351,39 @@ const untilModel = computed({
 function buildRRule(): string | '' {
     if (!form.repeats || !form.repeat_options || form.repeat_options.mode === 'none') return ''
 
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-    const start = form.start ? new Date(form.start) : null
-    const parts: string[] = []
-
-    let rule = ''
+    // Take the Start date from the picker as LOCAL wall time:
+    const startLocal = startModel.value ? new Date(startModel.value as any) : null
+    const tz = form.timezone || 'UTC'
+    let body = ''
 
     if (form.repeat_options.mode === 'nth-weekday') {
         const nth = form.repeat_options.nth || 1
-        const wd = form.repeat_options.weekday || 'TU'
+        const wd  = form.repeat_options.weekday || 'TU'
         const interval = form.repeat_options.interval || 1
-        rule = `FREQ=MONTHLY;BYDAY=${wd};BYSETPOS=${nth};INTERVAL=${interval}`
+        body = `FREQ=MONTHLY;BYDAY=${wd};BYSETPOS=${nth};INTERVAL=${interval}`
     } else if (form.repeat_options.mode === 'interval') {
         const freq = form.repeat_options.freq || 'WEEKLY'
         const interval = form.repeat_options.interval || 1
         const byweekday = (form.repeat_options.byweekday && form.repeat_options.byweekday.length)
-            ? `;BYDAY=${form.repeat_options.byweekday.join(',')}`
-            : ''
-        rule = `FREQ=${freq};INTERVAL=${interval}${byweekday}`
+            ? `;BYDAY=${form.repeat_options.byweekday.join(',')}` : ''
+        body = `FREQ=${freq};INTERVAL=${interval}${byweekday}`
     }
 
-    // End conditions
     if (form.repeat_options.ends === 'until' && form.repeat_options.until) {
-        const u = (form.repeat_options.until as string).replace(/-/g, '')
-        rule += `;UNTIL=${u}T235959Z`
+        // until is a DATE in UI; RFC expects UTC “YYYYMMDDT235959Z” (end of that day)
+        const u = (form.repeat_options.until as string).replace(/-/g,'')
+        body += `;UNTIL=${u}T235959`
     } else if (form.repeat_options.ends === 'count' && form.repeat_options.count) {
-        rule += `;COUNT=${form.repeat_options.count}`
+        body += `;COUNT=${form.repeat_options.count}`
     }
 
-    // include timezone note as separate field? (We’ll store TZ in DB separately if you add a column)
-    parts.push(rule)
-    return parts.join('\n')
+    if (startLocal) {
+        const dt = formatLocalStamp(startLocal) // local wall components
+        return `DTSTART;TZID=${tz}:${dt}\n${body}`
+    }
+    return body
 }
+
 
 /** Submit */
 function submit() {
@@ -477,9 +505,15 @@ onMounted(() => {
                         </div>
 
                         <!-- Location -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
-                            <InputText v-model="form.location" class="w-full mt-1" />
+                        <div class="flex flex-row w-full gap-2">
+                            <div class="w-2/3">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
+                                <InputText v-model="form.location" class="w-full mt-1" />
+                            </div>
+                            <div class="w-1/3">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Time zone</label>
+                                <Select v-model="form.timezone" :options="tzOptions" class="w-full mt-1" />
+                            </div>
                         </div>
 
                         <!-- Visibility -->
