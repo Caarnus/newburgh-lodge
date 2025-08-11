@@ -41,11 +41,6 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-echo "==> Ensuring permissions"
-chown -R "$WEB_USER:$WEB_GROUP" storage bootstrap/cache
-find storage bootstrap/cache -type d -exec chmod 775 {} \;
-find storage bootstrap/cache -type f -exec chmod 664 {} \;
-
 echo "==> Leaving maintenance mode"
 php artisan up
 
