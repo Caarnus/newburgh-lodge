@@ -44,7 +44,11 @@ const navMenuItems = ref([
     },
     { label: "Admin", visible: $page.props.can.admin.users, items: [
             { label: "Users", url: route('admin.users.index')},
+        ]
+    },
+    { label: "Manage", visible: $page.props.can.manage.content, items: [
             { label: "Jeopardy", url: route('jeopardy.index')},
+            { label: "Manage Content", url: route('admin.content.index')},
         ]
     },
     { label: page.props.auth?.user?.name ?? "Sign In", class: 'ml-auto', items: [

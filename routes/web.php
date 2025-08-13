@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\ContentTileController;
 use App\Http\Controllers\JeopardyQuestionController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\OrgEventController;
@@ -11,20 +12,8 @@ use App\Models\OrgEvent;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Dashboard', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-    ]);
-});
-
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-    ]);
-})->name('dashboard');
-
+Route::get('/', [ContentTileController::class, 'welcome'])->name('welcome');
+Route::get('/dashboard', [ContentTileController::class, 'welcome'])->name('dashboard');
 
 Route::get('/'.config('site.newsletter_route'), [NewsLetterController::class, 'index'])
     ->name('newsletters.index');
@@ -84,12 +73,14 @@ Route::middleware([
     Route::put('/admin/users/{user}/password', [UserAdminController::class, 'setPassword'])
         ->name('admin.users.setPassword');
 
+
     Route::get('/'.config('site.newsletter_route').'/create', [NewsLetterController::class, 'create'])
         ->name('newsletters.create')
         ->can('create', NewsLetter::class);
     Route::post('/'.config('site.newsletter_route'), [NewsLetterController::class, 'store'])
         ->name('newsletters.store')
         ->can('create', NewsLetter::class);
+
 
     Route::get('/'.config('site.newsletter_route').'/{newsletter}/edit', [NewsLetterController::class, 'edit'])
         ->name('newsletters.edit')
@@ -98,6 +89,7 @@ Route::middleware([
         ->where('newsletter', '[0-9]+')
         ->name('newsletters.update')
         ->can('update', NewsLetter::class);
+
 
     Route::get('/events/create', [OrgEventController::class, 'create'])
         ->name('events.create')
@@ -117,4 +109,13 @@ Route::middleware([
         ->where('event', '[0-9]+')
         ->name('events.destroy')
         ->can('delete', OrgEvent::class);
+});
+
+Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])->prefix('admin/content')->group(function () {
+    Route::get('/', [ContentTileController::class, 'index'])->name('admin.content.index');
+    Route::post('/tiles', [ContentTileController::class, 'store'])->name('admin.content.store');
+    Route::put('/tiles/{tile}', [ContentTileController::class, 'update'])->name('admin.content.update');
+    Route::delete('/tiles/{tile}', [ContentTileController::class, 'destroy'])->name('admin.content.destroy');
+    Route::post('/reorder', [ContentTileController::class, 'reorder'])->name('admin.content.reorder');
+    Route::post('/upload', [ContentTileController::class, 'upload'])->name('admin.content.upload');
 });

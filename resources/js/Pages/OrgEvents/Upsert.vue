@@ -598,7 +598,7 @@ onMounted(() => {
                                     </div>
                                     <div v-if="form.repeat_options?.ends === 'until'">
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Until</label>
-                                        <DatePicker v-model="untilModel" showIcon dateFormat="yy-mm-dd" class="w-full mt-1" />
+                                        <DatePicker v-model="untilModel as any" showIcon dateFormat="yy-mm-dd" class="w-full mt-1" />
                                     </div>
                                     <div v-if="form.repeat_options?.ends === 'count'">
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Occurrences</label>

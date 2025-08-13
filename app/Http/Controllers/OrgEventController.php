@@ -8,6 +8,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use DateTimeZone;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -137,6 +138,42 @@ class OrgEventController extends Controller
         $event->delete();
 
         return redirect()->route('events.index')->with('success', 'Event deleted.');
+    }
+
+    public function fetchEvents(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'days_ahead' => ['nullable', 'integer', 'min:1', 'max:365'],
+            'categories' => ['nullable', 'array'],
+            'categories.*' => ['string', 'max:80'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $days = $data['days_ahead'] ?? 30;
+        $limit = $data['limit'] ?? 5;
+
+        $now = Carbon::now();
+        $until = Carbon::now()->addDays($days);
+
+        $q = OrgEvent::whereBetween('start', [$now, $until])
+            ->orderBy('start','asc');
+
+        if (!empty($data['categories'])) {
+            $q->whereIn('categories', $data['categories']);
+        }
+
+        $rows = $q->limit($limit)->get()->map(function ($event) {
+            return [
+                'id' => $event->id,
+                'title' => $event->title,
+                'start' => $event->start,
+                'end' => $event->end ?? null,
+                'url' => 'https://www.google.com',
+                'type' => $event->type->name,
+            ];
+        });
+
+        return response()->json($rows);
     }
 
     //Helper functions for controller

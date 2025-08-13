@@ -6,6 +6,7 @@ use App\Helpers\RoleEnum;
 use App\Models\Newsletter;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Mailables\Content;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -50,6 +51,9 @@ class HandleInertiaRequests extends Middleware
                 ],
                 'admin' => [
                     'users' => fn () => $request->user()?->can('access', User::class) ?? false,
+                ],
+                'manage' => [
+                    'content' => fn () => $request->user()?->can('manage-content') ?? false,
                 ],
                 'isAdmin'     => $request->user()?->hasRole(RoleEnum::ADMIN),
                 'isSecretary' => $request->user()?->hasRole(RoleEnum::SECRETARY),
