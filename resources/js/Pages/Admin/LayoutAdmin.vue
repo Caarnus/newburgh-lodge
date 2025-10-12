@@ -6,14 +6,9 @@ import { useToast } from 'primevue'
 
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ContentGrid from '@/Components/ContentGrid.vue'
+import TileEditorDialog from '@/Components/Tiles/TileEditorDialog.vue'
 
-import Dialog from 'primevue/dialog'
-import Select from 'primevue/select'
-import InputNumber from 'primevue/inputnumber'
-import InputText from 'primevue/inputtext'
-import Textarea from 'primevue/textarea'
 import Button from 'primevue/button'
-import FileUpload from 'primevue/fileupload'
 
 const page = usePage()
 const toast = useToast()
@@ -107,6 +102,20 @@ function deleteTile(t: Tile) {
         },
     })
 }
+
+function saveFromDialog(updated:any) {
+    const t = updated
+    const method = t.id ? 'put' : 'post'
+    const url = t.id ? route('admin.content.update', t.id) : route('admin.content.store')
+    router[method](url, t, {
+        onSuccess: () => {
+            toast.add({ severity:'success', summary:'Saved' })
+            showEdit.value = false
+            router.reload({ only:['tiles'], preserveScroll:true })
+        }
+    })
+}
+
 
 function moveUp(idx: number) {
     if (idx <= 0) return
@@ -219,8 +228,8 @@ watch(() => selected.value?.col_start, () => normalizeSelectedLayout())
 
                             <!-- Badge -->
                             <span class="justify-self-end rounded-full px-2 py-0.5 text-xs whitespace-nowrap" :class="badgeClass(tile.type)">
-        {{ tile.type }}
-      </span>
+                                {{ tile.type }}
+                            </span>
 
                             <!-- Actions (icon-only, compact) -->
                             <div class="flex items-center justify-end gap-1">
@@ -270,190 +279,22 @@ watch(() => selected.value?.col_start, () => normalizeSelectedLayout())
             </ContentGrid>
         </div>
 
-        <!-- Editor Dialog -->
-        <Dialog v-model:visible="showEdit" modal header="Edit Tile" :style="{ width: '56rem' }">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Left: Meta + Content -->
-                <div class="lg:col-span-2 space-y-4">
-                    <!-- Meta -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <label class="flex items-center gap-2">
-                            <span class="w-20">Title</span>
-                            <InputText v-model="selected!.title" class="flex-1" />
-                        </label>
-                        <label class="flex items-center gap-2">
-                            <span class="w-20">Slug</span>
-                            <InputText v-model="selected!.slug" class="flex-1" placeholder="(auto if blank)"/>
-                        </label>
-                        <label class="flex items-center gap-2 col-span-2">
-                            <span class="w-20">Type</span>
-                            <Select v-model="selected!.type" :options="typeOptions" optionLabel="label" optionValue="value" class="w-full"/>
-                        </label>
-                    </div>
-
-                    <!-- Content editors by type -->
-                    <template v-if="selected?.type === 'text'">
-                        <label class="block text-sm font-medium">HTML</label>
-                        <Textarea v-model="selected!.config.html" rows="8" />
-                    </template>
-
-                    <template v-else-if="selected?.type === 'newsletter'">
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="flex items-center gap-2"><span class="w-28">Issue Title</span><InputText v-model="selected!.config.issue_title" class="flex-1" /></label>
-                            <label class="flex items-center gap-2"><span class="w-28">Issue Date</span><InputText v-model="selected!.config.issue_date" class="flex-1" placeholder="YYYY-MM-DD" /></label>
-                            <div class="col-span-2">
-                                <label class="block text-sm font-medium mb-1">Summary HTML</label>
-                                <Textarea v-model="selected!.config.summary_html" rows="4" />
-                            </div>
-                            <label class="flex items-center gap-2"><span class="w-28">Link URL</span><InputText v-model="selected!.config.link_url" class="flex-1" /></label>
-                            <label class="flex items-center gap-2"><span class="w-28">Link Label</span><InputText v-model="selected!.config.link_label" class="flex-1" placeholder="Read issue" /></label>
-                            <div class="col-span-2">
-                                <div class="mb-2 text-sm font-medium">Cover Image</div>
-                                <FileUpload
-                                    name="file"
-                                    :url="route('admin.home.upload')"
-                                    chooseLabel="Choose" uploadLabel="Upload" cancelLabel="Cancel"
-                                    :auto="false"
-                                    @upload="onUploadCover"
-                                />
-                                <img v-if="selected!.config.cover_image_url" :src="selected!.config.cover_image_url" alt="an image" class="h-24 mt-2 rounded"/>
-                            </div>
-                        </div>
-                    </template>
-
-                    <template v-else-if="selected?.type === 'image_text'">
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="flex items-center gap-2"><span class="w-24">Image URL</span><InputText v-model="selected!.config.image_url" class="flex-1" /></label>
-                            <label class="flex items-center gap-2"><span class="w-24">Alt</span><InputText v-model="selected!.config.alt" class="flex-1" /></label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Text HTML</label>
-                            <Textarea v-model="selected!.config.text_html" rows="4" />
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="flex items-center gap-2"><span class="w-24">Link URL</span><InputText v-model="selected!.config.link_url" class="flex-1" /></label>
-                            <label class="flex items-center gap-2"><span class="w-24">Link Label</span><InputText v-model="selected!.config.link_label" class="flex-1" /></label>
-                        </div>
-                    </template>
-
-                    <template v-else-if="selected?.type === 'image'">
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="flex items-center gap-2"><span class="w-24">Image URL</span><InputText v-model="selected!.config.image_url" class="flex-1" /></label>
-                            <label class="flex items-center gap-2"><span class="w-24">Alt</span><InputText v-model="selected!.config.alt" class="flex-1" /></label>
-                            <label class="flex items-center gap-2"><span class="w-24">Caption</span><InputText v-model="selected!.config.caption" class="flex-1" /></label>
-                            <label class="flex items-center gap-2"><span class="w-24">Link</span><InputText v-model="selected!.config.link_url" class="flex-1" /></label>
-                        </div>
-                    </template>
-
-                    <template v-else-if="selected?.type === 'links'">
-                        <div class="text-sm opacity-70">Links are configured as an array of <code>{ label, url }</code> in <code>config</code>.</div>
-                    </template>
-
-                    <template v-else-if="selected?.type === 'cta'">
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="flex items-center gap-2"><span class="w-24">Button</span><InputText v-model="selected!.config.label" placeholder="Join us" class="flex-1" /></label>
-                            <label class="flex items-center gap-2"><span class="w-24">URL</span><InputText v-model="selected!.config.url" class="flex-1" /></label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Description</label>
-                            <Textarea v-model="selected!.config.description" rows="3" class="w-full"/>
-                        </div>
-                    </template>
-
-                    <template v-else-if="selected?.type === 'events'">
-                        <div class="text-sm opacity-70">Events tile configuration can be extended here later.</div>
-                    </template>
-                </div>
-
-                <!-- Right: Layout controls -->
-                <div class="space-y-4">
-                    <div class="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
-                        <div class="text-sm font-semibold mb-3">Layout</div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="min-w-0">
-                                <label class="block text-xs mb-1">Column Start</label>
-                                <div class="flex items-center gap-2">
-                                    <InputNumber
-                                        v-model="selected!.col_start"
-                                        :min="1"
-                                        :max="totalCols()"
-                                        :step="1"
-                                        :useGrouping="false"
-                                        showButtons
-                                        inputClass="w-20"
-                                        class="w-28"
-                                        @update:modelValue="normalizeSelectedLayout"
-                                    />
-                                    <span class="text-[11px] opacity-60">1–{{ totalCols() }}</span>
-                                </div>
-                            </div>
-
-                            <div class="min-w-0">
-                                <label class="block text-xs mb-1">Column Span</label>
-                                <div class="flex items-center gap-2">
-                                    <InputNumber
-                                        v-model="selected!.col_span"
-                                        :min="1"
-                                        :max="maxColSpan(selected!.col_start)"
-                                        :step="1"
-                                        :useGrouping="false"
-                                        showButtons
-                                        inputClass="w-20"
-                                        class="w-28"
-                                        @update:modelValue="normalizeSelectedLayout"
-                                    />
-                                    <span class="text-[11px] opacity-60">1–{{ maxColSpan(selected!.col_start) }}</span>
-                                </div>
-                            </div>
-
-                            <div class="min-w-0">
-                                <label class="block text-xs mb-1">Row Start</label>
-                                <div class="flex items-center gap-2">
-                                    <InputNumber
-                                        v-model="selected!.row_start"
-                                        :min="1"
-                                        :step="1"
-                                        :useGrouping="false"
-                                        showButtons
-                                        inputClass="w-20"
-                                        class="w-28"
-                                        @update:modelValue="normalizeSelectedLayout"
-                                    />
-                                    <span class="text-[11px] opacity-60">≥ 1</span>
-                                </div>
-                            </div>
-
-                            <div class="min-w-0">
-                                <label class="block text-xs mb-1">Row Span</label>
-                                <div class="flex items-center gap-2">
-                                    <InputNumber
-                                        v-model="selected!.row_span"
-                                        :min="1"
-                                        :step="1"
-                                        :useGrouping="false"
-                                        showButtons
-                                        inputClass="w-20"
-                                        class="w-28"
-                                        @update:modelValue="normalizeSelectedLayout"
-                                    />
-                                    <span class="text-[11px] opacity-60">≥ 1</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-3 text-[11px] opacity-60">
-                            Grid: {{ totalCols() }} columns · Base row height {{ rowHeightPx }}px
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end gap-2 pt-2">
-                        <Button label="Cancel" severity="secondary" @click="showEdit=false"/>
-                        <Button label="Save" @click="saveTile"/>
-                    </div>
-                </div>
-            </div>
-        </Dialog>
+        <TileEditorDialog
+            v-model:visible="showEdit"
+            :tile="selected"
+            :cols="cols"
+            :rowHeightPx="rowHeightPx"
+            :typeOptions="[
+                { label: 'Call To Action', value: 'cta' },
+                { label: 'Events',         value: 'events' },
+                { label: 'Image',          value: 'image' },
+                { label: 'Image + Text',   value: 'image_text' },
+                { label: 'Links',          value: 'links' },
+                { label: 'Newsletter',     value: 'newsletter' },
+                { label: 'Text',           value: 'text' },
+              ]"
+            @save="saveFromDialog"
+        />
     </AppLayout>
 </template>
 

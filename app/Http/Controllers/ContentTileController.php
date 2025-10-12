@@ -107,65 +107,100 @@ class ContentTileController extends Controller
             $request->merge(['config' => $cfg]);
         }
 
+        foreach (['newsletter_id'] as $idKey) {
+            if (array_key_exists($idKey, $cfg) && ($cfg[$idKey] === '' || $cfg[$idKey] === null)) {
+                $cfg[$idKey] = null;
+            }
+        }
+
         $baseRules  = [
-            'page' => ['sometimes','string'],
-            'type' => ['required','string', Rule::in(['text','newsletter','image_text','image','links','events','cta'])],
-            'title' => ['nullable','string'],
-            'enabled' => ['sometimes','boolean'],
-            'sort' => ['sometimes','integer'],
+            'page'      => ['sometimes','string'],
+            'type'      => ['required','string', Rule::in(['text','newsletter','image_text','image','links','events','cta'])],
+            'title'     => ['nullable','string'],
+            'enabled'   => ['sometimes','boolean'],
+            'sort'      => ['sometimes','integer'],
             'col_start' => ['sometimes','integer','min:1'],
             'row_start' => ['sometimes','integer','min:1'],
-            'col_span' => ['sometimes','integer','min:1','max:12'],
-            'row_span' => ['sometimes','integer','min:1','max:12'],
-            'config' => ['nullable','array'],
+            'col_span'  => ['sometimes','integer','min:1','max:12'],
+            'row_span'  => ['sometimes','integer','min:1','max:12'],
+            'config'    => ['nullable','array'],
         ];
 
         // Per-type rules for config.* (only the keys we allow)
         $perType = match ($type) {
             'text' => [
-                'config.html'  => ['nullable','string'],
-                'config.align' => ['nullable', Rule::in(['left','center','right'])],
+                'config.html'               => ['nullable','string'],
+                'config.align'              => ['nullable', Rule::in(['left','center','right'])],
+                'config.show_title'         => ['nullable','boolean'],
             ],
+
             'newsletter' => [
-                'config.cover_image_url' => ['nullable','string'],
-                'config.issue_title'     => ['nullable','string','max:255'],
-                'config.issue_date'      => ['nullable','date'],
-                'config.summary_html'    => ['nullable','string'],
-                'config.link_url'        => ['nullable','string'],
-                'config.link_label'      => ['nullable','string','max:100'],
+                'config.cover_image_url'    => ['nullable','string'],
+                'config.issue_title'        => ['nullable','string','max:255'],
+                'config.issue_date'         => ['nullable','date'],
+                'config.summary_html'       => ['nullable','string'],
+                'config.link_url'           => ['nullable','string'],
+                'config.link_label'         => ['nullable','string','max:100'],
+                'config.newsletter_id'      => ['nullable','integer'],
+                'config.read_label'         => ['nullable','string','max:120'],
+                'config.show_title'         => ['nullable','boolean'],
+                'config.show_badge'         => ['nullable','boolean'],
+                'config.cover_fit'          => ['nullable', Rule::in(['scale-down','contain','cover'])],
+                'config.object_position'    => ['nullable', Rule::in(['center','top','bottom','left','right'])],
             ],
+
             'image_text' => [
-                'config.image_url'  => ['nullable','string'],
-                'config.alt'        => ['nullable','string','max:255'],
-                'config.text_html'  => ['nullable','string'],
-                'config.link_url'   => ['nullable','string'],
-                'config.link_label' => ['nullable','string','max:100'],
+                'config.image_url'          => ['nullable','string'],
+                'config.alt'                => ['nullable','string','max:255'],
+                'config.text_html'          => ['nullable','string'],
+                'config.link_url'           => ['nullable','string'],
+                'config.link_label'         => ['nullable','string','max:100'],
+                 'config.show_title'        => ['nullable','boolean'],
+                 'config.show_badge'        => ['nullable','boolean'],
+                 'config.fit'               => ['nullable', Rule::in(['scale-down','contain','cover'])],
+                 'config.object_position'   => ['nullable', Rule::in(['center','top','bottom','left','right'])],
             ],
+
             'image' => [
-                'config.image_url' => ['nullable','string'],
-                'config.alt'       => ['nullable','string','max:255'],
-                'config.caption'   => ['nullable','string','max:255'],
-                'config.link_url'  => ['nullable','string'],
+                'config.image_url'          => ['nullable','string'],
+                'config.alt'                => ['nullable','string','max:255'],
+                'config.caption'            => ['nullable','string','max:255'],
+                'config.link_url'           => ['nullable','string'],
+                'config.show_title'         => ['nullable','boolean'],
+                'config.show_badge'         => ['nullable','boolean'],
+                'config.fit'                => ['nullable', Rule::in(['scale-down','contain','cover'])],
+                'config.object_position'    => ['nullable', Rule::in(['center','top','bottom','left','right'])],
             ],
+
             'links' => [
-                'config.items'           => ['nullable','array','max:20'],
-                'config.items.*.label'   => ['required_with:config.items','string','max:120'],
-                'config.items.*.url'     => ['required_with:config.items','string','max:2048'],
+                'config.items'              => ['nullable','array','max:20'],
+                'config.items.*.label'      => ['required_with:config.items','string','max:120'],
+                'config.items.*.url'        => ['required_with:config.items','string','max:2048'],
+                'config.show_title'         => ['nullable','boolean'],
+                'config.show_badge'         => ['nullable','boolean'],
             ],
+
             'cta' => [
-                'config.label'       => ['nullable','string','max:80'],
-                'config.url'         => ['nullable','string','max:2048'],
-                'config.description' => ['nullable','string','max:600'],
+                'config.label'              => ['nullable','string','max:80'],
+                'config.url'                => ['nullable','string','max:2048'],
+                'config.description'        => ['nullable','string','max:600'],
+                'config.show_title'         => ['nullable','boolean'],
+                'config.show_badge'         => ['nullable','boolean'],
             ],
+
             'events' => [
-                'config.days_ahead'  => ['nullable','integer','min:1','max:365'],
-                'config.categories'  => ['nullable','array','max:20'],
-                'config.categories.*'=> ['string','max:80'],
-                'config.limit'       => ['nullable','integer','min:1','max:20'],
-                'config.endpoint'    => ['nullable','string'], // optional override for fetch URL
+                'config.days_ahead'         => ['nullable','integer','min:1','max:365'],
+                'config.categories'         => ['nullable','array','max:20'],
+                'config.categories.*'       => ['string','max:80'],
+                'config.limit'              => ['nullable','integer','min:1','max:20'],
+                'config.endpoint'           => ['nullable','string'],
+                'config.show_title'         => ['nullable','boolean'],
+                'config.show_badge'         => ['nullable','boolean'],
             ],
+
             default => [],
         };
+
 
         // Validate
         $rules = array_merge($baseRules, $perType);
@@ -180,13 +215,16 @@ class ContentTileController extends Controller
 
         // Whitelisted config keys per type → we’ll prune everything else
         $whitelists = [
-            'text' => ['html','align'],
-            'newsletter' => ['cover_image_url','issue_title','issue_date','summary_html','link_url','link_label'],
-            'image_text' => ['image_url','alt','text_html','link_url','link_label'],
-            'image' => ['image_url','alt','caption','link_url'],
-            'links' => ['items'],
-            'cta' => ['label','url','description'],
-            'events' => ['days_ahead','categories','limit','endpoint'],
+            'text' => ['html', 'align', 'show_title', 'show_badge'],
+            'newsletter' => ['cover_image_url', 'issue_title', 'issue_date', 'summary_html', 'link_url', 'link_label',
+                'newsletter_id', 'read_label', 'show_title', 'show_badge', 'cover_fit', 'object_position'],
+            'image_text' => ['image_url', 'alt', 'text_html', 'link_url', 'link_label',
+                'show_title', 'show_badge', 'fit', 'object_position'],
+            'image' => ['image_url', 'alt', 'caption', 'link_url',
+                'show_title', 'show_badge', 'fit', 'object_position'],
+            'links' => ['items', 'show_title', 'show_badge'],
+            'cta' => ['label', 'url', 'description', 'show_title', 'show_badge'],
+            'events' => ['days_ahead', 'categories', 'limit', 'endpoint', 'show_title', 'show_badge'],
         ];
 
         if (isset($data['config']) && isset($whitelists[$type])) {

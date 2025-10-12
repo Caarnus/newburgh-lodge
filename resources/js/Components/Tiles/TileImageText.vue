@@ -21,7 +21,7 @@ const fit = props.config.fit ?? 'scale-down'
     <TileCard
         :title="(config.show_title ?? true) ? title : null"
         :showTitle="config.show_title ?? true"
-        :showBadge="false"
+        :showBadge="config.show_badge ?? false"
         :href="config.link_url || null"
         :fill="true"
     >
