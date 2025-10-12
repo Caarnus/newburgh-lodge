@@ -1,20 +1,19 @@
+<!-- TileText.vue -->
 <script setup lang="ts">
-const props = defineProps<{ title?: string, config: { html?: string, align?: 'left' | 'center' | 'right' } }>()
+import TileCard from './TileCard.vue'
+
+const props = defineProps<{
+    title?: string | null; config: {
+        html: string;
+        show_title?: boolean;
+        show_badge?: boolean;
+    }
+}>()
 </script>
 
 <template>
-    <article>
-        <h2 v-if="title" class="text-xl font-semibold mb-2">{{ title }}</h2>
-        <div class="prose dark:prose-invert max-w-none"
-             :class="{
-                'text-left': (props.config?.align ?? 'left') === 'left',
-                'text-center': props.config?.align === 'center',
-                'text-right': props.config?.align === 'right',
-             }"
-             v-html="props.config?.html ?? ''"/>
-    </article>
+    <TileCard :title="title || 'Announcement'" badge="text" :showTitle="props.config?.show_title ?? true"
+              :showBadge="props.config?.show_badge ?? false" :fill="true">
+        <div class="prose prose-sm dark:prose-invert max-w-none" v-html="config.html"></div>
+    </TileCard>
 </template>
-
-<style scoped>
-
-</style>

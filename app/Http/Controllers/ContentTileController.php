@@ -23,6 +23,7 @@ class ContentTileController extends Controller
         return Inertia::render('Welcome', [
             'tiles' => $tiles,
             'grid' => ['cols' => 4, 'gap'=> '1rem'],
+            'rowHeightPx' => 180
         ]);
     }
 
@@ -32,6 +33,8 @@ class ContentTileController extends Controller
 
         return Inertia::render('Admin/HomeLayout', [
             'tiles' => ContentTile::where('page', $page)->orderBy('sort')->get(),
+            'cols' => 4,
+            'rowHeightPx' => 180
         ]);
     }
 
