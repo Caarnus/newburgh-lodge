@@ -42,16 +42,6 @@ watch(()=> page.props.tiles, (next)=> { tiles.value = deep(next) })
 const showEdit = ref(false)
 const selected = ref<Tile | null>(null)
 
-const typeOptions = [
-    { label: 'Call To Action', value: 'cta' },
-    { label: 'Events',         value: 'events' },
-    { label: 'Image',          value: 'image' },
-    { label: 'Image + Text',   value: 'image_text' },
-    { label: 'Links',          value: 'links' },
-    { label: 'Newsletter',     value: 'newsletter' },
-    { label: 'Text',           value: 'text' },
-]
-
 function clampLayout(t: Tile) {
     const total = cols.value || 4
     t.col_start = Math.min(Math.max(1, t.col_start ?? 1), total)
@@ -75,22 +65,6 @@ function newTile() {
 function editTile(t: Tile) {
     selected.value = JSON.parse(JSON.stringify(t))
     showEdit.value = true
-}
-
-function saveTile() {
-    if (!selected.value) return
-    const t = selected.value
-    clampLayout(t)
-    const method = t.id ? 'put' : 'post'
-    const url = t.id ? route('admin.content.update', t.id) : route('admin.content.store')
-
-    router[method](url, t, {
-        onSuccess: () => {
-            toast.add({ severity: 'success', summary: 'Saved' })
-            showEdit.value = false
-            router.reload({ only: ['tiles'], preserveScroll: true })
-        },
-    })
 }
 
 function deleteTile(t: Tile) {
@@ -148,13 +122,6 @@ function saveLayout() {
             router.reload({ only: ['tiles'], preserveScroll: true })
         }
     })
-}
-
-function onUploadCover(e: any) {
-    try {
-        const url = e?.xhr ? JSON.parse(e.xhr.response).url : null
-        if (selected.value && url) selected.value.config.cover_image_url = url
-    } catch {}
 }
 
 // badges (admin preview)

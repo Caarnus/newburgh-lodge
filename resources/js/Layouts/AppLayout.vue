@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import {Head, router, usePage} from '@inertiajs/vue3';
 import Banner from '@/Components/Banner.vue';
@@ -52,8 +52,8 @@ const navMenuItems = ref([
         ]
     },
     { label: page.props.auth?.user?.name ?? "Sign In", class: 'ml-auto', items: [
-            { label: "Log In", url: route('login'), visible: !!!page.props.auth.user},
-            { label: "Register", url: route('register'), visible: !!!page.props.auth.user},
+            { label: "Log In", url: route('login'), visible: !page.props.auth.user},
+            { label: "Register", url: route('register'), visible: !page.props.auth.user},
             { label: "Profile", url: route('profile.show'), active: route().current('profile.show'), visible: !!page.props.auth.user },
             { label: "Log Out", command: () => logout(), visible: !!page.props.auth.user },
         ]
