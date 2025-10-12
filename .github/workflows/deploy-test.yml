@@ -1,0 +1,72 @@
+name: Deploy (Test)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install JS deps & build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Archive build artifacts
+        run: |
+          tar -czf build-artifacts.tar.gz public/build
+
+      - name: Copy repo to server (rsync)
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -az --delete --exclude=".git" --exclude="node_modules" --exclude="vendor" --exclude=".github" --exclude="tests"
+          path: .
+          remote_path: ${{ secrets.TEST_PATH }}
+          remote_host: ${{ secrets.TEST_SSH_HOST }}
+          remote_user: ${{ secrets.TEST_SSH_USER }}
+          remote_port: ${{ secrets.TEST_SSH_PORT }}
+          remote_key: ${{ secrets.TEST_SSH_KEY }}
+
+      - name: Upload built assets
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -az
+          path: public/build/
+          remote_path: ${{ secrets.TEST_PATH }}/public/build
+          remote_host: ${{ secrets.TEST_SSH_HOST }}
+          remote_user: ${{ secrets.TEST_SSH_USER }}
+          remote_port: ${{ secrets.TEST_SSH_PORT }}
+          remote_key: ${{ secrets.TEST_SSH_KEY }}
+
+      - name: Remote composer + artisan
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.TEST_SSH_HOST }}
+          username: ${{ secrets.TEST_SSH_USER }}
+          key: ${{ secrets.TEST_SSH_KEY }}
+          port: ${{ secrets.TEST_SSH_PORT }}
+          script: |
+            set -e
+            cd "${{ secrets.TEST_PATH }}"
+            # keep your .env on the server; do not overwrite it
+            php -v
+            composer install --no-dev --prefer-dist --optimize-autoloader
+            php artisan migrate --force
+            php artisan storage:link || true
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            sudo systemctl reload "${{ secrets.PHP_FPM_SERVICE }}" || true
+            chown -R deploy:www-data storage bootstrap/cache
+            chmod -R ug+rw storage bootstrap/cache
