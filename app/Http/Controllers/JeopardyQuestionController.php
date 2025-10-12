@@ -50,12 +50,17 @@ class JeopardyQuestionController extends Controller
         return response()->json(['board' => $board]);
     }
 
-    public function getBonusQuestion(): JsonResponse
+    public function getBonusQuestions(): JsonResponse
     {
-        $question = JeopardyQuestion::where('category','Bonus')->get()->random();
+        // Return all available bonus questions; front-end will use `subcategory` as label
+        $questions = JeopardyQuestion::where('category', 'Bonus')
+            ->orderBy('subcategory')
+            ->orderBy('difficulty')
+            ->get();
 
-        return response()->json(['question' => $question]);
+        return response()->json(['questions' => $questions]);
     }
+
 
     public function store(Request $request)
     {
@@ -67,6 +72,7 @@ class JeopardyQuestionController extends Controller
             'category' => ['required'],
             'difficulty' => ['required', 'integer'],
             'reference' => ['nullable'],
+            'subcategory' => ['nullable', 'string'],
         ]);
 
         return JeopardyQuestion::create($data);
@@ -82,6 +88,7 @@ class JeopardyQuestionController extends Controller
             'category' => ['required'],
             'difficulty' => ['required', 'integer'],
             'reference' => ['nullable'],
+            'subcategory' => ['nullable', 'string'],
         ]);
 
         $jeopardyQuestion->update($data);

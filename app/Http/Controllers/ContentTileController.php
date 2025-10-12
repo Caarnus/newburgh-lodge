@@ -38,17 +38,24 @@ class ContentTileController extends Controller
     public function store(Request $request)
     {
         $data = $this->validated($request);
-        $data['slug'] = $data['slug'] ?? Str::slug($data['title'] ?? $data['type'].'-'.Str::random(10));
-        $data['page'] = $data['page'] ?? 'welcome';
-        ContentTile::create($data);
 
-        return back()->with(['success' => 'Tile created successfully.']);
+        $data['page'] = $data['page'] ?? 'welcome';
+        $tile = ContentTile::create($data);
+
+        return to_route('admin.content.index')
+            ->with('success', 'Tile created.')
+            ->with('justSavedId', $tile->id);
     }
 
     public function update(Request $request, ContentTile $tile)
     {
-        $tile->update($this->validated($request));
-        return back()->with('success', 'Tile updated.');
+        $data = $this->validated($request, $tile->id);
+
+        $tile->update($data);
+
+        return to_route('admin.content.index')
+            ->with('success', 'Tile updated.')
+            ->with('justSavedId', $tile->id);
     }
 
     public function destroy(ContentTile $tile)
@@ -82,14 +89,24 @@ class ContentTileController extends Controller
         return response()->json(['url' => Storage::disk('public')->url($path)]);
     }
 
-    private function validated(Request $request): array
+    private function validated(Request $request, ?int $currentId = 0): array
     {
         $type = $request->input('type');
 
-        $baseRules  = $request->validate([
+        // Normalize common URL-ish fields that often come as empty strings
+        $cfg = $request->input('config', []);
+        if (is_array($cfg)) {
+            foreach (['link_url','cover_image_url','image_url','endpoint'] as $urlKey) {
+                if (array_key_exists($urlKey, $cfg) && $cfg[$urlKey] === '') {
+                    $cfg[$urlKey] = null;
+                }
+            }
+            $request->merge(['config' => $cfg]);
+        }
+
+        $baseRules  = [
             'page' => ['sometimes','string'],
             'type' => ['required','string', Rule::in(['text','newsletter','image_text','image','links','events','cta'])],
-            'slug' => ['required','string','unique:content_tiles,slug'],
             'title' => ['nullable','string'],
             'enabled' => ['sometimes','boolean'],
             'sort' => ['sometimes','integer'],
@@ -98,7 +115,7 @@ class ContentTileController extends Controller
             'col_span' => ['sometimes','integer','min:1','max:12'],
             'row_span' => ['sometimes','integer','min:1','max:12'],
             'config' => ['nullable','array'],
-        ]);
+        ];
 
         // Per-type rules for config.* (only the keys we allow)
         $perType = match ($type) {
@@ -107,34 +124,34 @@ class ContentTileController extends Controller
                 'config.align' => ['nullable', Rule::in(['left','center','right'])],
             ],
             'newsletter' => [
-                'config.cover_image_url' => ['nullable','url'],
+                'config.cover_image_url' => ['nullable','string'],
                 'config.issue_title'     => ['nullable','string','max:255'],
                 'config.issue_date'      => ['nullable','date'],
                 'config.summary_html'    => ['nullable','string'],
-                'config.link_url'        => ['nullable','url'],
+                'config.link_url'        => ['nullable','string'],
                 'config.link_label'      => ['nullable','string','max:100'],
             ],
             'image_text' => [
-                'config.image_url'  => ['nullable','url'],
+                'config.image_url'  => ['nullable','string'],
                 'config.alt'        => ['nullable','string','max:255'],
                 'config.text_html'  => ['nullable','string'],
-                'config.link_url'   => ['nullable','url'],
+                'config.link_url'   => ['nullable','string'],
                 'config.link_label' => ['nullable','string','max:100'],
             ],
             'image' => [
-                'config.image_url' => ['nullable','url'],
+                'config.image_url' => ['nullable','string'],
                 'config.alt'       => ['nullable','string','max:255'],
                 'config.caption'   => ['nullable','string','max:255'],
-                'config.link_url'  => ['nullable','url'],
+                'config.link_url'  => ['nullable','string'],
             ],
             'links' => [
                 'config.items'           => ['nullable','array','max:20'],
                 'config.items.*.label'   => ['required_with:config.items','string','max:120'],
-                'config.items.*.url'     => ['required_with:config.items','url','max:2048'],
+                'config.items.*.url'     => ['required_with:config.items','string','max:2048'],
             ],
             'cta' => [
                 'config.label'       => ['nullable','string','max:80'],
-                'config.url'         => ['nullable','url','max:2048'],
+                'config.url'         => ['nullable','string','max:2048'],
                 'config.description' => ['nullable','string','max:600'],
             ],
             'events' => [
@@ -142,7 +159,7 @@ class ContentTileController extends Controller
                 'config.categories'  => ['nullable','array','max:20'],
                 'config.categories.*'=> ['string','max:80'],
                 'config.limit'       => ['nullable','integer','min:1','max:20'],
-                'config.endpoint'    => ['nullable','url'], // optional override for fetch URL
+                'config.endpoint'    => ['nullable','string'], // optional override for fetch URL
             ],
             default => [],
         };
@@ -150,6 +167,13 @@ class ContentTileController extends Controller
         // Validate
         $rules = array_merge($baseRules, $perType);
         $data  = Validator::make($request->all(), $rules)->validate();
+
+        if (!empty($data['slug']) && $currentId > 0) {
+            $data['slug'] = $this->ensureUniqueSlug($data['slug'], $currentId);
+        } else {
+            $data['slug'] = $data['slug'] ?? ($data['title'] ?? ($data['type'] . '-' . Str::random(6)));
+            $data['slug'] = $this->ensureUniqueSlug($data['slug'], null);
+        }
 
         // Whitelisted config keys per type → we’ll prune everything else
         $whitelists = [
@@ -175,5 +199,20 @@ class ContentTileController extends Controller
         }
 
         return $data;
+    }
+
+    private function ensureUniqueSlug(string $base, ?int $ignoreId = null): string
+    {
+        $slug = Str::slug($base);
+        if ($slug === '') $slug = 'tile';
+        $candidate = $slug;
+        $i = 2;
+
+        while (ContentTile::where('slug', $candidate)
+            ->when($ignoreId, fn($q) => $q->where('id','!=',$ignoreId))
+            ->exists()) {
+            $candidate = $slug.'-'.$i++;
+        }
+        return $candidate;
     }
 }

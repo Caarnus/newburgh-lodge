@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import {ref} from "vue";
 import {router, usePage} from "@inertiajs/vue3";
-import {useToast, Dialog, Select, InputText, ToggleSwitch, Button, Textarea, FileUpload} from "primevue";
+import {useToast} from "primevue";
+import Dialog from 'primevue/dialog'
+import Select from 'primevue/select'
+import InputText from 'primevue/inputtext'
+import ToggleSwitch from 'primevue/toggleswitch'
+import Button from 'primevue/button'
+import Textarea from 'primevue/textarea'
+import FileUpload from 'primevue/fileupload'
 import {route} from "ziggy-js";
 import AppLayout from "@/Layouts/AppLayout.vue";
 
@@ -45,7 +52,7 @@ function saveTile() {
                 severity: 'success',
                 summary: 'Saved',
             });
-            router.reload()
+            router.reload({ only: ['tiles'], preserveScroll: true })
         },
     });
 }
@@ -69,7 +76,10 @@ function saveLayout() {
     router.post(route('admin.content.reorder'),
         {tiles: payload},
         {
-            onSuccess: () => toast.add({ severity: 'success', summary: 'Layout updated' })
+            onSuccess: () => {
+                toast.add({severity: 'success', summary: 'Layout updated'})
+                router.reload({ only: ['tiles'], preserveScroll: true })
+            }
         }
     );
 
@@ -91,21 +101,23 @@ function saveLayout() {
             </div>
         </template>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div v-for="t in tiles" :key="t.id" class="rounded-xl border p-3 bg-white dark:bg-zinc-900">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="font-medium">{{ t.title || t.type }}</div>
-                    <div class="flex gap-2">
-                        <Button icon="pi pi-pencil" text @click="editTile(t)"/>
-                        <Button icon="pi pi-trash" text severity="danger" @click="deleteTile(t)" v-if="t.id"/>
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 text-surface-900 dark:text-surface-100">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div v-for="t in tiles" :key="t.id" class="rounded-xl border p-3 bg-white dark:bg-zinc-900">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="font-medium">{{ t.title || t.type }}</div>
+                        <div class="flex gap-2">
+                            <Button icon="pi pi-pencil" text @click="editTile(t)"/>
+                            <Button icon="pi pi-trash" text severity="danger" @click="deleteTile(t)" v-if="t.id"/>
+                        </div>
                     </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-sm">
-                    <label class="flex items-center gap-2">Col start <InputText v-model.number="t.col_start" /></label>
-                    <label class="flex items-center gap-2">Row start <InputText v-model.number="t.row_start" /></label>
-                    <label class="flex items-center gap-2">Col span <InputText v-model.number="t.col_span" /></label>
-                    <label class="flex items-center gap-2">Row span <InputText v-model.number="t.row_span" /></label>
-                    <label class="flex items-center gap-2">Enabled <ToggleSwitch v-model="t.enabled" disabled /></label>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <label class="flex items-center gap-2">Col start <InputText v-model.number="t.col_start" /></label>
+                        <label class="flex items-center gap-2">Row start <InputText v-model.number="t.row_start" /></label>
+                        <label class="flex items-center gap-2">Col span <InputText v-model.number="t.col_span" /></label>
+                        <label class="flex items-center gap-2">Row span <InputText v-model.number="t.row_span" /></label>
+                        <label class="flex items-center gap-2">Enabled <ToggleSwitch v-model="t.enabled" disabled /></label>
+                    </div>
                 </div>
             </div>
         </div>

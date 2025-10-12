@@ -5,7 +5,7 @@ import axios from "axios";
 import GameBoard from "@/Components/Jeopardy/GameBoard.vue";
 
 const board = ref({});
-const bonus = ref({});
+const bonusQuestions = ref([])
 const isLoading = ref(true);
 const error = ref(null);
 
@@ -14,34 +14,22 @@ const getNewBoard = async () => {
   error.value = null
 
   try {
-    const response = await axios.get(route('jeopardy.board'))
-    board.value = response.data.board
+      const [boardRes, bonusRes] = await Promise.all([
+          axios.get(route('jeopardy.board')),
+          axios.get(route('jeopardy.bonus')),
+      ])
+      board.value = boardRes.data.board
+      bonusQuestions.value = bonusRes.data.questions
   } catch (err) {
-    error.value = 'Failed to load game board.'
-    console.error(err)
+      error.value = 'Failed to load game board.'
+      console.error(err)
   } finally {
-    isLoading.value = false
-  }
-}
-
-const getNewBonus = async () => {
-  isLoading.value = true
-  error.value = null
-
-  try {
-    const response = await axios.get(route('jeopardy.bonus'))
-    bonus.value = response.data.question
-  } catch (err) {
-    error.value = 'Failed to load bonus question.'
-    console.error(err)
-  } finally {
-    isLoading.value = false
+      isLoading.value = false
   }
 }
 
 onMounted(() => {
   getNewBoard();
-  getNewBonus();
 })
 </script>
 
@@ -60,7 +48,7 @@ onMounted(() => {
       </button>
     </div>
 
-    <GameBoard v-else :board="board" :bonusQuestion="bonus"/>
+    <GameBoard v-else :board="board" :bonusQuestions="bonusQuestions"/>
   </div>
 </template>
 

@@ -16,7 +16,7 @@ const grid = page.props.grid as { cols:number, gap:string }
             </h2>
         </template>
 
-        <ContentGrid :tiles="tiles" :cols="grid?.cols" :gap="grid?.gap" />
+        <ContentGrid :tiles="tiles" :cols="grid?.cols" :gap="grid?.gap" class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 text-surface-900 dark:text-surface-100"/>
     </AppLayout>
 </template>
 

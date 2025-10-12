@@ -7,10 +7,16 @@ const props = defineProps({
     limitHeight: {type: Boolean, default: true }
 })
 
-const emit = defineEmits(['click'])
+const emit = defineEmits(['click', 'reset'])
 
 const handleClick = () => {
     if (props.clickable && !props.clicked) emit('click')
+}
+
+const handleContextMenu = (e: MouseEvent) => {
+    e.preventDefault()
+    // Allow context menu reset even if already clicked
+    if (props.clickable) emit('reset')
 }
 </script>
 
@@ -24,6 +30,7 @@ const handleClick = () => {
             'opacity-50 pointer-events-none': !clickable
         }"
         @click="handleClick"
+        @contextmenu.prevent="handleContextMenu"
     >
         {{ text }}
     </div>
