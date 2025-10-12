@@ -31,7 +31,7 @@ class ContentTileController extends Controller
     {
         $page = $request->query('page') ?? 'welcome';
 
-        return Inertia::render('Admin/HomeLayout', [
+        return Inertia::render('Admin/LayoutAdmin', [
             'tiles' => ContentTile::where('page', $page)->orderBy('sort')->get(),
             'cols' => 4,
             'rowHeightPx' => 180
