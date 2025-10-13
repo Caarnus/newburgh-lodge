@@ -57,14 +57,18 @@ jobs:
             APP_PATH="${{ secrets.TEST_PATH }}"
             cd "$APP_PATH"
 
-            # Guard: require .env on the server
+            # Guard: require .env
             [ -f .env ] || { echo "::error::.env is missing at $APP_PATH/.env; refusing to deploy."; exit 1; }
 
-            # Ensure writable dirs exist and are group-writable by www-data
+            # Ensure writable dirs exist
             mkdir -p storage/framework/{cache,views,sessions} bootstrap/cache
-            chgrp -R www-data storage bootstrap/cache || true
-            chmod -R 2775 storage bootstrap/cache
-            find storage bootstrap/cache -type f -exec chmod 664 {} \;
+
+            # Make ONLY DIRECTORIES group-writable + setgid; ignore files (they may be owned by www-data)
+            set +e
+            find storage bootstrap/cache -type d -exec chmod 2775 {} \; 2>/dev/null
+            # If deploy is in www-data group, try to set directory group (ignore errors on files/locked dirs)
+            find storage bootstrap/cache -type d -exec chgrp www-data {} \; 2>/dev/null
+            set -e
 
             php -v
             composer install --no-dev --prefer-dist --optimize-autoloader
@@ -72,7 +76,7 @@ jobs:
             php artisan migrate --force
             php artisan storage:link || true
 
-            # Force compiled views path for this run (avoids stale absolute paths)
+            # Force a safe compiled views path for this run to avoid stale absolute paths
             export VIEW_COMPILED_PATH="$APP_PATH/storage/framework/views"
             php artisan optimize:clear
             php artisan config:cache
