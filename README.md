@@ -1,66 +1,197 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Newburgh Lodge #174 Website
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A modern Laravel + Inertia/Vue site for **Newburgh Masonic Lodge No. 174 (Indiana)** — originally chartered **May 29, 1855**, with the current building’s cornerstone set **April 21, 1962**. This repository contains the application powering the Lodge’s public website and admin tools.
 
-## About Laravel
+> Stack highlights: **Laravel** backend with **Inertia + Vue 3** on the front-end, built by **Vite**, styled with **Tailwind** and **PrimeVue (unstyled)**. The repo includes config and build files such as `vite.config.js`, `tailwind.config.js`, and `docker-compose.yml`, and lists languages primarily **Vue, CSS, PHP**. :contentReference[oaicite:0]{index=0}
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## ✨ Features (current & in-progress)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Tile-based homepage** (image/text/news modules) for quick content updates.
+- **“Compass Points” newsletter** module.
+- **Role-based access control** for officers/admins.
+- **Contact form** & map/directions to the Lodge.
+- **Events & calendar** groundwork for stated meetings and special events.
 
-## Learning Laravel
+> Note: The repo is an active work-in-progress; feature availability evolves with commits.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## 🧱 Architecture
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- **Laravel** app as the backend/API and server-rendered entry.  
+- **Inertia.js** bridges Laravel routes to SPA pages.  
+- **Vue 3** front-end with components under `resources/`.  
+- **Vite** for dev server & production builds (see `vite.config.js`). :contentReference[oaicite:1]{index=1}  
+- **Tailwind CSS** + **PrimeVue (unstyled)** for UI components (see `tailwind.config.js`, `package.json`). :contentReference[oaicite:2]{index=2}  
+- Optional local services via **`docker-compose.yml`**. :contentReference[oaicite:3]{index=3}
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 🧰 Requirements
 
-### Premium Partners
+- **PHP 8.3+**, **Composer 2+**  
+- **Node 20+** (or 22+) & **npm**  
+- **MySQL 8.0+** (default DB)  
+- **Git**  
+- (Optional) Docker Desktop if you prefer containers.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+---
 
-## Contributing
+## 🚀 Quick Start (local)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+# 1) Clone
+git clone https://github.com/Caarnus/newburgh-lodge.git
+cd newburgh-lodge
 
-## Code of Conduct
+# 2) PHP deps
+composer install
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# 3) Node deps
+npm install
 
-## Security Vulnerabilities
+# 4) Environment
+cp .env.example .env
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# 5) Set APP_URL and MySQL credentials in .env (see "Env Vars" below)
 
-## License
+# 6) App key + storage link
+php artisan key:generate
+php artisan storage:link
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# 7) Database
+php artisan migrate --force   # add --seed if you have seeders ready
+
+# 8) Run dev servers (two terminals or with &)
+php artisan serve
+npm run dev
+````
+
+Visit the app at `http://localhost:8000` (or whatever your `php artisan serve` prints).
+
+---
+
+## ⚙️ Environment Variables (minimum)
+
+| Key                 | Example                         | Notes                              |
+| ------------------- | ------------------------------- | ---------------------------------- |
+| `APP_NAME`          | `Newburgh Lodge #174`           | Display name                       |
+| `APP_ENV`           | `local`                         | `local`, `staging`, `production`   |
+| `APP_URL`           | `http://localhost:8000`         | Must match where the app is served |
+| `APP_DEBUG`         | `true`                          | `false` in production              |
+| `DB_CONNECTION`     | `mysql`                         | **Use MySQL**                      |
+| `DB_HOST`           | `127.0.0.1`                     |                                    |
+| `DB_PORT`           | `3306`                          | Default MySQL port                 |
+| `DB_DATABASE`       | `newburgh_lodge`                | Create this db first               |
+| `DB_USERNAME`       | `root`                          |                                    |
+| `DB_PASSWORD`       | `secret`                        |                                    |
+| `MAIL_MAILER`       | `smtp`                          |                                    |
+| `MAIL_HOST`         | `smtp.mailtrap.io`              | or your SMTP                       |
+| `MAIL_PORT`         | `2525`                          |                                    |
+| `MAIL_USERNAME`     | `…`                             |                                    |
+| `MAIL_PASSWORD`     | `…`                             |                                    |
+| `MAIL_FROM_ADDRESS` | `no-reply@newburghlodge174.org` |                                    |
+| `MAIL_FROM_NAME`    | `Newburgh Lodge #174`           |                                    |
+
+> Database is **MySQL** per project direction.
+
+---
+
+## 🧪 NPM & Artisan scripts
+
+Common scripts you’ll use:
+
+```bash
+# Dev server (Vite)
+npm run dev
+
+# Production build
+npm run build
+
+# Basic test suites (if added)
+php artisan test
+```
+
+---
+
+## 📦 Optional: Docker
+
+If you prefer containers for local services (e.g., MySQL), the repo includes a `docker-compose.yml`. Adjust services/ports as needed, then:
+
+```bash
+docker compose up -d
+# update .env DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD to match the compose services
+```
+
+([GitHub][1])
+
+---
+
+## 📤 Deployment
+
+This project follows a standard Laravel deployment flow:
+
+1. **Build & dependencies** on the server (or in CI):
+   `composer install --no-dev --prefer-dist --optimize-autoloader`
+   `npm ci && npm run build`
+2. **App optimizations:**
+   `php artisan optimize && php artisan storage:link`
+3. **Migrations:**
+   `php artisan migrate --force`
+4. **Reload PHP-FPM** (if applicable) and clear caches when needed.
+
+A `deploy.sh` exists in the repo; you can model your provider (e.g., Forge) steps after it, adapting branch/environment specifics. ([GitHub][1])
+
+---
+
+## 🔐 Roles & Access
+
+* Officers/admins get access to content tools (tiles, newsletter, etc.).
+* Standard members may have limited access areas as features roll out.
+
+(If you’re using `spatie/laravel-permission`, seed roles/permissions accordingly.)
+
+---
+
+## 🧭 Project Context
+
+* Organization: **Newburgh Masonic Lodge No. 174 (Newburgh, IN)**
+* Public site: [https://newburghlodge174.org](https://newburghlodge174.org)
+* Purpose: present Lodge information, news (“Compass Points”), and event details; streamline content management for officers.
+
+---
+
+## 🛠 Troubleshooting
+
+* **White screen / route not updating during dev**
+  Kill and restart `npm run dev` and `php artisan serve`. Ensure `APP_URL` matches the URL you’re visiting.
+* **Permission errors writing to `storage`/`bootstrap/cache`**
+  Fix ownership/permissions so PHP can write caches/uploads.
+* **Vite assets not loading in prod**
+  Run `npm run build` and ensure `php artisan optimize:clear` after deployments.
+* **DB connection failures**
+  Verify `.env` matches your MySQL host/port/user/password and that the DB exists.
+
+---
+
+## 👥 Contributing
+
+PRs and issues are welcome. Please keep PRs focused and include a brief description, screenshots (if UI), and steps to test.
+
+---
+
+## 📄 License
+
+No license file is present at the moment; assume standard copyright / all rights reserved to the Lodge unless a license is added.
+
+---
+
+## 📚 Useful Repo Pointers
+
+* Root shows **`README.md`**, `vite.config.js`, `tailwind.config.js`, `docker-compose.yml`, `.env.example`, and the usual Laravel directories (`app`, `routes`, `resources`, etc.).
+  See the repo’s root listing and “Languages” section for confirmation of the stack. ([GitHub][1])
+
+
+[1]: https://github.com/Caarnus/newburgh-lodge "GitHub - Caarnus/newburgh-lodge"
