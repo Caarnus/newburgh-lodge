@@ -22,14 +22,16 @@ jobs:
           npm ci
           npm run build
 
-      - name: Archive build artifacts
-        run: |
-          tar -czf build-artifacts.tar.gz public/build
-
+      # Copy everything except vendor/node_modules/storage/.env and public/build (we upload that next)
       - name: Copy repo to server (rsync)
         uses: burnett01/rsync-deployments@7.0.1
         with:
-          switches: -az --delete --exclude=".git" --exclude="node_modules" --exclude="vendor" --exclude=".github" --exclude="tests"
+          switches: >
+            -az --delete
+            --exclude=".git" --exclude="node_modules" --exclude="vendor" --exclude=".github" --exclude="tests"
+            --exclude=".env" --exclude=".env.*"
+            --exclude="storage/**" --exclude="public/storage"
+            --exclude="public/build/**"
           path: .
           remote_path: ${{ secrets.TEST_PATH }}
           remote_host: ${{ secrets.TEST_SSH_HOST }}
@@ -37,6 +39,7 @@ jobs:
           remote_port: ${{ secrets.TEST_SSH_PORT }}
           remote_key: ${{ secrets.TEST_SSH_KEY }}
 
+      # Upload only the compiled assets (built in CI)
       - name: Upload built assets
         uses: burnett01/rsync-deployments@7.0.1
         with:
@@ -48,7 +51,7 @@ jobs:
           remote_port: ${{ secrets.TEST_SSH_PORT }}
           remote_key: ${{ secrets.TEST_SSH_KEY }}
 
-      - name: Remote composer + artisan
+      - name: Remote composer + artisan (no sudo)
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.TEST_SSH_HOST }}
@@ -56,17 +59,38 @@ jobs:
           key: ${{ secrets.TEST_SSH_KEY }}
           port: ${{ secrets.TEST_SSH_PORT }}
           script: |
-            set -e
-            cd "${{ secrets.TEST_PATH }}"
-            # keep your .env on the server; do not overwrite it
+            set -euo pipefail
+            umask 002
+            APP_PATH="${{ secrets.TEST_PATH }}"
+            cd "$APP_PATH"
+
+            # Guard: require .env on the server
+            if [ ! -f .env ]; then
+              echo "::error::.env is missing at $APP_PATH/.env; refusing to deploy."
+              exit 1
+            fi
+
+            # Ensure writable dirs exist and are group-writable by www-data
+            mkdir -p storage/framework/{cache,views,sessions} bootstrap/cache
+            # Change group to www-data (deploy must be in www-data group)
+            chgrp -R www-data storage bootstrap/cache || true
+            chmod -R 2775 storage bootstrap/cache
+            find storage bootstrap/cache -type f -exec chmod 664 {} \;
+
             php -v
             composer install --no-dev --prefer-dist --optimize-autoloader
+
+            # DB + caches
             php artisan migrate --force
             php artisan storage:link || true
+
+            # Clear stale caches and force the compiled views path for this run
+            export VIEW_COMPILED_PATH="$APP_PATH/storage/framework/views"
             php artisan optimize:clear
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
-            sudo systemctl reload "${{ secrets.PHP_FPM_SERVICE }}" || true
-            chown -R deploy:www-data storage bootstrap/cache
-            chmod -R ug+rw storage bootstrap/cache
+
+            # NOTE: no sudo/systemctl reload here. If opcache is aggressive,
+            # either enable opcache.validate_timestamps=1 on the test box,
+            # or grant limited sudo for 'systemctl reload php-fpm' only.
