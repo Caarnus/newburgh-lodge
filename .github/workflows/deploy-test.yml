@@ -1,0 +1,84 @@
+name: Deploy (Test)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install JS deps & build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Copy repo to server (rsync)
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -az --delete --mkpath --exclude=".git" --exclude="node_modules" --exclude="vendor" --exclude=".github" --exclude="tests" --exclude=".env" --exclude=".env.*" --exclude="storage/**" --exclude="public/storage" --exclude="public/build/**"
+          path: .
+          remote_path: ${{ secrets.TEST_PATH }}
+          remote_host: ${{ secrets.TEST_SSH_HOST }}
+          remote_user: ${{ secrets.TEST_SSH_USER }}
+          remote_port: ${{ secrets.TEST_SSH_PORT }}
+          remote_key: ${{ secrets.TEST_SSH_KEY }}
+
+      - name: Upload built assets
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -az --mkpath
+          path: public/build/
+          remote_path: ${{ secrets.TEST_PATH }}/public/build
+          remote_host: ${{ secrets.TEST_SSH_HOST }}
+          remote_user: ${{ secrets.TEST_SSH_USER }}
+          remote_port: ${{ secrets.TEST_SSH_PORT }}
+          remote_key: ${{ secrets.TEST_SSH_KEY }}
+
+      - name: Remote composer + artisan (no sudo)
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.TEST_SSH_HOST }}
+          username: ${{ secrets.TEST_SSH_USER }}
+          key: ${{ secrets.TEST_SSH_KEY }}
+          port: ${{ secrets.TEST_SSH_PORT }}
+          script: |
+            set -euo pipefail
+            umask 002
+            APP_PATH="${{ secrets.TEST_PATH }}"
+            cd "$APP_PATH"
+
+            # Guard: require .env
+            [ -f .env ] || { echo "::error::.env is missing at $APP_PATH/.env; refusing to deploy."; exit 1; }
+
+            # Ensure writable dirs exist
+            mkdir -p storage/framework/{cache,views,sessions} bootstrap/cache
+
+            # Make ONLY DIRECTORIES group-writable + setgid; ignore files (they may be owned by www-data)
+            set +e
+            find storage bootstrap/cache -type d -exec chmod 2775 {} \; 2>/dev/null
+            # If deploy is in www-data group, try to set directory group (ignore errors on files/locked dirs)
+            find storage bootstrap/cache -type d -exec chgrp www-data {} \; 2>/dev/null
+            set -e
+
+            php -v
+            composer install --no-dev --prefer-dist --optimize-autoloader
+
+            php artisan migrate --force
+            php artisan storage:link || true
+
+            # Force a safe compiled views path for this run to avoid stale absolute paths
+            export VIEW_COMPILED_PATH="$APP_PATH/storage/framework/views"
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
