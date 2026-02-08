@@ -39,6 +39,19 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
+        // If RoleEnum is a PHP backed enum, pass ->value; otherwise it's already a string.
+        $adminRole = RoleEnum::ADMIN;
+        if ($adminRole instanceof \BackedEnum) {
+            $adminRole = $adminRole->value;
+        }
+
+        $secretaryRole = RoleEnum::SECRETARY;
+        if ($secretaryRole instanceof \BackedEnum) {
+            $secretaryRole = $secretaryRole->value;
+        }
+
         return array_merge(parent::share($request), [
             'site' => [
                 'newsletterLabel' => config('site.newsletter_label'),
@@ -46,17 +59,17 @@ class HandleInertiaRequests extends Middleware
             ],
             'can' => [
                 'newsletter' => [
-                    'create' => fn () => $request->user()?->can('create', Newsletter::class) ?? false,
-                    'update' => fn () => $request->user()?->can('update', Newsletter::class) ?? false,
+                    'create' => fn () => $user?->can('create', Newsletter::class) ?? false,
+                    'update' => fn () => $user?->can('update', Newsletter::class) ?? false,
                 ],
                 'admin' => [
-                    'users' => fn () => $request->user()?->can('access', User::class) ?? false,
+                    'users' => fn () => $user?->can('access', User::class) ?? false,
                 ],
                 'manage' => [
-                    'content' => fn () => $request->user()?->can('manage-content') ?? false,
+                    'content' => fn () => $user?->can('manage-content') ?? false,
                 ],
-                'isAdmin'     => $request->user()?->hasRole(RoleEnum::ADMIN),
-                'isSecretary' => $request->user()?->hasRole(RoleEnum::SECRETARY),
+                'isAdmin'     => fn () => $user?->hasRole($adminRole) ?? false,
+                'isSecretary' => fn () => $user?->hasRole($secretaryRole) ?? false,
             ],
         ]);
     }
