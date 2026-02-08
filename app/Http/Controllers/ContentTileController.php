@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ContentTile;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -23,7 +24,8 @@ class ContentTileController extends Controller
         return Inertia::render('Welcome', [
             'tiles' => $tiles,
             'grid' => ['cols' => 4, 'gap'=> '1rem'],
-            'rowHeightPx' => 180
+            'rowHeightPx' => 180,
+            'auth_user' => Auth::user()
         ]);
     }
 

@@ -2,27 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Mail\Mailable;
+use App\Mail\WebsiteContactFormMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class ContactController extends Controller
 {
-    public function submit(Request $request)
+    public function create()
     {
-        $request->validate([
-            'name' => 'required',
-            'email' => 'required|email',
-            'message' => 'required',
+        return Inertia::render('Contact');
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'name'    => ['nullable', 'string', 'max:100'],
+            'email'   => ['required', 'email:rfc,dns', 'max:255'],
+            'phone'   => ['required', 'string', 'min:7', 'max:25', 'regex:/^[0-9+\-\s().]{7,25}$/'],
+            'subject' => ['required', 'string', 'max:120'],
+            'message' => ['required', 'string', 'max:5000'],
         ]);
 
-        Mail::raw($request->get('message'), function($message) use ($request) {
-            $message->from($request->get('email'), $request->get('name'));
-            $message->subject("Website Contact Form - Newburgh Lodge");
-            $message->text($request->get('message'));
-            $message->to('lewellym4243+lodge@gmail.com');
-        });
+        Mail::to(['newburgh.lodge.174@gmail.com' => 'Newburgh Lodge Secretary'])
+            ->send(new WebsiteContactFormMail($data));
 
-        return response()->json('Mail sent successfully!');
+        return back()->with('success', 'Thanks! Your message has been sent.');
     }
 }

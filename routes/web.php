@@ -27,10 +27,10 @@ Route::get('/events/{event}', [OrgEventController::class, 'show'])
     ->where('event', '[0-9]+')
     ->name('events.show');
 
-Route::get('/contact-us', function () {
-    return Inertia::render('Contact');
-})->name('contact-us.index');
-Route::post('/contact-us', [ContactController::class, 'submit'])->name('contact-us.submit');
+Route::get('/contact', [ContactController::class, 'create'])->name('contact');
+Route::post('/contact', [ContactController::class, 'store'])
+    ->name('contact.submit')
+    ->middleware('throttle:10,1');
 
 Route::get('/history', function () {
     return Inertia::render('History');

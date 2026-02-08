@@ -4,10 +4,14 @@ import {Head, router, usePage} from '@inertiajs/vue3';
 import Banner from '@/Components/Banner.vue';
 import {ConfirmDialog, ConfirmPopup, DynamicDialog, Menubar, Toast, Badge} from "primevue";
 import {useDark, useToggle} from "@vueuse/core";
+import {route} from "ziggy-js";
 
 const isDark = useDark({valueDark: "app-dark"});
 const toggleDark = useToggle(isDark);
 const $page = usePage();
+const $user = $page.props.auth?.user
+
+const isAuthenticated = !!$user
 
 defineProps({
     title: String,
@@ -18,7 +22,7 @@ const page = usePage();
 const navMenuItems = ref([
     { label: 'Home', url: route('dashboard'), },
     { label: "News", items: [
-            { label: $page.props.site.newsletterLabel, url: route('newsletters.index')},
+            { label: $page.props.site.newsletterLabel, url: route('newsletters.index'), visible: isAuthenticated},
             { label: "Upcoming Events", url: route('events.index')},
             { label: "Photo Gallery", url: route('dashboard')},
         ]
@@ -31,7 +35,7 @@ const navMenuItems = ref([
             { label: "Directions", url: "https://www.google.com/maps/dir/?api=1&destination=720+Filmore+St+Newburgh+IN+47630&travelmode=driving", target: "_blank"},
         ]
     },
-    { label: 'Contact Us', url: route('dashboard'), },
+    { label: 'Contact Us', url: route('contact'), },
     { label: "Links", items: [
             { label: "Indiana Grand Lodge", url: "https://www.indianafreemasons.com/", target: "_blank"},
             { label: "Indiana Grand Lodge Magazine", url: "https://www.indianafreemasonmagazine.com/", target: "_blank"},

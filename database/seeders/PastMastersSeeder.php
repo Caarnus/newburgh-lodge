@@ -10,7 +10,7 @@ class PastMastersSeeder extends Seeder
     public function run(): void
     {
         $pastMasters = [
-            ['year' => '2025', 'name' => 'David Brickey II'],
+            ['year' => '2025-26', 'name' => 'David Brickey II'],
             ['year' => '2024', 'name' => 'Chad Hostetter'],
             ['year' => '2023', 'name' => 'Brandon Goodall'],
             ['year' => '2022', 'name' => 'Ken Mitz'],
