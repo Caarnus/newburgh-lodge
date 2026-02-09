@@ -24,7 +24,7 @@ class ContactController extends Controller
             'message' => ['required', 'string', 'max:5000'],
         ]);
 
-        Mail::to(['newburgh.lodge.174@gmail.com' => 'Newburgh Lodge Secretary'])
+        Mail::to(['Newburgh Lodge Secretary' => 'newburgh.lodge.174@gmail.com'])
             ->send(new WebsiteContactFormMail($data));
 
         return back()->with('success', 'Thanks! Your message has been sent.');

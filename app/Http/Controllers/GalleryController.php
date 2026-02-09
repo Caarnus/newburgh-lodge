@@ -64,7 +64,7 @@ class GalleryController extends Controller
 
         abort_unless($album->enabled, 404);
 
-        // If album itself is members-only, block guests
+        // If the album itself is members-only, block guests
         if ($album->visibility === 'members' && !Auth::check()) {
             abort(403);
         }
