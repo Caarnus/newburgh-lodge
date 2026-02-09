@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContentTileController;
+use App\Http\Controllers\GalleryAdminController;
+use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\JeopardyQuestionController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\OrgEventController;
@@ -47,6 +49,9 @@ Route::get('/past-masters', [PastMasterController::class, 'index'])
 Route::get('/faq', function () {
     return Inertia::render('Questions');
 })->name('faq');
+
+Route::get('/gallery', [GalleryController::class, 'index'])->name('gallery.index');
+Route::get('/gallery/{album:slug}', [GalleryController::class, 'show'])->name('gallery.show');
 
 Route::middleware([
     'auth:sanctum',
@@ -110,6 +115,23 @@ Route::middleware([
         ->name('events.destroy')
         ->can('delete', OrgEvent::class);
 });
+
+Route::middleware(['auth:sanctum', 'verified', 'can:manage-gallery'])
+    ->prefix('admin/gallery')
+    ->group(function () {
+        Route::get('/', [GalleryAdminController::class, 'index'])->name('admin.gallery.index');
+
+        Route::post('/albums', [GalleryAdminController::class, 'storeAlbum'])->name('admin.gallery.albums.store');
+        Route::put('/albums/{album}', [GalleryAdminController::class, 'updateAlbum'])->name('admin.gallery.albums.update');
+        Route::delete('/albums/{album}', [GalleryAdminController::class, 'destroyAlbum'])->name('admin.gallery.albums.destroy');
+
+        Route::post('/photos', [GalleryAdminController::class, 'storePhoto'])->name('admin.gallery.photos.store');
+        Route::put('/photos/{photo}', [GalleryAdminController::class, 'updatePhoto'])->name('admin.gallery.photos.update');
+        Route::delete('/photos/{photo}', [GalleryAdminController::class, 'destroyPhoto'])->name('admin.gallery.photos.destroy');
+
+        Route::post('/photos/reorder', [GalleryAdminController::class, 'reorderPhotos'])->name('admin.gallery.photos.reorder');
+    });
+
 
 Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])->prefix('admin/content')->group(function () {
     Route::get('/', [ContentTileController::class, 'index'])->name('admin.content.index');

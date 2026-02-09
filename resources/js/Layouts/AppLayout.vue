@@ -24,7 +24,7 @@ const navMenuItems = ref([
     { label: "News", items: [
             { label: $page.props.site.newsletterLabel, url: route('newsletters.index'), visible: isAuthenticated},
             { label: "Upcoming Events", url: route('events.index')},
-            { label: "Photo Gallery", url: route('dashboard')},
+            { label: "Photo Gallery", url: route('gallery.index')},
         ]
     },
     { label: "About", items: [
@@ -53,6 +53,7 @@ const navMenuItems = ref([
     { label: "Manage", visible: $page.props.can.manage.content, items: [
             { label: "Jeopardy", url: route('jeopardy.index')},
             { label: "Manage Content", url: route('admin.content.index')},
+            { label: "Manage Gallery", url: route('admin.gallery.index')},
         ]
     },
     { label: page.props.auth?.user?.name ?? "Sign In", class: 'ml-auto', items: [

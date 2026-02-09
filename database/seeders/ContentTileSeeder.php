@@ -31,11 +31,11 @@ class ContentTileSeeder extends Seeder
             ['slug' => 'home-hero'],
             [
                 'page' => $page,
-                'type' => 'imageText',
+                'type' => 'image_text',
                 'title' => 'Newburgh Lodge #174 F&AM',
                 'config' => [
                     // Using the current site’s lodge-building photo (public)
-                    'image_url' => 'https://www.newburghlodge174.org/images/photo/PG4/IMG_1011.JPG',
+                    'image_url' => 'https://www.newburghlodge174.org/img/lodge.jpg',
                     'alt' => 'Newburgh Lodge #174 building',
                     'fit' => 'cover',
                     'object_position' => 'center',
