@@ -39,6 +39,7 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
+        $guard = 'web';
 
         // If RoleEnum is a PHP backed enum, pass ->value; otherwise it's already a string.
         $adminRole = RoleEnum::ADMIN;
@@ -56,17 +57,20 @@ class HandleInertiaRequests extends Middleware
                 'newsletterLabel' => config('site.newsletter_label'),
                 'orgName' => config('site.org_name'),
             ],
+
             'can' => [
                 'newsletter' => [
-                    'create' => $user?->can('create', Newsletter::class) ?? false,
-                    'update' => $user?->can('update', Newsletter::class) ?? false,
+                    'create' => $user?->hasPermissionTo('create newsletter', $guard) ?? false,
+                    'update' => $user?->hasPermissionTo('update newsletter', $guard) ?? false,
+                    'delete' => $user?->hasPermissionTo('delete newsletter', $guard) ?? false,
                 ],
                 'admin' => [
-                    'users' => $user?->can('access', User::class) ?? false,
+                    // Prefer a permission if you have one; otherwise check roles.
+                    'users' => $user?->hasAnyRole([$adminRole, $secretaryRole]) ?? false,
                 ],
                 'manage' => [
-                    'content' => $user?->can('manage-content') ?? false,
-                    'gallery' => $user?->can('manage-gallery') ?? false,
+                    'content' => $user?->hasPermissionTo('manage-content', $guard) ?? false,
+                    'gallery' => $user?->hasPermissionTo('manage-gallery', $guard) ?? false,
                 ],
                 'isAdmin'     => $user?->hasRole($adminRole) ?? false,
                 'isSecretary' => $user?->hasRole($secretaryRole) ?? false,

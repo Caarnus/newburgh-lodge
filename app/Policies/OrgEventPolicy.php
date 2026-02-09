@@ -11,29 +11,34 @@ class OrgEventPolicy
 {
     use HandlesAuthorization;
 
-    public function viewAny(User $user): bool
+    public function viewAny(?User $user = null): bool
     {
         return true;
     }
 
-    public function view(User $user, OrgEvent $orgEvent): bool
+    public function view(?User $user, OrgEvent $orgEvent): bool
     {
-        return $orgEvent->is_public || ($user->can('view event'));
+        if ($orgEvent->is_public) {
+            return true;
+        }
+
+        // Members-only event viewing
+        return $user?->hasPermissionTo('view event', 'web') ?? false;
     }
 
     public function create(User $user): bool
     {
-        return $user->can('create event');
+        return $user->hasPermissionTo('create event', 'web');
     }
 
     public function update(User $user, OrgEvent $orgEvent): bool
     {
-        return $user->can('update event');
+        return $user->hasPermissionTo('update event', 'web');
     }
 
     public function delete(User $user, OrgEvent $orgEvent): bool
     {
-        return $user->can('delete event');
+        return $user->hasPermissionTo('delete event', 'web');
     }
 
     public function restore(User $user, OrgEvent $orgEvent): bool
