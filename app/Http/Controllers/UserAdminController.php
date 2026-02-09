@@ -168,6 +168,36 @@ class UserAdminController extends Controller
         return back()->with('success', 'User updated.');
     }
 
+    public function destroy(Request $request, User $user)
+    {
+        $this->assertAccess($request);
+        $this->abortIfSecretaryTargetingAdmin($request->user(), $user);
+        $this->requireConfirmation($request);
+
+        $before = [
+            'name' => $user->name,
+            'email'=> $user->email,
+            'roles'=> $user->getRoleNames()->values(),
+        ];
+
+        $user->delete();
+
+        $after = [
+            'name' => null,
+            'email'=> null,
+            'roles'=> null,
+        ];
+
+        Audit::log(
+            $request,
+            action: 'user.update',
+            subject: $user,
+            changes: compact('before','after')
+        );
+
+        return back()->with('success', 'User deleted.');
+    }
+
     public function setPassword(Request $request, User $user)
     {
         $this->assertAccess($request);

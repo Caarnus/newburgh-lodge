@@ -10,4 +10,6 @@ return [
     'admin_name' => env('ADMIN_NAME', 'Administrator'),
     'admin_password' => env('ADMIN_PASSWORD'),
     'admin_reset_password_on_seed' => env('ADMIN_RESET_PASSWORD_ON_SEED', false),
+    'new_user_notify_enabled' => env('NEW_USER_NOTIFY_ENABLED', true),
+    'new_user_notify_emails' => array_values(array_filter(array_map('trim',explode(',', env('NEW_USER_NOTIFY_EMAILS', ''))))),
 ];

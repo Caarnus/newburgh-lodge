@@ -75,6 +75,9 @@ Route::middleware([
     Route::put('/admin/users/{user}', [UserAdminController::class, 'update'])
         ->where('user', '[0-9]+')
         ->name('admin.users.update');
+    Route::delete('/admin/users/{user}', [UserAdminController::class, 'destroy'])
+        ->where('user', '[0-9]+')
+        ->name('admin.users.destroy');
     Route::put('/admin/users/{user}/password', [UserAdminController::class, 'setPassword'])
         ->name('admin.users.setPassword');
 

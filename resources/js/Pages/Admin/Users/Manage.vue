@@ -14,6 +14,7 @@ import Tag from 'primevue/tag'
 import Card from 'primevue/card'
 
 import ConfirmsPassword from '@/Components/ConfirmsPassword.vue'
+import {route} from "ziggy-js";
 
 type UserRow = {
     id: number
@@ -69,6 +70,10 @@ function sameRoles(a: string[] = [], b: string[] = []) {
 function snapshotRow(userId: number) {
     const f = editForms.value[userId].data()
     originals.value[userId] = { name: f.name, email: f.email, roles: [...(f.roles as string[])] }
+}
+
+function deleteRow(userId: number) {
+    Object.fromEntries(Object.entries(originals.value).filter((key: any[], id: any) => key[0] != userId.id))
 }
 
 function snapshotAllFrom(users: UserRow[]) {
@@ -147,6 +152,16 @@ function doUpdate(userId: number) {
     editForms.value[userId].put(route('admin.users.update', userId), {
         onSuccess: () => {
             snapshotRow(userId)
+            router.reload({
+                only: ['users'],
+            })
+        }
+    })
+}
+function doDelete(userId: number) {
+    router.delete(route('admin.users.destroy', userId), {
+        onSuccess: () => {
+            deleteRow(userId)
             router.reload({
                 only: ['users'],
             })
@@ -265,6 +280,15 @@ watch(() => props.users, (u) => {
                                         text rounded
                                         :disabled="!canEditRow(data)"
                                         @click="openPassword(data)"
+                                        v-tooltip.top="'Set password'"
+                                    />
+
+                                    <Button
+                                        icon="pi pi-trash"
+                                        aria-label="Delete User"
+                                        text rounded
+                                        :disabled="!canEditRow(data)"
+                                        @click="doDelete(data)"
                                         v-tooltip.top="'Set password'"
                                     />
                                 </div>

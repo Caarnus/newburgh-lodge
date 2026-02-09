@@ -3,30 +3,16 @@
 namespace App\Providers;
 
 use App\Listeners\AssignDefaultRoleListener;
+use App\Listeners\SendNewUserRegistrationNotificationListener;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
 {
-    protected array $listen = [
+    protected $listen = [
         Registered::class => [
             AssignDefaultRoleListener::class,
+            SendNewUserRegistrationNotificationListener::class,
         ],
     ];
-
-    /**
-     * Register services.
-     */
-    public function register(): void
-    {
-        //
-    }
-
-    /**
-     * Bootstrap services.
-     */
-    public function boot(): void
-    {
-        //
-    }
 }
