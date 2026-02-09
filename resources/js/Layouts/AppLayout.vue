@@ -40,7 +40,7 @@ const navMenuItems = ref([
             { label: "Indiana Grand Lodge", url: "https://www.indianafreemasons.com/", target: "_blank"},
             { label: "Indiana Grand Lodge Magazine", url: "https://www.indianafreemasonmagazine.com/", target: "_blank"},
             { label: "Historic Newburgh, IN", url: "https://www.historicnewburgh.org/", target: "_blank"},
-            { label: "Evansville Lodge #64 F&AM", url: "https://www.evv64.org/", target: "_blank"},
+            { label: "Evansville Lodge #64 F&AM", url: "https://www.evansvillelodge.org/", target: "_blank"},
             { label: "Reed Lodge #316 F&AM", url: "https://www.reedlodge316.org/", target: "_blank"},
             { label: "Hadi Shrine", url: "https://www.hadishrine.org/", target: "_blank"},
             { label: "Newburgh Lodge Facebook", url: "https://www.facebook.com/newburghlodge174", target: "_blank"},
