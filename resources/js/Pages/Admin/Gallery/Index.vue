@@ -419,9 +419,7 @@ function deletePhoto(p: PhotoRow) {
 
                     <div class="flex justify-end gap-2 pt-4">
                         <Button icon="pi pi-times-circle" severity="secondary" text @click="showUpload=false" />
-                        <ConfirmsPassword @confirmed="uploadPhoto">
-                            <Button icon="pi pi-upload" aria-label="Upload" :disabled="!uploadForm.photo" v-tooltip.top="'Upload photo'" />
-                        </ConfirmsPassword>
+                        <Button icon="pi pi-upload" aria-label="Upload" :disabled="!uploadForm.photo" v-tooltip.top="'Upload photo'" />
                     </div>
                 </div>
             </div>
