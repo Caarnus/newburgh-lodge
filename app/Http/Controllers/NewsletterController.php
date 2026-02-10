@@ -43,10 +43,9 @@ class NewsletterController extends Controller
             ...$data,
             'slug'       => \Str::slug($data['title']).'-'.now()->format('YmdHis'),
             'created_by' => $request->user()->id,
-            'created_at' => now(),
         ]);
 
-        return redirect()->route('compass-points.show', $newsletter)->with('success', 'Created.');
+        return redirect()->route('newsletters.show', $newsletter)->with('success', 'Created.');
     }
 
     public function show(Newsletter $newsletter)
@@ -111,7 +110,7 @@ class NewsletterController extends Controller
 
         $newsletter->fill($data)->save();
 
-        return redirect()->route('compass-points.show', $newsletter)->with('success', 'Updated.');
+        return redirect()->route('newsletters.show', $newsletter)->with('success', 'Updated.');
     }
 
     public function destroy(Newsletter $newsletter)
