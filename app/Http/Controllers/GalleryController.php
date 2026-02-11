@@ -12,10 +12,14 @@ class GalleryController extends Controller
 {
     public function index()
     {
-        $visible = Auth::check() ? ['public', 'members'] : ['public'];
+        $canManage = Auth::check() && Auth::user()->can('manage-gallery');
+        $canViewMembers = Auth::check()
+            && (Auth::user()->can('view member photos') || $canManage);
+        $visible = $canViewMembers ? ['public', 'members'] : ['public'];
 
         $albums = PhotoAlbum::query()
             ->where('enabled', true)
+            ->whereIn('visibility', $visible)
             ->orderBy('sort')
             ->orderByDesc('created_at')
             ->withCount([
@@ -54,18 +58,20 @@ class GalleryController extends Controller
 
         return Inertia::render('Gallery/Index', [
             'albums' => $albums,
-            'canManage' => Auth::check() && Auth::user()->can('manage-gallery'),
+            'canManage' => $canManage,
         ]);
     }
 
     public function show(PhotoAlbum $album)
     {
-        $visible = Auth::check() ? ['public', 'members'] : ['public'];
+        $canManage = Auth::check() && Auth::user()->can('manage-gallery');
+        $canViewMembers = Auth::check()
+            && (Auth::user()->can('view member photos') || $canManage);
+        $visible = $canViewMembers ? ['public', 'members'] : ['public'];
 
         abort_unless($album->enabled, 404);
 
-        // If the album itself is members-only, block guests
-        if ($album->visibility === 'members' && !Auth::check()) {
+        if ($album->visibility === 'members' && !$canViewMembers) {
             abort(403);
         }
 
@@ -97,7 +103,7 @@ class GalleryController extends Controller
                 'visibility' => $album->visibility,
             ],
             'photos' => $photos,
-            'canManage' => Auth::check() && Auth::user()->can('manage-gallery'),
+            'canManage' => $canManage,
         ]);
     }
 }

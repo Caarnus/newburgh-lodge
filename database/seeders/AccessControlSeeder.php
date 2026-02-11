@@ -27,6 +27,7 @@ class AccessControlSeeder extends Seeder
             'delete event',
             'manage-content',
             'manage-gallery',
+            'view member photos',
         ];
 
         foreach ($permissions as $name) {
@@ -41,6 +42,13 @@ class AccessControlSeeder extends Seeder
                 'guard_name' => $guard,
             ]);
         }
+
+        // Exact mappings (based on what you posted)
+        $roles[RoleEnum::MEMBER->value]?->syncPermissions([
+            'view newsletter',
+            'view event',
+            'view member photos',
+        ]);
 
         // Exact mappings (based on what you posted)
         $roles[RoleEnum::OFFICER->value]?->syncPermissions([
