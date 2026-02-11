@@ -55,14 +55,14 @@ class AccessControlSeeder extends Seeder
             'view newsletter','create newsletter','update newsletter',
             'view event','create event','update event','delete event',
             'manage-content',
-            'manage-gallery',
+            'manage-gallery','view member photos',
         ]);
 
         $roles[RoleEnum::SECRETARY->value]?->syncPermissions([
             'view newsletter','create newsletter','update newsletter','delete newsletter',
             'view event','create event','update event','delete event',
             'manage-content',
-            'manage-gallery',
+            'manage-gallery','view member photos',
         ]);
 
         // If you truly want Admin to always have *everything*:
