@@ -8,6 +8,7 @@ use App\Http\Controllers\JeopardyQuestionController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\OrgEventController;
 use App\Http\Controllers\PastMasterController;
+use App\Http\Controllers\ScholarshipApplicationController;
 use App\Http\Controllers\UserAdminController;
 use App\Models\Newsletter;
 use App\Models\OrgEvent;
@@ -144,3 +145,9 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])->prefix('a
     Route::post('/reorder', [ContentTileController::class, 'reorder'])->name('admin.content.reorder');
     Route::post('/upload', [ContentTileController::class, 'upload'])->name('admin.content.upload');
 });
+
+Route::get('/scholarship/apply', [ScholarshipApplicationController::class, 'apply'])->name('scholarship.apply');
+Route::post('/scholarship/apply', [ScholarshipApplicationController::class, 'store'])->name('scholarship.apply.store');
+Route::get('/scholarship/thanks', [ScholarshipApplicationController::class, 'thanks'])->name('scholarship.thanks');
+Route::get('/scholarship/verify/{scholarshipApplication}/{token}', [ScholarshipApplicationController::class, 'verify'])
+    ->name('scholarship.verify');
