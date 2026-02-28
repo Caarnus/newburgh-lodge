@@ -35,6 +35,7 @@ const navMenuItems = ref([
             { label: "Directions", url: "https://www.google.com/maps/dir/?api=1&destination=720+Filmore+St+Newburgh+IN+47630&travelmode=driving", target: "_blank"},
         ]
     },
+    { label: "Scholarship", url: route('scholarship.intro')},
     { label: 'Contact Us', url: route('contact'), },
     { label: "Links", items: [
             { label: "Indiana Grand Lodge", url: "https://www.indianafreemasons.com/", target: "_blank"},

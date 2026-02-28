@@ -146,8 +146,13 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])->prefix('a
     Route::post('/upload', [ContentTileController::class, 'upload'])->name('admin.content.upload');
 });
 
-Route::get('/scholarship/apply', [ScholarshipApplicationController::class, 'apply'])->name('scholarship.apply');
-Route::post('/scholarship/apply', [ScholarshipApplicationController::class, 'store'])->name('scholarship.apply.store');
-Route::get('/scholarship/thanks', [ScholarshipApplicationController::class, 'thanks'])->name('scholarship.thanks');
+Route::get('/scholarship', [ScholarshipApplicationController::class, 'intro'])
+    ->name('scholarship.intro');
+Route::get('/scholarship/apply', [ScholarshipApplicationController::class, 'apply'])
+    ->name('scholarship.apply');
+Route::post('/scholarship/apply', [ScholarshipApplicationController::class, 'store'])
+    ->name('scholarship.apply.store');
+Route::get('/scholarship/thanks', [ScholarshipApplicationController::class, 'thanks'])
+    ->name('scholarship.thanks');
 Route::get('/scholarship/verify/{scholarshipApplication}/{token}', [ScholarshipApplicationController::class, 'verify'])
     ->name('scholarship.verify');

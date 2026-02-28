@@ -13,6 +13,11 @@ use Inertia\Inertia;
 
 class ScholarshipApplicationController extends Controller
 {
+    public function intro()
+    {
+        return \Inertia\Inertia::render('Scholarship/Intro');
+    }
+
     public function apply()
     {
         return Inertia::render('Scholarship/Apply', [
