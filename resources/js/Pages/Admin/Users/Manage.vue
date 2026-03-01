@@ -16,6 +16,8 @@ import Card from 'primevue/card'
 import ConfirmsPassword from '@/Components/ConfirmsPassword.vue'
 import {route} from "ziggy-js";
 
+const MAX_ROLES_IN_TABLE = 5
+
 type UserRow = {
     id: number
     name: string
@@ -200,6 +202,12 @@ function doBulkSave() {
     })
 }
 
+function formatRolesForTable(roles: string[] = [], max = MAX_ROLES_IN_TABLE) {
+    if (!roles?.length) return ''
+    if (roles.length <= max) return roles.join(', ')
+    return `${roles.slice(0, max).join(', ')} +${roles.length - max} more`
+}
+
 watch(() => props.users, (u) => {
     if (u && Array.isArray(u)) snapshotAllFrom(u as UserRow[])
 }, { immediate: true })
@@ -228,17 +236,17 @@ watch(() => props.users, (u) => {
             </div>
         </template>
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <Card class="bg-surface-0 dark:bg-surface-900 shadow">
                 <template #content>
                     <DataTable :value="props.users" paginator :rows="10" striped-rows responsive-layout="scroll">
-                        <Column field="name" header="Name" :sortable="true">
+                        <Column field="name" header="Name" :sortable="true" class="w-96">
                             <template #body="{ data }">
                                 <InputText v-model="editForms[data.id].name" class="w-full" :disabled="!canEditRow(data)" />
                             </template>
                         </Column>
 
-                        <Column field="email" header="Email" :sortable="true">
+                        <Column field="email" header="Email" :sortable="true" class="w-96">
                             <template #body="{ data }">
                                 <InputText v-model="editForms[data.id].email" class="w-full" :disabled="!canEditRow(data)" />
                             </template>
@@ -251,17 +259,23 @@ watch(() => props.users, (u) => {
                                         v-model="editForms[data.id].roles"
                                         :options="props.roles"
                                         class="w-full"
-                                        display="chip"
+                                        display="comma"
                                         :disabled="!canEditRow(data)"
                                         placeholder="Select roles"
                                         :pt="{ root: { title: roleTooltip(data.id) }, label: { title: roleTooltip(data.id) } }"
-                                    />
+                                    >
+                                        <!-- Keep the cell compact even when a user has many roles -->
+                                        <template #value="{ value, placeholder }">
+                                            <span v-if="!value || !value.length" class="text-surface-500">{{ placeholder }}</span>
+                                            <span v-else class="block max-w-full truncate">{{ formatRolesForTable(value as string[]) }}</span>
+                                        </template>
+                                    </MultiSelect>
                                     <Tag v-if="data.isAdmin" value="Admin" severity="danger" />
                                 </div>
                             </template>
                         </Column>
 
-                        <Column header="Actions">
+                        <Column header="Actions" class="w-52">
                             <template #body="{ data }">
                                 <div class="flex gap-2">
                                     <ConfirmsPassword @confirmed="() => doUpdate(data.id)">
