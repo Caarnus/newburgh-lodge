@@ -47,6 +47,7 @@ import Message from "primevue/message";
                                             <div class="text-lg font-semibold">Eligibility</div>
                                             <ul class="list-disc pl-6 space-y-1">
                                                 <li>Open to any student in <b>Warrick County, Indiana</b>.</li>
+                                                <li>Submission deadline is <b>April 15<sup>th</sup></b>.</li>
                                             </ul>
                                         </div>
 
