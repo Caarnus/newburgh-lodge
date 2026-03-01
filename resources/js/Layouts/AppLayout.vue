@@ -51,10 +51,11 @@ const navMenuItems = ref([
             { label: "Users", url: route('admin.users.index')},
         ]
     },
-    { label: "Manage", visible: $page.props.can.manage.content, items: [
-            { label: "Jeopardy", url: route('jeopardy.index')},
-            { label: "Manage Content", url: route('admin.content.index')},
-            { label: "Manage Gallery", url: route('admin.gallery.index')},
+    { label: "Manage", visible: $page.props.can.manage.content || $page.props.can.manage.scholarships, items: [
+            { label: "Jeopardy", url: route('jeopardy.index'), visible: $page.props.can.manage.content},
+            { label: "Manage Content", url: route('admin.content.index'), visible: $page.props.can.manage.content},
+            { label: "Manage Gallery", url: route('admin.gallery.index'), visible: $page.props.can.manage.content },
+            { label: "Scholarship Applications", url: route('manage.scholarships.index'), visible: $page.props.can.manage.scholarships },
         ]
     },
     { label: page.props.auth?.user?.name ?? "Sign In", class: 'ml-auto', items: [

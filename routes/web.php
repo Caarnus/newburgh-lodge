@@ -9,6 +9,7 @@ use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\OrgEventController;
 use App\Http\Controllers\PastMasterController;
 use App\Http\Controllers\ScholarshipApplicationController;
+use App\Http\Controllers\ScholarshipApplicationReviewController;
 use App\Http\Controllers\UserAdminController;
 use App\Models\Newsletter;
 use App\Models\OrgEvent;
@@ -156,3 +157,21 @@ Route::get('/scholarship/thanks', [ScholarshipApplicationController::class, 'tha
     ->name('scholarship.thanks');
 Route::get('/scholarship/verify/{scholarshipApplication}/{token}', [ScholarshipApplicationController::class, 'verify'])
     ->name('scholarship.verify');
+
+Route::middleware(['auth', 'can:review scholarship applications'])
+    ->prefix('manage/scholarship')
+    ->group(function () {
+        Route::get('/', [ScholarshipApplicationReviewController::class, 'index'])
+            ->name('manage.scholarships.index');
+        Route::get('/{scholarshipApplication}', [ScholarshipApplicationReviewController::class, 'show'])
+            ->name('manage.scholarships.show');
+        Route::get('/{scholarshipApplication}/attachments/{index}', [ScholarshipApplicationReviewController::class, 'downloadAttachment'])
+            ->whereNumber('index')
+            ->name('manage.scholarships.attachments.download');
+        Route::post('/{scholarshipApplication}/review', [ScholarshipApplicationReviewController::class, 'upsert'])
+            ->name('manage.scholarships.review.upsert');
+        Route::patch('/{scholarshipApplication}/status', [ScholarshipApplicationReviewController::class, 'updateApplicationStatus'])
+            ->name('manage.scholarships.status.update');
+        Route::delete('/{scholarshipApplication}', [ScholarshipApplicationReviewController::class, 'destroyApplication'])
+            ->name('manage.scholarships.destroy');
+    });

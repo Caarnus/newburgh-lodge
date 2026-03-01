@@ -71,6 +71,7 @@ class HandleInertiaRequests extends Middleware
                 'manage' => [
                     'content' => $user?->hasPermissionTo('manage-content', $guard) ?? false,
                     'gallery' => $user?->hasPermissionTo('manage-gallery', $guard) ?? false,
+                    'scholarships' => $user?->hasPermissionTo('review scholarship applications', $guard) ?? false,
                 ],
                 'isAdmin'     => $user?->hasRole($adminRole) ?? false,
                 'isSecretary' => $user?->hasRole($secretaryRole) ?? false,

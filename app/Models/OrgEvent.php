@@ -24,19 +24,16 @@ class OrgEvent extends Model
         'open_to',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'start' => 'datetime',
-            'end' => 'datetime',
-            'created_at' => 'datetime',
-            'updated_at' => 'datetime',
-            'is_public' => 'boolean',
-            'masons_only' => 'boolean',
-            'all_day' => 'boolean',
-            'repeats' => 'boolean',
-        ];
-    }
+    protected $casts = [
+        'start' => 'datetime',
+        'end' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'is_public' => 'boolean',
+        'masons_only' => 'boolean',
+        'all_day' => 'boolean',
+        'repeats' => 'boolean',
+    ];
 
     public function type(): BelongsTo
     {

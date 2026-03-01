@@ -23,11 +23,8 @@ class ContentTile extends Model
         'enabled',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'config' => 'array',
-            'enabled' => 'boolean',
-        ];
-    }
+    protected $casts = [
+        'config' => 'array',
+        'enabled' => 'boolean',
+    ];
 }

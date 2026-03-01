@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ScholarshipApplication extends Model
@@ -46,20 +47,22 @@ class ScholarshipApplication extends Model
         'email_verified_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'is_warrick_resident' => 'boolean',
-            'expected_graduation' => 'date',
-            'attachments' => 'array',
-            'submitted_at' => 'datetime',
-            'email_verification_sent_at' => 'datetime',
-            'email_verified_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'is_warrick_resident' => 'boolean',
+        'expected_graduation' => 'date',
+        'attachments' => 'array',
+        'submitted_at' => 'datetime',
+        'email_verification_sent_at' => 'datetime',
+        'email_verified_at' => 'datetime',
+    ];
 
     public function hasVerifiedEmail(): bool
     {
         return !is_null($this->email_verified_at);
+    }
+
+    public function reviews(): ScholarshipApplication|HasMany
+    {
+        return $this->hasMany(ScholarshipApplicationReview::class, 'scholarship_application_id');
     }
 }

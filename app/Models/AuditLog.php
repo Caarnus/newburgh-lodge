@@ -17,15 +17,12 @@ class AuditLog extends Model
         'succeeded','error_message',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'before' => 'array',
-            'after' => 'array',
-            'meta' => 'array',
-            'succeeded' => 'boolean',
-        ];
-    }
+    protected $casts = [
+        'before' => 'array',
+        'after' => 'array',
+        'meta' => 'array',
+        'succeeded' => 'boolean',
+    ];
 
     public function actor(): BelongsTo
     {

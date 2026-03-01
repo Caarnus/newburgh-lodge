@@ -22,10 +22,7 @@ class Newsletter extends Model
         return $this->belongsTo(User::class, 'created_by', 'id');
     }
 
-    protected function casts(): array
-    {
-        return [
-            'is_public' => 'boolean',
-        ];
-    }
+    protected $casts = [
+        'is_public' => 'boolean',
+    ];
 }
