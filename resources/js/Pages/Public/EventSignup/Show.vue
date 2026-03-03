@@ -66,7 +66,7 @@ function submit() {
         <div class="max-w-3xl mx-auto px-4 py-10">
             <Card class="overflow-hidden">
                 <template #header>
-                    <div v-if="page.cover_image_url" class="h-56 w-full">
+                    <div v-if="page.cover_image_url" class="w-full">
                         <img :src="page.cover_image_url" alt="" class="h-full w-full object-cover" />
                     </div>
                 </template>
