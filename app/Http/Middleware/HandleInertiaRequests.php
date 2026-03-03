@@ -41,7 +41,6 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         $guard = 'web';
 
-        // If RoleEnum is a PHP backed enum, pass ->value; otherwise it's already a string.
         $adminRole = RoleEnum::ADMIN;
         if ($adminRole instanceof \BackedEnum) {
             $adminRole = $adminRole->value;
@@ -53,6 +52,10 @@ class HandleInertiaRequests extends Middleware
         }
 
         return array_merge(parent::share($request), [
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+            ],
+
             'site' => [
                 'newsletterLabel' => config('site.newsletter_label'),
                 'orgName' => config('site.org_name'),

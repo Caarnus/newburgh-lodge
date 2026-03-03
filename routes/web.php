@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContentTileController;
+use App\Http\Controllers\EventSignupController;
+use App\Http\Controllers\EventSignupManageController;
+use App\Http\Controllers\EventSignupUnsubscribeController;
 use App\Http\Controllers\GalleryAdminController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\JeopardyQuestionController;
@@ -54,6 +57,28 @@ Route::get('/faq', function () {
 
 Route::get('/gallery', [GalleryController::class, 'index'])->name('gallery.index');
 Route::get('/gallery/{album:slug}', [GalleryController::class, 'show'])->name('gallery.show');
+
+Route::prefix('signup')->name('public.signup.')->group(function () {
+    Route::get('{eventSignupPage}', [EventSignupController::class, 'show'])
+        ->name('show');
+    Route::post('{eventSignupPage}', [EventSignupController::class, 'store'])
+        ->middleware('throttle:event-signups')
+        ->name('store');
+
+    Route::get('manage/{eventSignup}', [EventSignupManageController::class, 'show'])
+        ->middleware('signed')
+        ->name('manage.show');
+    Route::patch('manage/{eventSignup}', [EventSignupManageController::class, 'update'])
+        ->middleware('signed')
+        ->name('manage.update');
+    // Unsubscribe flow (signed URL required)
+    Route::get('unsubscribe/{eventSignup}', [EventSignupUnsubscribeController::class, 'show'])
+        ->middleware('signed')
+        ->name('unsubscribe.show');
+    Route::post('unsubscribe/{eventSignup}', [EventSignupUnsubscribeController::class, 'store'])
+        ->middleware('signed')
+        ->name('unsubscribe.store');
+});
 
 Route::middleware([
     'auth:sanctum',
@@ -119,6 +144,18 @@ Route::middleware([
         ->where('event', '[0-9]+')
         ->name('events.destroy')
         ->can('delete', OrgEvent::class);
+
+    Route::post('/events/{event}/signup-page', [OrgEventController::class, 'upsertSignupPage'])
+        ->name('events.signup-page.upsert');
+
+    Route::delete('/events/{event}/signup-page', [OrgEventController::class, 'destroySignupPage'])
+        ->name('events.signup-page.destroy');
+
+    Route::post('/events/{event}/occurrence-overrides', [OrgEventController::class, 'upsertOccurrenceOverride'])
+        ->name('events.occurrence-overrides.upsert');
+
+    Route::delete('/events/{event}/occurrence-overrides', [OrgEventController::class, 'destroyOccurrenceOverride'])
+        ->name('events.occurrence-overrides.destroy');
 });
 
 Route::middleware(['auth:sanctum', 'verified', 'can:manage-gallery'])

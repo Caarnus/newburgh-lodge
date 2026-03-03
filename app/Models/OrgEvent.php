@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class OrgEvent extends Model
 {
@@ -38,5 +40,15 @@ class OrgEvent extends Model
     public function type(): BelongsTo
     {
         return $this->belongsTo(OrgEventType::class, 'type_id');
+    }
+
+    public function signupPage(): HasOne
+    {
+        return $this->hasOne(EventSignupPage::class, 'org_event_id');
+    }
+
+    public function occurrenceOverrides(): HasMany
+    {
+        return $this->hasMany(OrgEventOccurrenceOverride::class, 'org_event_id');
     }
 }
