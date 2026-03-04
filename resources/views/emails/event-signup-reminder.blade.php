@@ -14,7 +14,7 @@ $startsIn = match ($reminderType) {
 
 This is a reminder that **{{ $eventTitle }}** starts {{ $startsIn }}.
 
-**When:** {{ $local->format('l, F j, Y \a\t g:i A') }} ({{ $timezone }})
+**When:** {{ $local->format('l, F j, Y \a\t g:i A') }} ({{ $timezone }})\
 @if(!empty($location))
 **Where:** {{ $location }}
 @endif
