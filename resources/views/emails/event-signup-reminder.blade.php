@@ -15,11 +15,11 @@ $startsIn = match ($reminderType) {
 @component('mail::message')
 <h1 style="text-align:center;">{{ $eventTitle }}</h1>
 
-<p style="text-align:center;">
+<p style="text-align:left;">
 This is a reminder that <strong>{{ $eventTitle }}</strong> starts {{ $startsIn }}.
 </p>
 
-<p style="text-align:center;">
+<p style="text-align:left;">
 {{ $eventDescription }}
 </p>
 
