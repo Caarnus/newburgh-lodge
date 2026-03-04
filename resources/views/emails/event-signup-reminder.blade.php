@@ -1,5 +1,8 @@
 @php
 $local = $occurrenceStartUtc->timezone($timezone);
+$tz = IntlTimeZone::createTimeZone($timezone);
+$locale = 'en_US';
+$abbr = $tz->getDisplayName(false, IntlTimeZone::DISPLAY_SHORT_GENERIC, $locale);
 
 $startsIn = match ($reminderType) {
     'week' => 'in 1 week',
@@ -10,25 +13,33 @@ $startsIn = match ($reminderType) {
 @endphp
 
 @component('mail::message')
-# {{ $eventTitle }}
+<h1 style="text-align:center;">{{ $eventTitle }}</h1>
 
-This is a reminder that **{{ $eventTitle }}** starts {{ $startsIn }}.
+<p style="text-align:center;">
+This is a reminder that <strong>{{ $eventTitle }}</strong> starts {{ $startsIn }}.
+</p>
 
-**When:** {{ $local->format('l, F j, Y \a\t g:i A') }} ({{ $timezone }})\
+<p style="text-align:center;">
+{{ $eventDescription }}
+</p>
+
+<p style="text-align:center;">
+<strong>When:</strong> {{ $local->format('l, F j, Y \a\t g:i A') }} ({{ $abbr }})
 @if(!empty($location))
-**Where:** {{ $location }}
+<br><strong>Where:</strong> {{ $location }}
 @endif
+</p>
 
 @component('mail::button', ['url' => $manageUrl])
 Manage reminders
 @endcomponent
 
-If you no longer want reminders for this event, you can remove your signup:
-
-@component('mail::button', ['url' => $unsubscribeUrl])
-Remove my signup
-@endcomponent
-
+<p style="text-align:left; margin-top: 24px;">
 Thanks,<br>
 {{ config('app.name') }}
+</p>
+
+<p style="text-align:center; font-size: 10px;">
+    If you no longer want reminders for this event, you can remove your signup: <a href="{{ $unsubscribeUrl }}">Remove my signup</a>
+</p>
 @endcomponent

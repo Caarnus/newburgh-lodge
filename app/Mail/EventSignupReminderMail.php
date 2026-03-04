@@ -13,6 +13,7 @@ class EventSignupReminderMail extends Mailable
 
     public function __construct(
         public string $eventTitle,
+        public string $eventDescription,
         public string $reminderType, // week|day|hour
         public CarbonImmutable $occurrenceStartUtc,
         public string $timezone,

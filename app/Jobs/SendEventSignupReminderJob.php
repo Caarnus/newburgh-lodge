@@ -75,6 +75,8 @@ class SendEventSignupReminderJob implements ShouldQueue
 
         $subscriber = $signup->subscriber;
         $event = $signup->page?->event;
+        $title = $signup->page?->title_override ?? $event?->title ?? 'Event';
+        $description = $signup->page?->description ?? $event?->description ?? '';
 
         if (!$subscriber || !$subscriber->email || !$event) {
             logger()->info('EventSignupReminderJob: Subscriber or event not found, skipping reminder');
@@ -105,7 +107,8 @@ class SendEventSignupReminderJob implements ShouldQueue
             $effectiveStartUtc = $service->effectiveStartForOccurrence($event, $occurrenceIdUtc);
 
             Mail::to($subscriber->email)->send(new EventSignupReminderMail(
-                eventTitle: $event->title,
+                eventTitle: $title,
+                eventDescription: $description,
                 reminderType: $reminder->reminder_type,
                 occurrenceStartUtc: $effectiveStartUtc,
                 timezone: $event->timezone ?: config('app.timezone', 'UTC'),
