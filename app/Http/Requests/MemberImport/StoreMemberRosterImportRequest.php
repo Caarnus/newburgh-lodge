@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\MemberImport;
 
+use App\Helpers\People\PeoplePermissions;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreMemberRosterImportRequest extends FormRequest
@@ -16,6 +17,6 @@ class StoreMemberRosterImportRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()?->can('manage members') ?? false;
+        return $this->user()?->can(PeoplePermissions::IMPORT_MEMBER_ROSTER) ?? false;
     }
 }

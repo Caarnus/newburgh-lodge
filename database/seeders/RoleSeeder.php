@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Helpers\RoleEnum;
-use Spatie\Permission\Models\Role;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
 
 class RoleSeeder extends Seeder
 {
@@ -18,5 +18,10 @@ class RoleSeeder extends Seeder
                 'guard_name' => $guard,
             ]);
         }
+
+        Role::firstOrCreate([
+            'name' => 'Care Committee',
+            'guard_name' => $guard,
+        ]);
     }
 }

@@ -2,9 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Helpers\People\PeoplePermissions;
 use App\Helpers\RoleEnum;
-use App\Models\Newsletter;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -13,29 +12,10 @@ class HandleInertiaRequests extends Middleware
     /**
      * The root template that's loaded on the first page visit.
      *
-     * @see https://inertiajs.com/server-side-setup#root-template
-     *
      * @var string
      */
     protected $rootView = 'app';
 
-    /**
-     * Determines the current asset version.
-     *
-     * @see https://inertiajs.com/asset-versioning
-     */
-    public function version(Request $request): ?string
-    {
-        return parent::version($request);
-    }
-
-    /**
-     * Define the props that are shared by default.
-     *
-     * @see https://inertiajs.com/shared-data
-     *
-     * @return array<string, mixed>
-     */
     public function share(Request $request): array
     {
         $user = $request->user();
@@ -50,6 +30,31 @@ class HandleInertiaRequests extends Middleware
         if ($secretaryRole instanceof \BackedEnum) {
             $secretaryRole = $secretaryRole->value;
         }
+
+        $peopleCan = [
+            'members' => $user?->hasPermissionTo(PeoplePermissions::VIEW_MEMBER_DIRECTORY, $guard) ?? false,
+            'widows' => $user?->hasPermissionTo(PeoplePermissions::VIEW_WIDOW_DIRECTORY, $guard) ?? false,
+            'orphans' => $user?->hasPermissionTo(PeoplePermissions::VIEW_ORPHAN_DIRECTORY, $guard) ?? false,
+            'details' => $user?->hasPermissionTo(PeoplePermissions::VIEW_MEMBER_DETAILS, $guard) ?? false,
+            'updateRecords' => $user?->hasPermissionTo(PeoplePermissions::UPDATE_MEMBER_RECORDS, $guard) ?? false,
+            'importRoster' => $user?->hasPermissionTo(PeoplePermissions::IMPORT_MEMBER_ROSTER, $guard) ?? false,
+            'mergeRecords' => $user?->hasPermissionTo(PeoplePermissions::MERGE_PEOPLE_RECORDS, $guard) ?? false,
+            'logContacts' => $user?->hasPermissionTo(PeoplePermissions::LOG_CARE_CONTACTS, $guard) ?? false,
+            'editContacts' => $user?->hasPermissionTo(PeoplePermissions::EDIT_CARE_CONTACTS, $guard) ?? false,
+            'exportDirectory' => $user?->hasPermissionTo(PeoplePermissions::EXPORT_MEMBER_DIRECTORY, $guard) ?? false,
+            'viewOwnProfile' => $user?->hasPermissionTo(PeoplePermissions::VIEW_OWN_PERSON_PROFILE, $guard) ?? false,
+            'updateOwnProfile' => $user?->hasPermissionTo(PeoplePermissions::UPDATE_OWN_PERSON_PROFILE, $guard) ?? false,
+        ];
+
+        $peopleCan['directory'] = $peopleCan['members'] || $peopleCan['widows'] || $peopleCan['orphans'];
+        $peopleCan['any'] = $peopleCan['directory']
+            || $peopleCan['details']
+            || $peopleCan['updateRecords']
+            || $peopleCan['importRoster']
+            || $peopleCan['mergeRecords']
+            || $peopleCan['logContacts']
+            || $peopleCan['editContacts']
+            || $peopleCan['exportDirectory'];
 
         return array_merge(parent::share($request), [
             'flash' => [
@@ -68,15 +73,15 @@ class HandleInertiaRequests extends Middleware
                     'delete' => $user?->hasPermissionTo('delete newsletter', $guard) ?? false,
                 ],
                 'admin' => [
-                    // Prefer a permission if you have one; otherwise check roles.
                     'users' => $user?->hasAnyRole([$adminRole, $secretaryRole]) ?? false,
                 ],
                 'manage' => [
                     'content' => $user?->hasPermissionTo('manage-content', $guard) ?? false,
                     'gallery' => $user?->hasPermissionTo('manage-gallery', $guard) ?? false,
                     'scholarships' => $user?->hasPermissionTo('review scholarship applications', $guard) ?? false,
+                    'people' => $peopleCan,
                 ],
-                'isAdmin'     => $user?->hasRole($adminRole) ?? false,
+                'isAdmin' => $user?->hasRole($adminRole) ?? false,
                 'isSecretary' => $user?->hasRole($secretaryRole) ?? false,
             ],
         ]);

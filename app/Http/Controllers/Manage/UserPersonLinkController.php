@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Manage;
 
 use App\Enums\UserPersonLinkAction;
+use App\Helpers\People\PeoplePermissions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\People\LinkUserToPersonRequest;
 use App\Http\Requests\People\SearchPeopleForUserLinkRequest;
@@ -19,7 +20,7 @@ class UserPersonLinkController extends Controller
 {
     public function show(User $user, RegistrationMemberService $matcher): JsonResponse
     {
-        abort_unless(request()->user()?->can('manage members'), 403);
+        abort_unless(request()->user()?->can(PeoplePermissions::UPDATE_MEMBER_RECORDS), 403);
 
         return response()->json($matcher->buildStatusPayload($user));
     }

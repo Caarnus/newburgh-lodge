@@ -6,6 +6,7 @@ import DataTable from 'primevue/datatable';
 import Tag from 'primevue/tag';
 import DirectoryFilterBar from '@/Components/MemberDirectory/DirectoryFilterBar.vue';
 import DirectorySectionTabs from '@/Components/MemberDirectory/DirectorySectionTabs.vue';
+import AppLayout from "@/Layouts/AppLayout.vue";
 
 const props = defineProps({
     filters: { type: Object, required: true },
@@ -41,11 +42,18 @@ const deceasedSeverity = (row) => row.is_deceased ? 'danger' : 'success';
 </script>
 
 <template>
+    <AppLayout title="Member Directory">
+        <template #header>
+            <div class="flex items-center justify-between">
+                <h2 class="font-semibold text-xl text-surface-800 dark:text-surface-100 leading-tight">
+                    Member Directory
+                </h2>
+            </div>
+        </template>
     <div class="space-y-6 p-6">
         <div class="space-y-4">
             <DirectorySectionTabs active="members" />
             <div>
-                <h1 class="text-3xl font-semibold text-surface-900 dark:text-surface-0">Member Directory</h1>
                 <p class="mt-2 text-surface-600 dark:text-surface-300">
                     Internal roster view with filters for status, type, and deceased visibility.
                 </p>
@@ -126,4 +134,5 @@ const deceasedSeverity = (row) => row.is_deceased ? 'danger' : 'success';
             </DataTable>
         </div>
     </div>
+    </AppLayout>
 </template>

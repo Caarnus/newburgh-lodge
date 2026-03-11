@@ -5,6 +5,7 @@ import DataTable from 'primevue/datatable';
 import Tag from 'primevue/tag';
 import DirectoryFilterBar from '@/Components/MemberDirectory/DirectoryFilterBar.vue';
 import DirectorySectionTabs from '@/Components/MemberDirectory/DirectorySectionTabs.vue';
+import AppLayout from "@/Layouts/AppLayout.vue";
 
 const props = defineProps({
     filters: { type: Object, required: true },
@@ -37,11 +38,18 @@ const formatDateTime = (value) => value ? new Date(value).toLocaleString() : 'â€
 </script>
 
 <template>
+    <AppLayout title="Widows">
+        <template #header>
+            <div class="flex items-center justify-between">
+                <h2 class="font-semibold text-xl text-surface-800 dark:text-surface-100 leading-tight">
+                    Widows
+                </h2>
+            </div>
+        </template>
     <div class="space-y-6 p-6">
         <div class="space-y-4">
             <DirectorySectionTabs active="widows" />
             <div>
-                <h1 class="text-3xl font-semibold text-surface-900 dark:text-surface-0">Widows</h1>
                 <p class="mt-2 text-surface-600 dark:text-surface-300">
                     Surviving spouses connected to deceased lodge members through spouse relationships.
                 </p>
@@ -112,4 +120,5 @@ const formatDateTime = (value) => value ? new Date(value).toLocaleString() : 'â€
             </DataTable>
         </div>
     </div>
+    </AppLayout>
 </template>

@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests\People;
 
+use App\Helpers\People\PeoplePermissions;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SearchPeopleForUserLinkRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('manage members') ?? false;
+        return $this->user()?->can(PeoplePermissions::UPDATE_MEMBER_RECORDS) ?? false;
     }
 
     public function rules(): array

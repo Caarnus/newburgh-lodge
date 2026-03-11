@@ -2,11 +2,12 @@
 
 namespace Database\Seeders;
 
+use App\Helpers\People\PeoplePermissions;
+use App\Helpers\RoleEnum;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
-use App\Helpers\RoleEnum;
 
 class AccessControlSeeder extends Seeder
 {
@@ -14,7 +15,7 @@ class AccessControlSeeder extends Seeder
     {
         $guard = 'web';
 
-        app(PermissionRegistrar::class)->forgetCachedPermissions(); // recommended :contentReference[oaicite:2]{index=2}
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $permissions = [
             'view newsletter',
@@ -28,13 +29,14 @@ class AccessControlSeeder extends Seeder
             'manage-content',
             'manage-gallery',
             'view member photos',
+            'review scholarship applications',
+            ...PeoplePermissions::all(),
         ];
 
         foreach ($permissions as $name) {
             Permission::findOrCreate($name, $guard);
         }
 
-        // Ensure roles exist (guarded)
         $roles = [];
         foreach (RoleEnum::cases() as $case) {
             $roles[$case->value] = Role::firstOrCreate([
@@ -43,31 +45,75 @@ class AccessControlSeeder extends Seeder
             ]);
         }
 
-        // Exact mappings (based on what you posted)
+        $roles['Care Committee'] = Role::firstOrCreate([
+            'name' => 'Care Committee',
+            'guard_name' => $guard,
+        ]);
+
         $roles[RoleEnum::MEMBER->value]?->syncPermissions([
             'view newsletter',
             'view event',
             'view member photos',
+            PeoplePermissions::VIEW_OWN_PERSON_PROFILE,
+            PeoplePermissions::UPDATE_OWN_PERSON_PROFILE,
         ]);
 
-        // Exact mappings (based on what you posted)
         $roles[RoleEnum::OFFICER->value]?->syncPermissions([
-            'view newsletter','create newsletter','update newsletter',
-            'view event','create event','update event','delete event',
+            'view newsletter',
+            'create newsletter',
+            'update newsletter',
+            'view event',
+            'create event',
+            'update event',
+            'delete event',
             'manage-content',
-            'manage-gallery','view member photos',
+            'manage-gallery',
+            'view member photos',
+            PeoplePermissions::VIEW_MEMBER_DIRECTORY,
+            PeoplePermissions::VIEW_WIDOW_DIRECTORY,
+            PeoplePermissions::VIEW_ORPHAN_DIRECTORY,
+            PeoplePermissions::VIEW_MEMBER_DETAILS,
+            PeoplePermissions::LOG_CARE_CONTACTS,
+            PeoplePermissions::EDIT_CARE_CONTACTS,
         ]);
 
         $roles[RoleEnum::SECRETARY->value]?->syncPermissions([
-            'view newsletter','create newsletter','update newsletter','delete newsletter',
-            'view event','create event','update event','delete event',
+            'view newsletter',
+            'create newsletter',
+            'update newsletter',
+            'delete newsletter',
+            'view event',
+            'create event',
+            'update event',
+            'delete event',
             'manage-content',
-            'manage-gallery','view member photos',
+            'manage-gallery',
+            'view member photos',
+            PeoplePermissions::VIEW_MEMBER_DIRECTORY,
+            PeoplePermissions::IMPORT_MEMBER_ROSTER,
+            PeoplePermissions::MERGE_PEOPLE_RECORDS,
+            PeoplePermissions::VIEW_MEMBER_DETAILS,
+            PeoplePermissions::UPDATE_MEMBER_RECORDS,
+            PeoplePermissions::VIEW_WIDOW_DIRECTORY,
+            PeoplePermissions::VIEW_ORPHAN_DIRECTORY,
+            PeoplePermissions::LOG_CARE_CONTACTS,
+            PeoplePermissions::EDIT_CARE_CONTACTS,
+            PeoplePermissions::EXPORT_MEMBER_DIRECTORY,
         ]);
 
-        // If you truly want Admin to always have *everything*:
+        $roles['Care Committee']?->syncPermissions([
+            PeoplePermissions::VIEW_WIDOW_DIRECTORY,
+            PeoplePermissions::VIEW_ORPHAN_DIRECTORY,
+            PeoplePermissions::VIEW_MEMBER_DETAILS,
+            PeoplePermissions::LOG_CARE_CONTACTS,
+            PeoplePermissions::EDIT_CARE_CONTACTS,
+        ]);
+
         $roles[RoleEnum::ADMIN->value]?->syncPermissions(
-            Permission::where('guard_name', $guard)->pluck('name')->all()
+            Permission::query()
+                ->where('guard_name', $guard)
+                ->pluck('name')
+                ->all()
         );
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

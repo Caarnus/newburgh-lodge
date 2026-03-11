@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Manage;
 
+use App\Helpers\People\PeoplePermissions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MemberImport\StoreMemberRosterImportRequest;
 use App\Models\MemberImportBatch;
@@ -12,8 +13,10 @@ use Throwable;
 
 class MemberRosterImportController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        abort_unless($request->user()?->can(PeoplePermissions::IMPORT_MEMBER_ROSTER), 403);
+
         $batches = MemberImportBatch::query()
             ->withCount('rows')
             ->latest()
@@ -33,10 +36,12 @@ class MemberRosterImportController extends Controller
         return response()->json($batch->load('rows'), 201);
     }
 
-    public function show(MemberImportBatch $batch): JsonResponse
+    public function show(Request $request, MemberImportBatch $importBatch): JsonResponse
     {
+        abort_unless($request->user()?->can(PeoplePermissions::IMPORT_MEMBER_ROSTER), 403);
+
         return response()->json(
-            $batch->load([
+            $importBatch->load([
                 'uploader',
                 'rows.matchedPerson.memberProfile',
             ])
@@ -48,12 +53,13 @@ class MemberRosterImportController extends Controller
      */
     public function apply(Request $request, MemberImportBatch $importBatch, MemberRosterImportService $service): JsonResponse
     {
-        abort_unless($request->user()?->can('manage members'), 403);
+        abort_unless($request->user()?->can(PeoplePermissions::IMPORT_MEMBER_ROSTER), 403);
 
         $batch = $service->applyBatch(
             batch: $importBatch,
             includePossibleMatches: $request->boolean('include_possible_matches'),
         );
+
         return response()->json($batch->load('rows'));
     }
 }

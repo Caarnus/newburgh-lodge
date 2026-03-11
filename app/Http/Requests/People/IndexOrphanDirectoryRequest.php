@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\People;
 
+use App\Helpers\People\PeoplePermissions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -9,7 +10,7 @@ class IndexOrphanDirectoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('manage members') ?? false;
+        return $this->user()?->can(PeoplePermissions::VIEW_ORPHAN_DIRECTORY) ?? false;
     }
 
     public function rules(): array

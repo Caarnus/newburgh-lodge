@@ -8,7 +8,9 @@ use App\Http\Controllers\EventSignupUnsubscribeController;
 use App\Http\Controllers\GalleryAdminController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\JeopardyQuestionController;
+use App\Helpers\People\PeoplePermissions;
 use App\Http\Controllers\Manage\MemberDirectoryController;
+use App\Http\Controllers\Manage\MemberRosterImportController;
 use App\Http\Controllers\Manage\OrphanDirectoryController;
 use App\Http\Controllers\Manage\UserPersonLinkController;
 use App\Http\Controllers\Manage\WidowDirectoryController;
@@ -221,27 +223,64 @@ Route::middleware(['auth'])
     ->prefix('manage/member-directory')
     ->group(function () {
         Route::get('/', function () {
-            return redirect()->route('manage.member-directory.members.index');
+            $user = request()->user();
+
+            if ($user?->can(PeoplePermissions::VIEW_MEMBER_DIRECTORY)) {
+                return redirect()->route('manage.member-directory.members.index');
+            }
+
+            if ($user?->can(PeoplePermissions::VIEW_WIDOW_DIRECTORY)) {
+                return redirect()->route('manage.member-directory.widows.index');
+            }
+
+            if ($user?->can(PeoplePermissions::VIEW_ORPHAN_DIRECTORY)) {
+                return redirect()->route('manage.member-directory.orphans.index');
+            }
+
+            abort(403);
         })->name('manage.member-directory.index');
 
         Route::get('members', [MemberDirectoryController::class, 'index'])
+            ->middleware('can:' . PeoplePermissions::VIEW_MEMBER_DIRECTORY)
             ->name('manage.member-directory.members.index');
 
         Route::get('widows', [WidowDirectoryController::class, 'index'])
+            ->middleware('can:' . PeoplePermissions::VIEW_WIDOW_DIRECTORY)
             ->name('manage.member-directory.widows.index');
 
         Route::get('orphans', [OrphanDirectoryController::class, 'index'])
+            ->middleware('can:' . PeoplePermissions::VIEW_ORPHAN_DIRECTORY)
             ->name('manage.member-directory.orphans.index');
 
+        Route::get('imports', [MemberRosterImportController::class, 'index'])
+            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
+            ->name('manage.member-directory.imports.index');
+
+        Route::post('imports', [MemberRosterImportController::class, 'store'])
+            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
+            ->name('manage.member-directory.imports.store');
+
+        Route::get('imports/{importBatch}', [MemberRosterImportController::class, 'show'])
+            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
+            ->name('manage.member-directory.imports.show');
+
+        Route::post('imports/{importBatch}/apply', [MemberRosterImportController::class, 'apply'])
+            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
+            ->name('manage.member-directory.imports.apply');
+
         Route::get('users/{user}/person-link', [UserPersonLinkController::class, 'show'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
             ->name('manage.member-directory.users.person-link.show');
 
         Route::get('people/search-for-user-link', [UserPersonLinkController::class, 'searchPeople'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
             ->name('manage.member-directory.people.search-for-user-link');
 
         Route::post('users/{user}/person-link', [UserPersonLinkController::class, 'link'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
             ->name('manage.member-directory.users.person-link.link');
 
         Route::delete('users/{user}/person-link', [UserPersonLinkController::class, 'unlink'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
             ->name('manage.member-directory.users.person-link.unlink');
     });
