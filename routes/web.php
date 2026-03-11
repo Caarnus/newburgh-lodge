@@ -8,7 +8,10 @@ use App\Http\Controllers\EventSignupUnsubscribeController;
 use App\Http\Controllers\GalleryAdminController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\JeopardyQuestionController;
+use App\Http\Controllers\Manage\MemberDirectoryController;
+use App\Http\Controllers\Manage\OrphanDirectoryController;
 use App\Http\Controllers\Manage\UserPersonLinkController;
+use App\Http\Controllers\Manage\WidowDirectoryController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\OrgEventController;
 use App\Http\Controllers\PastMasterController;
@@ -217,6 +220,19 @@ Route::middleware(['auth', 'can:review scholarship applications'])
 Route::middleware(['auth'])
     ->prefix('manage/member-directory')
     ->group(function () {
+        Route::get('/', function () {
+            return redirect()->route('manage.member-directory.members.index');
+        })->name('manage.member-directory.index');
+
+        Route::get('members', [MemberDirectoryController::class, 'index'])
+            ->name('manage.member-directory.members.index');
+
+        Route::get('widows', [WidowDirectoryController::class, 'index'])
+            ->name('manage.member-directory.widows.index');
+
+        Route::get('orphans', [OrphanDirectoryController::class, 'index'])
+            ->name('manage.member-directory.orphans.index');
+
         Route::get('users/{user}/person-link', [UserPersonLinkController::class, 'show'])
             ->name('manage.member-directory.users.person-link.show');
 

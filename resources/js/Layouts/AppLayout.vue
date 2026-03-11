@@ -12,6 +12,10 @@ const $page = usePage();
 const $user = $page.props.auth?.user
 
 const isAuthenticated = !!$user
+const canManageMembers = !!$page.props.can?.manage?.members;
+const canManageContent = !!$page.props.can?.manage?.content;
+const canManageScholarships = !!$page.props.can?.manage?.scholarships;
+const canAdminUsers = !!$page.props.can?.admin?.users;
 
 defineProps({
     title: String,
@@ -47,15 +51,16 @@ const navMenuItems = ref([
             { label: "Newburgh Lodge Facebook", url: "https://www.facebook.com/newburghlodge174", target: "_blank"},
         ]
     },
-    { label: "Admin", visible: $page.props.can.admin.users, items: [
+    { label: "Admin", visible: canAdminUsers, items: [
             { label: "Users", url: route('admin.users.index')},
         ]
     },
-    { label: "Manage", visible: $page.props.can.manage.content || $page.props.can.manage.scholarships, items: [
-            { label: "Jeopardy", url: route('jeopardy.index'), visible: $page.props.can.manage.content},
-            { label: "Manage Content", url: route('admin.content.index'), visible: $page.props.can.manage.content},
-            { label: "Manage Gallery", url: route('admin.gallery.index'), visible: $page.props.can.manage.content },
-            { label: "Scholarship Applications", url: route('manage.scholarships.index'), visible: $page.props.can.manage.scholarships },
+    { label: "Manage", visible: canManageContent || canManageScholarships || canManageMembers, items: [
+            { label: 'Member Directory', url: route('manage.member-directory.index'), visible: canManageMembers },
+            { label: "Jeopardy", url: route('jeopardy.index'), visible: canManageContent},
+            { label: "Manage Content", url: route('admin.content.index'), visible: canManageContent},
+            { label: "Manage Gallery", url: route('admin.gallery.index'), visible: canManageContent },
+            { label: "Scholarship Applications", url: route('manage.scholarships.index'), visible: canManageScholarships },
         ]
     },
     { label: page.props.auth?.user?.name ?? "Sign In", class: 'ml-auto', items: [
