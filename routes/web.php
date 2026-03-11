@@ -8,6 +8,7 @@ use App\Http\Controllers\EventSignupUnsubscribeController;
 use App\Http\Controllers\GalleryAdminController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\JeopardyQuestionController;
+use App\Http\Controllers\Manage\UserPersonLinkController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\OrgEventController;
 use App\Http\Controllers\PastMasterController;
@@ -211,4 +212,20 @@ Route::middleware(['auth', 'can:review scholarship applications'])
             ->name('manage.scholarships.status.update');
         Route::delete('/{scholarshipApplication}', [ScholarshipApplicationReviewController::class, 'destroyApplication'])
             ->name('manage.scholarships.destroy');
+    });
+
+Route::middleware(['auth'])
+    ->prefix('manage/member-directory')
+    ->group(function () {
+        Route::get('users/{user}/person-link', [UserPersonLinkController::class, 'show'])
+            ->name('manage.member-directory.users.person-link.show');
+
+        Route::get('people/search-for-user-link', [UserPersonLinkController::class, 'searchPeople'])
+            ->name('manage.member-directory.people.search-for-user-link');
+
+        Route::post('users/{user}/person-link', [UserPersonLinkController::class, 'link'])
+            ->name('manage.member-directory.users.person-link.link');
+
+        Route::delete('users/{user}/person-link', [UserPersonLinkController::class, 'unlink'])
+            ->name('manage.member-directory.users.person-link.unlink');
     });
