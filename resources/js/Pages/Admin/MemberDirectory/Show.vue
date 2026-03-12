@@ -436,25 +436,27 @@ const submitEditContact = () => {
             >
                 {{ backLabel }}
             </Link>
-            <Button
-                v-if="canManageRelationships"
-                label="Add Relationship"
-                @click="openAddRelationshipDialog"
-            />
-            <Button
-                v-if="canManageRecords"
-                label="Edit Record"
-                severity="secondary"
-                outlined
-                @click="openEditRecordDialog"
-            />
-            <Button
-                v-if="canLogContacts"
-                label="Quick Log Contact"
-                severity="secondary"
-                outlined
-                @click="openQuickLogDialog"
-            />
+            <div class="flex items-center gap-2">
+                <Button
+                    v-if="canManageRelationships"
+                    label="Add Relationship"
+                    @click="openAddRelationshipDialog"
+                />
+                <Button
+                    v-if="canManageRecords"
+                    label="Edit Record"
+                    severity="secondary"
+                    outlined
+                    @click="openEditRecordDialog"
+                />
+                <Button
+                    v-if="canLogContacts"
+                    label="Quick Log Contact"
+                    severity="secondary"
+                    outlined
+                    @click="openQuickLogDialog"
+                />
+            </div>
         </div>
 
         <div class="grid gap-6 lg:grid-cols-2">

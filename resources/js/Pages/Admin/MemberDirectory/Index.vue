@@ -136,7 +136,15 @@ const onPage = (event) => {
 };
 
 const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDateString() : '—';
-const formatDateTime = (value) => value ? new Date(value).toLocaleString() : '—';
+const formatDateTime = (value) => value
+    ? new Date(value).toLocaleString([], {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+    })
+    : '—';
 const relationshipLabel = (value) => value || '—';
 
 const exportFilters = computed(() => pruneFilters({
@@ -325,17 +333,23 @@ onMounted(() => {
                             <Button
                                 v-if="canLogContacts"
                                 text
+                                rounded
                                 size="small"
-                                label="Quick Log"
+                                icon="pi pi-plus-circle"
+                                aria-label="Add contact log"
+                                v-tooltip.top="'Add contact log'"
                                 @click="openQuickLog(data)"
                             />
-                            <Link
+                            <Button
                                 v-if="canViewDetails"
-                                :href="route('manage.member-directory.people.show', { person: data.id, from: section })"
-                                class="inline-flex items-center rounded-lg border border-surface-300 px-3 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
-                            >
-                                View
-                            </Link>
+                                text
+                                rounded
+                                size="small"
+                                icon="pi pi-eye"
+                                aria-label="View details"
+                                v-tooltip.top="'View details'"
+                                @click="router.get(route('manage.member-directory.people.show', { person: data.id, from: section }))"
+                            />
                         </div>
                     </template>
                 </Column>
