@@ -23,14 +23,18 @@ class MemberDirectoryController extends Controller
             'per_page' => $request->integer('per_page') ?: 25,
         ];
 
-        $members = $directoryService->paginateMembers($filters)
+        $records = $directoryService->paginateMembers($filters)
             ->through(fn ($person) => DirectoryPersonPresenter::member($person));
 
-        return Inertia::render('Admin/MemberDirectory/Members', [
+        return Inertia::render('Admin/MemberDirectory/Index', [
+            'section' => 'members',
+            'title' => 'Member Directory',
+            'description' => 'Internal roster view with filters for status, type, and deceased visibility.',
             'filters' => $filters,
-            'members' => $members,
+            'records' => $records,
             'statusOptions' => $directoryService->memberStatusOptions(),
             'memberTypeOptions' => $directoryService->memberTypeOptions(),
+            'relationshipTypeOptions' => [],
             'sortOptions' => $directoryService->memberSortOptions(),
         ]);
     }

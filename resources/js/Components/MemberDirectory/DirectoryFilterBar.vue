@@ -1,11 +1,15 @@
 <script setup>
-import { reactive, watch } from 'vue';
+import { computed, reactive, watch } from 'vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
 import ToggleSwitch from 'primevue/toggleswitch';
 import InputText from 'primevue/inputtext';
 
 const props = defineProps({
+    section: {
+        type: String,
+        required: true,
+    },
     filters: {
         type: Object,
         required: true,
@@ -22,9 +26,9 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    showMemberFilters: {
-        type: Boolean,
-        default: false,
+    relationshipTypeOptions: {
+        type: Array,
+        default: () => [],
     },
 });
 
@@ -34,6 +38,7 @@ const localFilters = reactive({
     q: props.filters.q ?? null,
     status: props.filters.status ?? null,
     member_type: props.filters.member_type ?? null,
+    relationship_type: props.filters.relationship_type ?? null,
     hide_deceased: Boolean(props.filters.hide_deceased),
     sort: props.filters.sort ?? 'name',
     per_page: props.filters.per_page ?? 25,
@@ -45,6 +50,7 @@ watch(
         localFilters.q = filters.q ?? null;
         localFilters.status = filters.status ?? null;
         localFilters.member_type = filters.member_type ?? null;
+        localFilters.relationship_type = filters.relationship_type ?? null;
         localFilters.hide_deceased = Boolean(filters.hide_deceased);
         localFilters.sort = filters.sort ?? 'name';
         localFilters.per_page = filters.per_page ?? 25;
@@ -52,16 +58,37 @@ watch(
     { deep: true }
 );
 
+watch(
+    () => props.section,
+    () => {
+        localFilters.status = null;
+        localFilters.member_type = null;
+        localFilters.relationship_type = null;
+        localFilters.sort = 'name';
+    }
+);
+
 const perPageOptions = [10, 25, 50, 100].map((value) => ({
     label: `${value} per page`,
     value,
 }));
+
+const showMemberFilters = computed(() => props.section === 'members');
+const showRelationshipFilter = computed(() => props.section === 'relatives');
+
+const searchPlaceholder = computed(() => ({
+    members: 'Name, email, phone, member number',
+    widows: 'Name, email, phone',
+    orphans: 'Name, email, phone',
+    relatives: 'Name, email, phone',
+}[props.section] ?? 'Search'));
 
 const submit = () => {
     emit('apply', {
         q: localFilters.q,
         status: localFilters.status,
         member_type: localFilters.member_type,
+        relationship_type: localFilters.relationship_type,
         hide_deceased: localFilters.hide_deceased,
         sort: localFilters.sort,
         per_page: localFilters.per_page,
@@ -73,6 +100,7 @@ const reset = () => {
     localFilters.q = null;
     localFilters.status = null;
     localFilters.member_type = null;
+    localFilters.relationship_type = null;
     localFilters.hide_deceased = false;
     localFilters.sort = 'name';
     localFilters.per_page = 25;
@@ -81,6 +109,7 @@ const reset = () => {
         q: null,
         status: null,
         member_type: null,
+        relationship_type: null,
         hide_deceased: false,
         sort: 'name',
         per_page: 25,
@@ -99,7 +128,7 @@ const reset = () => {
                 <InputText
                     v-model="localFilters.q"
                     class="w-full"
-                    placeholder="Name, email, phone, member number"
+                    :placeholder="searchPlaceholder"
                     @keyup.enter="submit"
                 />
             </div>
@@ -131,6 +160,21 @@ const reset = () => {
                     class="w-full"
                     show-clear
                     placeholder="Any type"
+                />
+            </div>
+
+            <div v-if="showRelationshipFilter">
+                <label class="mb-2 block text-sm font-medium text-surface-700 dark:text-surface-200">
+                    Relationship Type
+                </label>
+                <Select
+                    v-model="localFilters.relationship_type"
+                    :options="relationshipTypeOptions"
+                    option-label="label"
+                    option-value="value"
+                    class="w-full"
+                    show-clear
+                    placeholder="Any relationship"
                 />
             </div>
 

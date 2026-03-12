@@ -9,6 +9,8 @@ use App\Models\PersonContactLog;
 use App\Models\PersonRelationship;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Str;
 
 class PeopleDirectoryService
 {
@@ -31,13 +33,7 @@ class PeopleDirectoryService
             $query->where('member_profiles.member_type', $filters['member_type']);
         }
 
-        if (($filters['hide_deceased'] ?? false) === true) {
-            $query->where(function (Builder $builder) {
-                $builder->where('people.is_deceased', false)
-                    ->orWhereNull('people.is_deceased');
-            });
-        }
-
+        $this->applyHideDeceased($query, $filters);
         $this->applyMemberSort($query, $filters['sort'] ?? 'name');
 
         return $query->paginate($this->perPage($filters))->withQueryString();
@@ -47,39 +43,13 @@ class PeopleDirectoryService
     {
         $query = Person::query()
             ->select('people.*')
-            ->with(['relationships' => function ($relationshipQuery) {
-                $relationshipQuery
-                    ->where('relationship_type', RelationshipType::Spouse->value)
-                    ->whereHas('relatedPerson', function (Builder $relatedQuery) {
-                        $relatedQuery
-                            ->where('is_deceased', true)
-                            ->whereHas('memberProfile');
-                    })
-                    ->with(['relatedPerson.memberProfile'])
-                    ->orderByDesc('is_primary')
-                    ->orderBy('id');
-            }])
+            ->with(['relationships' => $this->careRelationshipLoader(RelationshipType::Spouse)])
             ->selectSub($this->latestContactSubquery(), 'last_contact_at')
             ->selectSub($this->relatedDeceasedDeathDateSubquery(RelationshipType::Spouse), 'related_member_death_date')
-            ->whereHas('relationships', function (Builder $relationshipQuery) {
-                $relationshipQuery
-                    ->where('relationship_type', RelationshipType::Spouse->value)
-                    ->whereHas('relatedPerson', function (Builder $relatedQuery) {
-                        $relatedQuery
-                            ->where('is_deceased', true)
-                            ->whereHas('memberProfile');
-                    });
-            });
+            ->where($this->widowConstraint());
 
         $this->applyCommonSearch($query, $filters['q'] ?? null);
-
-        if (($filters['hide_deceased'] ?? false) === true) {
-            $query->where(function (Builder $builder) {
-                $builder->where('people.is_deceased', false)
-                    ->orWhereNull('people.is_deceased');
-            });
-        }
-
+        $this->applyHideDeceased($query, $filters);
         $this->applyCareSort($query, $filters['sort'] ?? 'name');
 
         return $query->paginate($this->perPage($filters))->withQueryString();
@@ -89,42 +59,70 @@ class PeopleDirectoryService
     {
         $query = Person::query()
             ->select('people.*')
-            ->with(['relationships' => function ($relationshipQuery) {
-                $relationshipQuery
-                    ->where('relationship_type', RelationshipType::Parent->value)
-                    ->whereHas('relatedPerson', function (Builder $relatedQuery) {
-                        $relatedQuery
-                            ->where('is_deceased', true)
-                            ->whereHas('memberProfile');
-                    })
-                    ->with(['relatedPerson.memberProfile'])
-                    ->orderByDesc('is_primary')
-                    ->orderBy('id');
-            }])
+            ->with(['relationships' => $this->careRelationshipLoader(RelationshipType::Parent)])
             ->selectSub($this->latestContactSubquery(), 'last_contact_at')
             ->selectSub($this->relatedDeceasedDeathDateSubquery(RelationshipType::Parent), 'related_member_death_date')
-            ->whereHas('relationships', function (Builder $relationshipQuery) {
-                $relationshipQuery
-                    ->where('relationship_type', RelationshipType::Parent->value)
-                    ->whereHas('relatedPerson', function (Builder $relatedQuery) {
-                        $relatedQuery
-                            ->where('is_deceased', true)
-                            ->whereHas('memberProfile');
-                    });
-            });
+            ->where($this->orphanConstraint());
 
         $this->applyCommonSearch($query, $filters['q'] ?? null);
-
-        if (($filters['hide_deceased'] ?? false) === true) {
-            $query->where(function (Builder $builder) {
-                $builder->where('people.is_deceased', false)
-                    ->orWhereNull('people.is_deceased');
-            });
-        }
-
+        $this->applyHideDeceased($query, $filters);
         $this->applyCareSort($query, $filters['sort'] ?? 'name');
 
         return $query->paginate($this->perPage($filters))->withQueryString();
+    }
+
+    public function paginateRelatives(array $filters): LengthAwarePaginator
+    {
+        $query = Person::query()
+            ->select('people.*')
+            ->with([
+                'relationships.relatedPerson.memberProfile',
+                'relatedTo.person.memberProfile',
+            ])
+            ->whereDoesntHave('memberProfile')
+            ->where(function (Builder $builder) use ($filters) {
+                $builder->whereHas('relationships', function (Builder $relationshipQuery) use ($filters) {
+                    if (filled($filters['relationship_type'] ?? null)) {
+                        $relationshipQuery->where('relationship_type', $filters['relationship_type']);
+                    }
+                })->orWhereHas('relatedTo', function (Builder $relationshipQuery) use ($filters) {
+                    if (filled($filters['relationship_type'] ?? null)) {
+                        $relationshipQuery->where('relationship_type', $filters['relationship_type']);
+                    }
+                });
+            })
+            ->whereNot($this->widowConstraint())
+            ->whereNot($this->orphanConstraint())
+            ->selectSub($this->latestContactSubquery(), 'last_contact_at')
+            ->selectSub($this->primaryRelationshipTypeSubquery(), 'primary_relationship_type');
+
+        $this->applyCommonSearch($query, $filters['q'] ?? null);
+        $this->applyHideDeceased($query, $filters);
+        $this->applyRelativeSort($query, $filters['sort'] ?? 'name');
+
+        return $query->paginate($this->perPage($filters))->withQueryString();
+    }
+
+    public function findPersonForDirectory(int $personId): Person
+    {
+        $person = Person::query()
+            ->with([
+                'memberProfile',
+                'relationships.relatedPerson.memberProfile',
+                'relatedTo.person.memberProfile',
+                'contactLogs.creator',
+            ])
+            ->find($personId);
+
+        if (! $person) {
+            throw (new ModelNotFoundException())->setModel(Person::class, [$personId]);
+        }
+
+        $person->setAttribute('is_widow', $this->personMatchesConstraint($person, $this->widowConstraint()));
+        $person->setAttribute('is_orphan', $this->personMatchesConstraint($person, $this->orphanConstraint()));
+        $person->setAttribute('is_relative', ! $person->memberProfile && ($person->relationships->isNotEmpty() || $person->relatedTo->isNotEmpty()));
+
+        return $person;
     }
 
     public function memberStatusOptions(): array
@@ -153,6 +151,17 @@ class PeopleDirectoryService
             ->all();
     }
 
+    public function relationshipTypeOptions(): array
+    {
+        return collect(RelationshipType::cases())
+            ->map(fn (RelationshipType $type) => [
+                'label' => Str::of($type->value)->replace('_', ' ')->title()->toString(),
+                'value' => $type->value,
+            ])
+            ->values()
+            ->all();
+    }
+
     public function memberSortOptions(): array
     {
         return [
@@ -174,6 +183,18 @@ class PeopleDirectoryService
             ['label' => 'Name (Z–A)', 'value' => '-name'],
             ['label' => 'Most Recent Death Date', 'value' => '-death_date'],
             ['label' => 'Oldest Death Date', 'value' => 'death_date'],
+            ['label' => 'Most Recently Contacted', 'value' => '-last_contact'],
+            ['label' => 'Least Recently Contacted', 'value' => 'last_contact'],
+        ];
+    }
+
+    public function relativeSortOptions(): array
+    {
+        return [
+            ['label' => 'Name (A–Z)', 'value' => 'name'],
+            ['label' => 'Name (Z–A)', 'value' => '-name'],
+            ['label' => 'Relationship', 'value' => 'relationship'],
+            ['label' => 'Relationship (Desc)', 'value' => '-relationship'],
             ['label' => 'Most Recently Contacted', 'value' => '-last_contact'],
             ['label' => 'Least Recently Contacted', 'value' => 'last_contact'],
         ];
@@ -209,6 +230,16 @@ class PeopleDirectoryService
         });
     }
 
+    protected function applyHideDeceased(Builder $query, array $filters): void
+    {
+        if (($filters['hide_deceased'] ?? false) === true) {
+            $query->where(function (Builder $builder) {
+                $builder->where('people.is_deceased', false)
+                    ->orWhereNull('people.is_deceased');
+            });
+        }
+    }
+
     protected function applyMemberSort(Builder $query, string $sort): void
     {
         match ($sort) {
@@ -235,11 +266,33 @@ class PeopleDirectoryService
         };
     }
 
+    protected function applyRelativeSort(Builder $query, string $sort): void
+    {
+        match ($sort) {
+            '-name' => $query->orderByDesc('people.last_name')->orderByDesc('people.first_name'),
+            'relationship' => $query->orderBy('primary_relationship_type')->orderBy('people.last_name')->orderBy('people.first_name'),
+            '-relationship' => $query->orderByDesc('primary_relationship_type')->orderBy('people.last_name')->orderBy('people.first_name'),
+            'last_contact' => $query->orderBy('last_contact_at')->orderBy('people.last_name')->orderBy('people.first_name'),
+            '-last_contact' => $query->orderByDesc('last_contact_at')->orderBy('people.last_name')->orderBy('people.first_name'),
+            default => $query->orderBy('people.last_name')->orderBy('people.first_name'),
+        };
+    }
+
     protected function latestContactSubquery(): Builder
     {
         return PersonContactLog::query()
             ->selectRaw('MAX(contacted_at)')
             ->whereColumn('person_contact_logs.person_id', 'people.id');
+    }
+
+    protected function primaryRelationshipTypeSubquery(): Builder
+    {
+        return PersonRelationship::query()
+            ->select('relationship_type')
+            ->whereColumn('person_relationships.person_id', 'people.id')
+            ->orderByDesc('is_primary')
+            ->orderBy('id')
+            ->limit(1);
     }
 
     protected function relatedDeceasedDeathDateSubquery(RelationshipType $relationshipType): Builder
@@ -254,5 +307,56 @@ class PeopleDirectoryService
             ->orderByDesc('person_relationships.is_primary')
             ->orderBy('person_relationships.id')
             ->limit(1);
+    }
+
+    protected function careRelationshipLoader(RelationshipType $relationshipType): \Closure
+    {
+        return function (Builder $relationshipQuery) use ($relationshipType) {
+            $relationshipQuery
+                ->where('relationship_type', $relationshipType->value)
+                ->whereHas('relatedPerson', function (Builder $relatedQuery) {
+                    $relatedQuery
+                        ->where('is_deceased', true)
+                        ->whereHas('memberProfile');
+                })
+                ->with(['relatedPerson.memberProfile'])
+                ->orderByDesc('is_primary')
+                ->orderBy('id');
+        };
+    }
+
+    protected function widowConstraint(): \Closure
+    {
+        return function (Builder $query) {
+            $query->whereHas('relationships', function (Builder $relationshipQuery) {
+                $relationshipQuery
+                    ->where('relationship_type', RelationshipType::Spouse->value)
+                    ->whereHas('relatedPerson', function (Builder $relatedQuery) {
+                        $relatedQuery
+                            ->where('is_deceased', true)
+                            ->whereHas('memberProfile');
+                    });
+            });
+        };
+    }
+
+    protected function orphanConstraint(): \Closure
+    {
+        return function (Builder $query) {
+            $query->whereHas('relationships', function (Builder $relationshipQuery) {
+                $relationshipQuery
+                    ->where('relationship_type', RelationshipType::Parent->value)
+                    ->whereHas('relatedPerson', function (Builder $relatedQuery) {
+                        $relatedQuery
+                            ->where('is_deceased', true)
+                            ->whereHas('memberProfile');
+                    });
+            });
+        };
+    }
+
+    protected function personMatchesConstraint(Person $person, \Closure $constraint): bool
+    {
+        return Person::query()->whereKey($person->id)->where($constraint)->exists();
     }
 }

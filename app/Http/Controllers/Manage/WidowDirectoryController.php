@@ -21,12 +21,18 @@ class WidowDirectoryController extends Controller
             'per_page' => $request->integer('per_page') ?: 25,
         ];
 
-        $widows = $directoryService->paginateWidows($filters)
+        $records = $directoryService->paginateWidows($filters)
             ->through(fn ($person) => DirectoryPersonPresenter::widow($person));
 
-        return Inertia::render('Admin/MemberDirectory/Widows', [
+        return Inertia::render('Admin/MemberDirectory/Index', [
+            'section' => 'widows',
+            'title' => 'Widows',
+            'description' => 'Surviving spouses connected to deceased lodge members through spouse relationships.',
             'filters' => $filters,
-            'widows' => $widows,
+            'records' => $records,
+            'statusOptions' => [],
+            'memberTypeOptions' => [],
+            'relationshipTypeOptions' => [],
             'sortOptions' => $directoryService->careSortOptions(),
         ]);
     }

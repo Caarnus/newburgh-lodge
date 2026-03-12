@@ -10,8 +10,9 @@ use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\JeopardyQuestionController;
 use App\Helpers\People\PeoplePermissions;
 use App\Http\Controllers\Manage\MemberDirectoryController;
-use App\Http\Controllers\Manage\MemberRosterImportController;
 use App\Http\Controllers\Manage\OrphanDirectoryController;
+use App\Http\Controllers\Manage\PersonDirectoryController;
+use App\Http\Controllers\Manage\RelativeDirectoryController;
 use App\Http\Controllers\Manage\UserPersonLinkController;
 use App\Http\Controllers\Manage\WidowDirectoryController;
 use App\Http\Controllers\NewsletterController;
@@ -252,21 +253,12 @@ Route::middleware(['auth'])
             ->middleware('can:' . PeoplePermissions::VIEW_ORPHAN_DIRECTORY)
             ->name('manage.member-directory.orphans.index');
 
-        Route::get('imports', [MemberRosterImportController::class, 'index'])
-            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
-            ->name('manage.member-directory.imports.index');
+        Route::get('relatives', [RelativeDirectoryController::class, 'index'])
+            ->name('manage.member-directory.relatives.index');
 
-        Route::post('imports', [MemberRosterImportController::class, 'store'])
-            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
-            ->name('manage.member-directory.imports.store');
-
-        Route::get('imports/{importBatch}', [MemberRosterImportController::class, 'show'])
-            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
-            ->name('manage.member-directory.imports.show');
-
-        Route::post('imports/{importBatch}/apply', [MemberRosterImportController::class, 'apply'])
-            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
-            ->name('manage.member-directory.imports.apply');
+        Route::get('people/{person}', [PersonDirectoryController::class, 'show'])
+            ->middleware('can:' . PeoplePermissions::VIEW_MEMBER_DETAILS)
+            ->name('manage.member-directory.people.show');
 
         Route::get('users/{user}/person-link', [UserPersonLinkController::class, 'show'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)

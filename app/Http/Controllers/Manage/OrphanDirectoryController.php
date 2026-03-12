@@ -21,12 +21,18 @@ class OrphanDirectoryController extends Controller
             'per_page' => $request->integer('per_page') ?: 25,
         ];
 
-        $orphans = $directoryService->paginateOrphans($filters)
+        $records = $directoryService->paginateOrphans($filters)
             ->through(fn ($person) => DirectoryPersonPresenter::orphan($person));
 
-        return Inertia::render('Admin/MemberDirectory/Orphans', [
+        return Inertia::render('Admin/MemberDirectory/Index', [
+            'section' => 'orphans',
+            'title' => 'Orphans',
+            'description' => 'Children or dependents connected to deceased lodge members through tracked relationships.',
             'filters' => $filters,
-            'orphans' => $orphans,
+            'records' => $records,
+            'statusOptions' => [],
+            'memberTypeOptions' => [],
+            'relationshipTypeOptions' => [],
             'sortOptions' => $directoryService->careSortOptions(),
         ]);
     }
