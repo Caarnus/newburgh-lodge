@@ -27,202 +27,265 @@ use App\Models\OrgEvent;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+$newsletterRoute = trim((string) config('site.newsletter_route'), '/');
+
+/*
+|--------------------------------------------------------------------------
+| Public Pages
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/', [ContentTileController::class, 'welcome'])->name('welcome');
 Route::get('/dashboard', [ContentTileController::class, 'welcome'])->name('dashboard');
 
-Route::get('/'.config('site.newsletter_route'), [NewsLetterController::class, 'index'])
-    ->name('newsletters.index');
-Route::get('/'.config('site.newsletter_route').'/{newsletter}', [NewsLetterController::class, 'show'])
-    ->where('newsletter', '[0-9]+')
-    ->name('newsletters.show');
-
-Route::get('/events', [OrgEventController::class, 'index'])
-    ->name('events.index');
-Route::get('/events/{event}', [OrgEventController::class, 'show'])
-    ->where('event', '[0-9]+')
-    ->name('events.show');
+Route::get('/history', fn () => Inertia::render('History'))->name('history');
+Route::get('/officers', fn () => Inertia::render('Officers'))->name('officers');
+Route::get('/faq', fn () => Inertia::render('Questions'))->name('faq');
 
 Route::get('/contact', [ContactController::class, 'create'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])
     ->name('contact.submit')
     ->middleware('throttle:10,1');
 
-Route::get('/history', function () {
-    return Inertia::render('History');
-})->name('history');
+Route::get('/past-masters', [PastMasterController::class, 'index'])->name('past-masters.index');
 
-Route::get('/officers', function () {
-    return Inertia::render('Officers');
-})->name('officers');
+/*
+|--------------------------------------------------------------------------
+| Public Newsletters
+|--------------------------------------------------------------------------
+*/
 
+Route::prefix($newsletterRoute)
+    ->name('newsletters.')
+    ->group(function () {
+        Route::get('/', [NewsletterController::class, 'index'])->name('index');
+        Route::get('/{newsletter}', [NewsletterController::class, 'show'])
+            ->whereNumber('newsletter')
+            ->name('show');
+    });
 
-Route::get('/past-masters', [PastMasterController::class, 'index'])
-    ->name('past-masters.index');
+/*
+|--------------------------------------------------------------------------
+| Public Events & Gallery
+|--------------------------------------------------------------------------
+*/
 
-Route::get('/faq', function () {
-    return Inertia::render('Questions');
-})->name('faq');
+Route::prefix('events')
+    ->name('events.')
+    ->group(function () {
+        Route::get('/', [OrgEventController::class, 'index'])->name('index');
+        Route::get('/{event}', [OrgEventController::class, 'show'])
+            ->whereNumber('event')
+            ->name('show');
+    });
 
-Route::get('/gallery', [GalleryController::class, 'index'])->name('gallery.index');
-Route::get('/gallery/{album:slug}', [GalleryController::class, 'show'])->name('gallery.show');
+Route::prefix('gallery')
+    ->name('gallery.')
+    ->group(function () {
+        Route::get('/', [GalleryController::class, 'index'])->name('index');
+        Route::get('/{album:slug}', [GalleryController::class, 'show'])->name('show');
+    });
 
-Route::prefix('signup')->name('public.signup.')->group(function () {
-    Route::get('{eventSignupPage}', [EventSignupController::class, 'show'])
-        ->name('show');
-    Route::post('{eventSignupPage}', [EventSignupController::class, 'store'])
-        ->middleware('throttle:event-signups')
-        ->name('store');
+/*
+|--------------------------------------------------------------------------
+| Public Event Signup Flows
+|--------------------------------------------------------------------------
+*/
 
-    Route::get('manage/{eventSignup}', [EventSignupManageController::class, 'show'])
-        ->middleware('signed')
-        ->name('manage.show');
-    Route::patch('manage/{eventSignup}', [EventSignupManageController::class, 'update'])
-        ->middleware('signed')
-        ->name('manage.update');
-    // Unsubscribe flow (signed URL required)
-    Route::get('unsubscribe/{eventSignup}', [EventSignupUnsubscribeController::class, 'show'])
-        ->middleware('signed')
-        ->name('unsubscribe.show');
-    Route::post('unsubscribe/{eventSignup}', [EventSignupUnsubscribeController::class, 'store'])
-        ->middleware('signed')
-        ->name('unsubscribe.store');
-});
+Route::prefix('signup')
+    ->name('public.signup.')
+    ->group(function () {
+        Route::get('{eventSignupPage}', [EventSignupController::class, 'show'])->name('show');
+        Route::post('{eventSignupPage}', [EventSignupController::class, 'store'])
+            ->middleware('throttle:event-signups')
+            ->name('store');
+
+        Route::prefix('manage')
+            ->name('manage.')
+            ->group(function () {
+                Route::get('{eventSignup}', [EventSignupManageController::class, 'show'])
+                    ->middleware('signed')
+                    ->name('show');
+                Route::patch('{eventSignup}', [EventSignupManageController::class, 'update'])
+                    ->middleware('signed')
+                    ->name('update');
+            });
+
+        Route::prefix('unsubscribe')
+            ->name('unsubscribe.')
+            ->group(function () {
+                Route::get('{eventSignup}', [EventSignupUnsubscribeController::class, 'show'])
+                    ->middleware('signed')
+                    ->name('show');
+                Route::post('{eventSignup}', [EventSignupUnsubscribeController::class, 'store'])
+                    ->middleware('signed')
+                    ->name('store');
+            });
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Public Scholarship Pages
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('scholarship')
+    ->name('scholarship.')
+    ->group(function () {
+        Route::get('/', [ScholarshipApplicationController::class, 'intro'])->name('intro');
+        Route::get('/apply', [ScholarshipApplicationController::class, 'apply'])->name('apply');
+        Route::post('/apply', [ScholarshipApplicationController::class, 'store'])->name('apply.store');
+        Route::get('/thanks', [ScholarshipApplicationController::class, 'thanks'])->name('thanks');
+        Route::get('/verify/{scholarshipApplication}/{token}', [ScholarshipApplicationController::class, 'verify'])
+            ->name('verify');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Authenticated + Verified Core
+|--------------------------------------------------------------------------
+*/
 
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
-])->group(function () {
-    Route::get('/jeopardy', [JeopardyQuestionController::class,'index'])
-        ->name('jeopardy.index');
-    Route::get('/jeopardy/board', [JeopardyQuestionController::class,'getBoard'])
-        ->name('jeopardy.board');
-    Route::get('/jeopardy/bonus', [JeopardyQuestionController::class,'getBonusQuestions'])
-        ->name('jeopardy.bonus');
+])->group(function () use ($newsletterRoute) {
+    Route::prefix('jeopardy')->name('jeopardy.')->group(function () {
+        Route::get('/', [JeopardyQuestionController::class, 'index'])->name('index');
+        Route::get('/board', [JeopardyQuestionController::class, 'getBoard'])->name('board');
+        Route::get('/bonus', [JeopardyQuestionController::class, 'getBonusQuestions'])->name('bonus');
+    });
 
+    Route::prefix('admin/users')
+        ->name('admin.users.')
+        ->group(function () {
+            Route::get('/', [UserAdminController::class, 'index'])->name('index');
+            Route::post('/', [UserAdminController::class, 'store'])->name('store');
+            Route::put('/bulk', [UserAdminController::class, 'bulkUpdate'])->name('bulkUpdate');
+            Route::put('/{user}', [UserAdminController::class, 'update'])->whereNumber('user')->name('update');
+            Route::delete('/{user}', [UserAdminController::class, 'destroy'])->whereNumber('user')->name('destroy');
+            Route::put('/{user}/password', [UserAdminController::class, 'setPassword'])->name('setPassword');
+        });
 
-    Route::get('/admin/users', [UserAdminController::class, 'index'])
-        ->name('admin.users.index');
-    Route::post('/admin/users', [UserAdminController::class, 'store'])
-        ->name('admin.users.store');
-    Route::put('/admin/users/bulk', [UserAdminController::class, 'bulkUpdate'])
-        ->name('admin.users.bulkUpdate');
-    Route::put('/admin/users/{user}', [UserAdminController::class, 'update'])
-        ->where('user', '[0-9]+')
-        ->name('admin.users.update');
-    Route::delete('/admin/users/{user}', [UserAdminController::class, 'destroy'])
-        ->where('user', '[0-9]+')
-        ->name('admin.users.destroy');
-    Route::put('/admin/users/{user}/password', [UserAdminController::class, 'setPassword'])
-        ->name('admin.users.setPassword');
+    Route::prefix($newsletterRoute)
+        ->name('newsletters.')
+        ->group(function () {
+            Route::get('/create', [NewsletterController::class, 'create'])
+                ->name('create')
+                ->can('create', Newsletter::class);
+            Route::post('/', [NewsletterController::class, 'store'])
+                ->name('store')
+                ->can('create', Newsletter::class);
+            Route::get('/{newsletter}/edit', [NewsletterController::class, 'edit'])
+                ->name('edit')
+                ->can('update', Newsletter::class);
+            Route::put('/{newsletter}', [NewsletterController::class, 'update'])
+                ->whereNumber('newsletter')
+                ->name('update')
+                ->can('update', Newsletter::class);
+        });
 
+    Route::prefix('events')
+        ->name('events.')
+        ->group(function () {
+            Route::get('/create', [OrgEventController::class, 'create'])
+                ->name('create')
+                ->can('create', OrgEvent::class);
+            Route::post('/', [OrgEventController::class, 'store'])
+                ->name('store')
+                ->can('create', OrgEvent::class);
 
-    Route::get('/'.config('site.newsletter_route').'/create', [NewsLetterController::class, 'create'])
-        ->name('newsletters.create')
-        ->can('create', NewsLetter::class);
-    Route::post('/'.config('site.newsletter_route'), [NewsLetterController::class, 'store'])
-        ->name('newsletters.store')
-        ->can('create', NewsLetter::class);
+            Route::get('/{event}/edit', [OrgEventController::class, 'edit'])
+                ->whereNumber('event')
+                ->name('edit');
+            Route::put('/{event}', [OrgEventController::class, 'update'])
+                ->whereNumber('event')
+                ->name('update');
+            Route::delete('/{event}', [OrgEventController::class, 'destroy'])
+                ->whereNumber('event')
+                ->name('destroy')
+                ->can('delete', OrgEvent::class);
 
+            Route::post('/{event}/signup-page', [OrgEventController::class, 'upsertSignupPage'])
+                ->name('signup-page.upsert');
+            Route::delete('/{event}/signup-page', [OrgEventController::class, 'destroySignupPage'])
+                ->name('signup-page.destroy');
 
-    Route::get('/'.config('site.newsletter_route').'/{newsletter}/edit', [NewsLetterController::class, 'edit'])
-        ->name('newsletters.edit')
-        ->can('update', NewsLetter::class);
-    Route::put('/'.config('site.newsletter_route').'/{newsletter}', [NewsLetterController::class, 'update'])
-        ->where('newsletter', '[0-9]+')
-        ->name('newsletters.update')
-        ->can('update', NewsLetter::class);
-
-
-    Route::get('/events/create', [OrgEventController::class, 'create'])
-        ->name('events.create')
-        ->can('create', OrgEvent::class);
-    Route::post('/events', [OrgEventController::class, 'store'])
-        ->name('events.store')
-        ->can('create', OrgEvent::class);
-
-    Route::get('/events/{event}/edit', [OrgEventController::class, 'edit'])
-        ->where('event', '[0-9]+')
-        ->name('events.edit');
-    Route::put('/events/{event}', [OrgEventController::class, 'update'])
-        ->where('event', '[0-9]+')
-        ->name('events.update');
-
-    Route::delete('/events/{event}', [OrgEventController::class, 'destroy'])
-        ->where('event', '[0-9]+')
-        ->name('events.destroy')
-        ->can('delete', OrgEvent::class);
-
-    Route::post('/events/{event}/signup-page', [OrgEventController::class, 'upsertSignupPage'])
-        ->name('events.signup-page.upsert');
-
-    Route::delete('/events/{event}/signup-page', [OrgEventController::class, 'destroySignupPage'])
-        ->name('events.signup-page.destroy');
-
-    Route::post('/events/{event}/occurrence-overrides', [OrgEventController::class, 'upsertOccurrenceOverride'])
-        ->name('events.occurrence-overrides.upsert');
-
-    Route::delete('/events/{event}/occurrence-overrides', [OrgEventController::class, 'destroyOccurrenceOverride'])
-        ->name('events.occurrence-overrides.destroy');
+            Route::post('/{event}/occurrence-overrides', [OrgEventController::class, 'upsertOccurrenceOverride'])
+                ->name('occurrence-overrides.upsert');
+            Route::delete('/{event}/occurrence-overrides', [OrgEventController::class, 'destroyOccurrenceOverride'])
+                ->name('occurrence-overrides.destroy');
+        });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Content/Gallery Management
+|--------------------------------------------------------------------------
+*/
 
 Route::middleware(['auth:sanctum', 'verified', 'can:manage-gallery'])
     ->prefix('admin/gallery')
+    ->name('admin.gallery.')
     ->group(function () {
-        Route::get('/', [GalleryAdminController::class, 'index'])->name('admin.gallery.index');
+        Route::get('/', [GalleryAdminController::class, 'index'])->name('index');
 
-        Route::post('/albums', [GalleryAdminController::class, 'storeAlbum'])->name('admin.gallery.albums.store');
-        Route::put('/albums/{album}', [GalleryAdminController::class, 'updateAlbum'])->name('admin.gallery.albums.update');
-        Route::delete('/albums/{album}', [GalleryAdminController::class, 'destroyAlbum'])->name('admin.gallery.albums.destroy');
+        Route::post('/albums', [GalleryAdminController::class, 'storeAlbum'])->name('albums.store');
+        Route::put('/albums/{album}', [GalleryAdminController::class, 'updateAlbum'])->name('albums.update');
+        Route::delete('/albums/{album}', [GalleryAdminController::class, 'destroyAlbum'])->name('albums.destroy');
 
-        Route::post('/photos', [GalleryAdminController::class, 'storePhoto'])->name('admin.gallery.photos.store');
-        Route::put('/photos/{photo}', [GalleryAdminController::class, 'updatePhoto'])->name('admin.gallery.photos.update');
-        Route::delete('/photos/{photo}', [GalleryAdminController::class, 'destroyPhoto'])->name('admin.gallery.photos.destroy');
+        Route::post('/photos', [GalleryAdminController::class, 'storePhoto'])->name('photos.store');
+        Route::put('/photos/{photo}', [GalleryAdminController::class, 'updatePhoto'])->name('photos.update');
+        Route::delete('/photos/{photo}', [GalleryAdminController::class, 'destroyPhoto'])->name('photos.destroy');
 
-        Route::post('/photos/reorder', [GalleryAdminController::class, 'reorderPhotos'])->name('admin.gallery.photos.reorder');
+        Route::post('/photos/reorder', [GalleryAdminController::class, 'reorderPhotos'])->name('photos.reorder');
     });
 
+Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])
+    ->prefix('admin/content')
+    ->name('admin.content.')
+    ->group(function () {
+        Route::get('/', [ContentTileController::class, 'index'])->name('index');
+        Route::post('/tiles', [ContentTileController::class, 'store'])->name('store');
+        Route::put('/tiles/{tile}', [ContentTileController::class, 'update'])->name('update');
+        Route::delete('/tiles/{tile}', [ContentTileController::class, 'destroy'])->name('destroy');
+        Route::post('/reorder', [ContentTileController::class, 'reorder'])->name('reorder');
+        Route::post('/upload', [ContentTileController::class, 'upload'])->name('upload');
+    });
 
-Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])->prefix('admin/content')->group(function () {
-    Route::get('/', [ContentTileController::class, 'index'])->name('admin.content.index');
-    Route::post('/tiles', [ContentTileController::class, 'store'])->name('admin.content.store');
-    Route::put('/tiles/{tile}', [ContentTileController::class, 'update'])->name('admin.content.update');
-    Route::delete('/tiles/{tile}', [ContentTileController::class, 'destroy'])->name('admin.content.destroy');
-    Route::post('/reorder', [ContentTileController::class, 'reorder'])->name('admin.content.reorder');
-    Route::post('/upload', [ContentTileController::class, 'upload'])->name('admin.content.upload');
-});
-
-Route::get('/scholarship', [ScholarshipApplicationController::class, 'intro'])
-    ->name('scholarship.intro');
-Route::get('/scholarship/apply', [ScholarshipApplicationController::class, 'apply'])
-    ->name('scholarship.apply');
-Route::post('/scholarship/apply', [ScholarshipApplicationController::class, 'store'])
-    ->name('scholarship.apply.store');
-Route::get('/scholarship/thanks', [ScholarshipApplicationController::class, 'thanks'])
-    ->name('scholarship.thanks');
-Route::get('/scholarship/verify/{scholarshipApplication}/{token}', [ScholarshipApplicationController::class, 'verify'])
-    ->name('scholarship.verify');
+/*
+|--------------------------------------------------------------------------
+| Scholarship Review Management
+|--------------------------------------------------------------------------
+*/
 
 Route::middleware(['auth', 'can:review scholarship applications'])
     ->prefix('manage/scholarship')
+    ->name('manage.scholarships.')
     ->group(function () {
-        Route::get('/', [ScholarshipApplicationReviewController::class, 'index'])
-            ->name('manage.scholarships.index');
-        Route::get('/{scholarshipApplication}', [ScholarshipApplicationReviewController::class, 'show'])
-            ->name('manage.scholarships.show');
+        Route::get('/', [ScholarshipApplicationReviewController::class, 'index'])->name('index');
+        Route::get('/{scholarshipApplication}', [ScholarshipApplicationReviewController::class, 'show'])->name('show');
         Route::get('/{scholarshipApplication}/attachments/{index}', [ScholarshipApplicationReviewController::class, 'downloadAttachment'])
             ->whereNumber('index')
-            ->name('manage.scholarships.attachments.download');
+            ->name('attachments.download');
         Route::post('/{scholarshipApplication}/review', [ScholarshipApplicationReviewController::class, 'upsert'])
-            ->name('manage.scholarships.review.upsert');
+            ->name('review.upsert');
         Route::patch('/{scholarshipApplication}/status', [ScholarshipApplicationReviewController::class, 'updateApplicationStatus'])
-            ->name('manage.scholarships.status.update');
+            ->name('status.update');
         Route::delete('/{scholarshipApplication}', [ScholarshipApplicationReviewController::class, 'destroyApplication'])
-            ->name('manage.scholarships.destroy');
+            ->name('destroy');
     });
+
+/*
+|--------------------------------------------------------------------------
+| Member Directory Management
+|--------------------------------------------------------------------------
+*/
 
 Route::middleware(['auth'])
     ->prefix('manage/member-directory')
+    ->name('manage.member-directory.')
     ->group(function () {
         Route::get('/', function () {
             $user = request()->user();
@@ -240,68 +303,68 @@ Route::middleware(['auth'])
             }
 
             abort(403);
-        })->name('manage.member-directory.index');
+        })->name('index');
 
         Route::get('members', [MemberDirectoryController::class, 'index'])
             ->middleware('can:' . PeoplePermissions::VIEW_MEMBER_DIRECTORY)
-            ->name('manage.member-directory.members.index');
+            ->name('members.index');
 
         Route::get('members/export', [MemberDirectoryController::class, 'export'])
             ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
-            ->name('manage.member-directory.members.export');
+            ->name('members.export');
 
         Route::get('widows', [WidowDirectoryController::class, 'index'])
             ->middleware('can:' . PeoplePermissions::VIEW_WIDOW_DIRECTORY)
-            ->name('manage.member-directory.widows.index');
+            ->name('widows.index');
 
         Route::get('orphans', [OrphanDirectoryController::class, 'index'])
             ->middleware('can:' . PeoplePermissions::VIEW_ORPHAN_DIRECTORY)
-            ->name('manage.member-directory.orphans.index');
+            ->name('orphans.index');
 
         Route::get('relatives', [RelativeDirectoryController::class, 'index'])
-            ->name('manage.member-directory.relatives.index');
+            ->name('relatives.index');
 
         Route::get('imports', [MemberRosterImportController::class, 'index'])
             ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
-            ->name('manage.member-directory.imports.index');
+            ->name('imports.index');
 
         Route::post('imports', [MemberRosterImportController::class, 'store'])
             ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
-            ->name('manage.member-directory.imports.store');
+            ->name('imports.store');
 
         Route::get('imports/{importBatch}', [MemberRosterImportController::class, 'show'])
             ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
-            ->name('manage.member-directory.imports.show');
+            ->name('imports.show');
 
         Route::post('imports/{importBatch}/apply', [MemberRosterImportController::class, 'apply'])
             ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
-            ->name('manage.member-directory.imports.apply');
+            ->name('imports.apply');
 
         Route::get('people/create', [PersonDirectoryController::class, 'create'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
-            ->name('manage.member-directory.people.create');
+            ->name('people.create');
 
         Route::post('people', [PersonDirectoryController::class, 'store'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
-            ->name('manage.member-directory.people.store');
+            ->name('people.store');
 
         Route::get('people/search-for-user-link', [UserPersonLinkController::class, 'searchPeople'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
-            ->name('manage.member-directory.people.search-for-user-link');
+            ->name('people.search-for-user-link');
 
         Route::get('people/{person}', [PersonDirectoryController::class, 'show'])
             ->middleware('can:' . PeoplePermissions::VIEW_MEMBER_DETAILS)
-            ->name('manage.member-directory.people.show');
+            ->name('people.show');
 
         Route::get('users/{user}/person-link', [UserPersonLinkController::class, 'show'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
-            ->name('manage.member-directory.users.person-link.show');
+            ->name('users.person-link.show');
 
         Route::post('users/{user}/person-link', [UserPersonLinkController::class, 'link'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
-            ->name('manage.member-directory.users.person-link.link');
+            ->name('users.person-link.link');
 
         Route::delete('users/{user}/person-link', [UserPersonLinkController::class, 'unlink'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
-            ->name('manage.member-directory.users.person-link.unlink');
+            ->name('users.person-link.unlink');
     });
