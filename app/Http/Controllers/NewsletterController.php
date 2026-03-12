@@ -61,7 +61,7 @@ class NewsletterController extends Controller
                 'body'       => $newsletter->body,
                 'created_at' => $newsletter->created_at,
                 'issue'      => $newsletter->issue,
-                'author'     => $newsletter->createdBy->name ?? $newsletter->createdBy->email,
+                'author'     => $newsletter->createdBy?->name ?? $newsletter->createdBy?->email ?? '',
             ],
         ]);
     }
