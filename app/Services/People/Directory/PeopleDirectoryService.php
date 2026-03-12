@@ -9,6 +9,7 @@ use App\Models\PersonContactLog;
 use App\Models\PersonRelationship;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -412,7 +413,7 @@ class PeopleDirectoryService
 
     protected function careRelationshipLoader(RelationshipType $relationshipType): \Closure
     {
-        return function (Builder $relationshipQuery) use ($relationshipType) {
+        return function (Builder|HasMany $relationshipQuery) use ($relationshipType) {
             $relationshipQuery
                 ->where('relationship_type', $relationshipType->value)
                 ->whereHas('relatedPerson', function (Builder $relatedQuery) {

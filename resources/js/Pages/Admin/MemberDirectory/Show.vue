@@ -544,7 +544,7 @@ const submitEditContact = () => {
                 <template #content>
                     <div class="hidden md:block">
                         <DataTable :value="person.relationships" data-key="id" responsive-layout="scroll">
-                            <Column header="Type">
+                            <Column header="This Person -> Related Person">
                                 <template #body="{ data }">{{ data.label || '—' }}</template>
                             </Column>
                             <Column header="Person">
@@ -553,7 +553,7 @@ const submitEditContact = () => {
                             <Column header="Member #">
                                 <template #body="{ data }">{{ data.person?.member_number || '—' }}</template>
                             </Column>
-                            <Column header="Inverse Type">
+                            <Column header="Related Person -> This Person">
                                 <template #body="{ data }">{{ data.inverse_label || '—' }}</template>
                             </Column>
                             <Column header="Primary">
@@ -593,10 +593,10 @@ const submitEditContact = () => {
                             :key="relationship.id"
                             class="rounded-lg border border-surface-200 p-3 text-sm dark:border-surface-700"
                         >
-                            <div><span class="font-medium">Type:</span> {{ relationship.label || '—' }}</div>
+                            <div><span class="font-medium">This Person -> Related Person:</span> {{ relationship.label || '—' }}</div>
                             <div><span class="font-medium">Person:</span> {{ relationship.person?.display_name || '—' }}</div>
                             <div><span class="font-medium">Member #:</span> {{ relationship.person?.member_number || '—' }}</div>
-                            <div><span class="font-medium">Inverse:</span> {{ relationship.inverse_label || '—' }}</div>
+                            <div><span class="font-medium">Related Person -> This Person:</span> {{ relationship.inverse_label || '—' }}</div>
                             <div><span class="font-medium">Primary:</span> {{ relationship.is_primary ? 'Yes' : 'No' }}</div>
                             <div><span class="font-medium">Notes:</span> {{ relationship.notes || '—' }}</div>
                             <div v-if="canManageRelationships" class="mt-2 flex items-center gap-2">
@@ -630,7 +630,7 @@ const submitEditContact = () => {
                 <template #content>
                     <div class="hidden md:block">
                         <DataTable :value="person.inverse_relationships" data-key="id" responsive-layout="scroll">
-                            <Column header="Type">
+                            <Column header="Their Relationship to This Person">
                                 <template #body="{ data }">{{ data.label || '—' }}</template>
                             </Column>
                             <Column header="Person">
@@ -657,7 +657,7 @@ const submitEditContact = () => {
                             :key="relationship.id"
                             class="rounded-lg border border-surface-200 p-3 text-sm dark:border-surface-700"
                         >
-                            <div><span class="font-medium">Type:</span> {{ relationship.label || '—' }}</div>
+                            <div><span class="font-medium">Their Relationship to This Person:</span> {{ relationship.label || '—' }}</div>
                             <div><span class="font-medium">Person:</span> {{ relationship.person?.display_name || '—' }}</div>
                             <div><span class="font-medium">Member #:</span> {{ relationship.person?.member_number || '—' }}</div>
                             <div><span class="font-medium">Primary:</span> {{ relationship.is_primary ? 'Yes' : 'No' }}</div>
@@ -1001,7 +1001,7 @@ const submitEditContact = () => {
 
                 <div class="grid gap-4 border-t border-surface-200 pt-4 dark:border-surface-700 md:grid-cols-2">
                     <div>
-                        <label class="mb-2 block text-sm font-medium">Relationship Type</label>
+                        <label class="mb-2 block text-sm font-medium">This Person's Relationship to Related Person</label>
                         <Select
                             v-model="createRelationshipForm.relationship_type"
                             :options="relationshipTypeOptions"
@@ -1013,9 +1013,12 @@ const submitEditContact = () => {
                         <p v-if="createRelationshipForm.errors.relationship_type" class="mt-1 text-sm text-red-500">
                             {{ createRelationshipForm.errors.relationship_type }}
                         </p>
+                        <p class="mt-1 text-xs text-surface-500">
+                            Example: if this person is the member's child, choose Child.
+                        </p>
                     </div>
                     <div>
-                        <label class="mb-2 block text-sm font-medium">Inverse Relationship Type (Optional)</label>
+                        <label class="mb-2 block text-sm font-medium">Related Person's Relationship to This Person (Optional)</label>
                         <Select
                             v-model="createRelationshipForm.inverse_relationship_type"
                             :options="relationshipTypeOptions"
@@ -1024,6 +1027,9 @@ const submitEditContact = () => {
                             class="w-full"
                             show-clear
                         />
+                        <p class="mt-1 text-xs text-surface-500">
+                            In the same example above, choose Parent here.
+                        </p>
                     </div>
                     <div class="md:col-span-2">
                         <label class="mb-2 block text-sm font-medium">Notes</label>
@@ -1069,7 +1075,7 @@ const submitEditContact = () => {
                 </div>
 
                 <div>
-                    <label class="mb-2 block text-sm font-medium">Relationship Type</label>
+                    <label class="mb-2 block text-sm font-medium">This Person's Relationship to Related Person</label>
                     <Select
                         v-model="editRelationshipForm.relationship_type"
                         :options="relationshipTypeOptions"
@@ -1081,10 +1087,13 @@ const submitEditContact = () => {
                     <p v-if="editRelationshipForm.errors.relationship_type" class="mt-1 text-sm text-red-500">
                         {{ editRelationshipForm.errors.relationship_type }}
                     </p>
+                    <p class="mt-1 text-xs text-surface-500">
+                        Example: if this person is the member's child, choose Child.
+                    </p>
                 </div>
 
                 <div>
-                    <label class="mb-2 block text-sm font-medium">Inverse Relationship Type (Optional)</label>
+                    <label class="mb-2 block text-sm font-medium">Related Person's Relationship to This Person (Optional)</label>
                     <Select
                         v-model="editRelationshipForm.inverse_relationship_type"
                         :options="relationshipTypeOptions"
@@ -1095,6 +1104,9 @@ const submitEditContact = () => {
                     />
                     <p v-if="editRelationshipForm.errors.inverse_relationship_type" class="mt-1 text-sm text-red-500">
                         {{ editRelationshipForm.errors.inverse_relationship_type }}
+                    </p>
+                    <p class="mt-1 text-xs text-surface-500">
+                        In the same example above, choose Parent here.
                     </p>
                 </div>
 

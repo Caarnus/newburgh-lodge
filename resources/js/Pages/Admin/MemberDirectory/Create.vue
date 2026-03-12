@@ -297,7 +297,7 @@ const submit = () => {
                         <p v-if="form.errors.related_person_id" class="mt-1 text-sm text-red-500">{{ form.errors.related_person_id }}</p>
                     </div>
                     <div>
-                        <label class="mb-2 block text-sm font-medium">Relationship Type</label>
+                        <label class="mb-2 block text-sm font-medium">New Person's Relationship to Related Person</label>
                         <Select
                             v-model="form.relationship_type"
                             :options="relationshipTypeOptions"
@@ -307,9 +307,12 @@ const submit = () => {
                             show-clear
                         />
                         <p v-if="form.errors.relationship_type" class="mt-1 text-sm text-red-500">{{ form.errors.relationship_type }}</p>
+                        <p class="mt-1 text-xs text-surface-500">
+                            Example: if the new person is the member's child, choose Child.
+                        </p>
                     </div>
                     <div>
-                        <label class="mb-2 block text-sm font-medium">Inverse Relationship (Optional)</label>
+                        <label class="mb-2 block text-sm font-medium">Related Person's Relationship to New Person (Optional)</label>
                         <Select
                             v-model="form.inverse_relationship_type"
                             :options="relationshipTypeOptions"
@@ -318,6 +321,9 @@ const submit = () => {
                             class="w-full"
                             show-clear
                         />
+                        <p class="mt-1 text-xs text-surface-500">
+                            In the same example above, choose Parent here.
+                        </p>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">Relationship Notes</label>
