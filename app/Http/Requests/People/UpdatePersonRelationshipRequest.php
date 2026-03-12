@@ -41,7 +41,7 @@ class UpdatePersonRelationshipRequest extends FormRequest
         );
 
         return [
-            'from' => ['nullable', Rule::in(['members', 'widows', 'orphans', 'relatives'])],
+            'from' => ['nullable', Rule::in(['all', 'members', 'widows', 'orphans', 'relatives', 'others'])],
 
             'relationship_type' => [
                 'required',

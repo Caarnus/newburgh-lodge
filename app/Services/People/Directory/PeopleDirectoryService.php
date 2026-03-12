@@ -121,6 +121,38 @@ class PeopleDirectoryService
         return $query->paginate($this->perPage($filters))->withQueryString();
     }
 
+    public function paginateOtherPeople(array $filters): LengthAwarePaginator
+    {
+        $query = Person::query()
+            ->select('people.*')
+            ->with('memberProfile')
+            ->whereDoesntHave('memberProfile')
+            ->whereDoesntHave('relationships')
+            ->whereDoesntHave('relatedTo')
+            ->selectSub($this->latestContactSubquery(), 'last_contact_at');
+
+        $this->applyCommonSearch($query, $filters['q'] ?? null);
+        $this->applyHideDeceased($query, $filters);
+        $this->applyPersonSort($query, $filters['sort'] ?? 'name');
+
+        return $query->paginate($this->perPage($filters))->withQueryString();
+    }
+
+    public function paginateAllPeople(array $filters): LengthAwarePaginator
+    {
+        $query = Person::query()
+            ->select('people.*')
+            ->leftJoin('member_profiles', 'member_profiles.person_id', '=', 'people.id')
+            ->with('memberProfile')
+            ->selectSub($this->latestContactSubquery(), 'last_contact_at');
+
+        $this->applyCommonSearch($query, $filters['q'] ?? null, includeMemberNumber: true);
+        $this->applyHideDeceased($query, $filters);
+        $this->applyPersonSort($query, $filters['sort'] ?? 'name');
+
+        return $query->paginate($this->perPage($filters))->withQueryString();
+    }
+
     public function findPersonForDirectory(int $personId): Person
     {
         $person = Person::query()
@@ -197,6 +229,16 @@ class PeopleDirectoryService
         ];
     }
 
+    public function peopleSortOptions(): array
+    {
+        return [
+            ['label' => 'Name (A–Z)', 'value' => 'name'],
+            ['label' => 'Name (Z–A)', 'value' => '-name'],
+            ['label' => 'Most Recently Contacted', 'value' => '-last_contact'],
+            ['label' => 'Least Recently Contacted', 'value' => 'last_contact'],
+        ];
+    }
+
     protected function perPage(array $filters): int
     {
         return max(10, min(100, (int) ($filters['per_page'] ?? 25)));
@@ -231,8 +273,12 @@ class PeopleDirectoryService
     {
         if (($filters['hide_deceased'] ?? false) === true) {
             $query->where(function (Builder $builder) {
-                $builder->where('people.is_deceased', false)
-                    ->orWhereNull('people.is_deceased');
+                $builder
+                    ->where(function (Builder $statusBuilder) {
+                        $statusBuilder->where('people.is_deceased', false)
+                            ->orWhereNull('people.is_deceased');
+                    })
+                    ->whereNull('people.death_date');
             });
         }
     }
@@ -269,6 +315,16 @@ class PeopleDirectoryService
             '-name' => $query->orderByDesc('people.last_name')->orderByDesc('people.first_name'),
             'relationship' => $query->orderBy('primary_relationship_type')->orderBy('people.last_name')->orderBy('people.first_name'),
             '-relationship' => $query->orderByDesc('primary_relationship_type')->orderBy('people.last_name')->orderBy('people.first_name'),
+            'last_contact' => $query->orderBy('last_contact_at')->orderBy('people.last_name')->orderBy('people.first_name'),
+            '-last_contact' => $query->orderByDesc('last_contact_at')->orderBy('people.last_name')->orderBy('people.first_name'),
+            default => $query->orderBy('people.last_name')->orderBy('people.first_name'),
+        };
+    }
+
+    protected function applyPersonSort(Builder $query, string $sort): void
+    {
+        match ($sort) {
+            '-name' => $query->orderByDesc('people.last_name')->orderByDesc('people.first_name'),
             'last_contact' => $query->orderBy('last_contact_at')->orderBy('people.last_name')->orderBy('people.first_name'),
             '-last_contact' => $query->orderByDesc('last_contact_at')->orderBy('people.last_name')->orderBy('people.first_name'),
             default => $query->orderBy('people.last_name')->orderBy('people.first_name'),

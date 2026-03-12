@@ -54,6 +54,10 @@ class AccessControlSeeder extends Seeder
             'view newsletter',
             'view event',
             'view member photos',
+            PeoplePermissions::VIEW_MEMBER_DIRECTORY,
+            PeoplePermissions::VIEW_WIDOW_DIRECTORY,
+            PeoplePermissions::VIEW_ORPHAN_DIRECTORY,
+            PeoplePermissions::VIEW_MEMBER_DETAILS,
             PeoplePermissions::VIEW_OWN_PERSON_PROFILE,
             PeoplePermissions::UPDATE_OWN_PERSON_PROFILE,
         ]);

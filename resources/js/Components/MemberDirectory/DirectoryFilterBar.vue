@@ -29,12 +29,19 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['apply', 'reset']);
+const normalizeHideDeceased = (value) => (
+    value === true
+    || value === 1
+    || value === '1'
+    || value === 'true'
+    || value === 'on'
+);
 
 const localFilters = reactive({
     q: props.filters.q ?? null,
     status: props.filters.status ?? null,
     relationship_type: props.filters.relationship_type ?? null,
-    hide_deceased: Boolean(props.filters.hide_deceased),
+    hide_deceased: normalizeHideDeceased(props.filters.hide_deceased),
     sort: props.filters.sort ?? 'name',
     per_page: props.filters.per_page ?? 25,
 });
@@ -45,7 +52,7 @@ watch(
         localFilters.q = filters.q ?? null;
         localFilters.status = filters.status ?? null;
         localFilters.relationship_type = filters.relationship_type ?? null;
-        localFilters.hide_deceased = Boolean(filters.hide_deceased);
+        localFilters.hide_deceased = normalizeHideDeceased(filters.hide_deceased);
         localFilters.sort = filters.sort ?? 'name';
         localFilters.per_page = filters.per_page ?? 25;
     },
@@ -70,10 +77,12 @@ const showMemberFilters = computed(() => props.section === 'members');
 const showRelationshipFilter = computed(() => props.section === 'relatives');
 
 const searchPlaceholder = computed(() => ({
+    all: 'Name, email, phone, member number',
     members: 'Name, email, phone, member number',
     widows: 'Name, email, phone',
     orphans: 'Name, email, phone',
     relatives: 'Name, email, phone',
+    others: 'Name, email, phone',
 }[props.section] ?? 'Search'));
 
 const submit = () => {
@@ -185,7 +194,7 @@ const reset = () => {
         <div class="mt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <label class="flex items-center gap-3 text-sm text-surface-700 dark:text-surface-200">
                 <ToggleSwitch v-model="localFilters.hide_deceased" />
-                <span>Hide deceased people</span>
+                <span>Hide deceased</span>
             </label>
 
             <div class="flex flex-wrap gap-2">

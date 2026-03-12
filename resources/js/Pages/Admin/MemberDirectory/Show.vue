@@ -30,17 +30,21 @@ const props = defineProps({
 
 const page = usePage();
 const backRoute = computed(() => ({
+    all: 'manage.member-directory.all.index',
     members: 'manage.member-directory.members.index',
     widows: 'manage.member-directory.widows.index',
     orphans: 'manage.member-directory.orphans.index',
     relatives: 'manage.member-directory.relatives.index',
+    others: 'manage.member-directory.others.index',
 }[props.fromSection] ?? 'manage.member-directory.index'));
 
 const backLabel = computed(() => ({
+    all: 'Back to All People',
     members: 'Back to Members',
     widows: 'Back to Widows',
     orphans: 'Back to Orphans',
     relatives: 'Back to Relatives',
+    others: 'Back to Others',
 }[props.fromSection] ?? 'Back to Directory'));
 
 const classifications = computed(() => [

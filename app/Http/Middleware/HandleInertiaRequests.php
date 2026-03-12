@@ -31,11 +31,31 @@ class HandleInertiaRequests extends Middleware
             $secretaryRole = $secretaryRole->value;
         }
 
+        $memberRole = RoleEnum::MEMBER;
+        if ($memberRole instanceof \BackedEnum) {
+            $memberRole = $memberRole->value;
+        }
+
+        $hasMemberRole = ($user?->hasRole($memberRole) ?? false)
+            || ($user?->hasRole(strtolower($memberRole)) ?? false);
+
+        $canViewMemberDirectory = ($user?->hasPermissionTo(PeoplePermissions::VIEW_MEMBER_DIRECTORY, $guard) ?? false)
+            || $hasMemberRole;
+        $canViewWidowDirectory = ($user?->hasPermissionTo(PeoplePermissions::VIEW_WIDOW_DIRECTORY, $guard) ?? false)
+            || $canViewMemberDirectory
+            || $hasMemberRole;
+        $canViewOrphanDirectory = ($user?->hasPermissionTo(PeoplePermissions::VIEW_ORPHAN_DIRECTORY, $guard) ?? false)
+            || $canViewMemberDirectory
+            || $hasMemberRole;
+
         $peopleCan = [
-            'members' => $user?->hasPermissionTo(PeoplePermissions::VIEW_MEMBER_DIRECTORY, $guard) ?? false,
-            'widows' => $user?->hasPermissionTo(PeoplePermissions::VIEW_WIDOW_DIRECTORY, $guard) ?? false,
-            'orphans' => $user?->hasPermissionTo(PeoplePermissions::VIEW_ORPHAN_DIRECTORY, $guard) ?? false,
-            'details' => $user?->hasPermissionTo(PeoplePermissions::VIEW_MEMBER_DETAILS, $guard) ?? false,
+            'members' => $canViewMemberDirectory,
+            'widows' => $canViewWidowDirectory,
+            'orphans' => $canViewOrphanDirectory,
+            'details' => ($user?->hasPermissionTo(PeoplePermissions::VIEW_MEMBER_DETAILS, $guard) ?? false)
+                || $canViewMemberDirectory
+                || $canViewWidowDirectory
+                || $canViewOrphanDirectory,
             'updateRecords' => $user?->hasPermissionTo(PeoplePermissions::UPDATE_MEMBER_RECORDS, $guard) ?? false,
             'importRoster' => $user?->hasPermissionTo(PeoplePermissions::IMPORT_MEMBER_ROSTER, $guard) ?? false,
             'mergeRecords' => $user?->hasPermissionTo(PeoplePermissions::MERGE_PEOPLE_RECORDS, $guard) ?? false,

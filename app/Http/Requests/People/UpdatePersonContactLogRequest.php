@@ -31,7 +31,7 @@ class UpdatePersonContactLogRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'from' => ['nullable', Rule::in(['members', 'widows', 'orphans', 'relatives'])],
+            'from' => ['nullable', Rule::in(['all', 'members', 'widows', 'orphans', 'relatives', 'others'])],
             'contacted_at' => ['required', 'date'],
             'contact_type' => ['nullable', Rule::in(['call', 'text', 'email', 'visit', 'other'])],
             'notes' => ['nullable', 'string', 'max:2000'],

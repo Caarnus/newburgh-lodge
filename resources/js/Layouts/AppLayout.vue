@@ -41,6 +41,7 @@ const navMenuItems = ref([
             { label: 'History', url: route('history') },
             { label: 'Officers', url: route('officers') },
             { label: 'Past Masters', url: route('past-masters.index') },
+            { label: 'Member Directory', url: route('manage.member-directory.index'), visible: canManagePeople.directory },
             { label: 'Masonic FAQ', url: route('faq') },
             {
                 label: 'Directions',
@@ -72,13 +73,20 @@ const navMenuItems = ref([
     },
     {
         label: 'Manage',
-        visible: $page.props.can.manage.content || $page.props.can.manage.scholarships || canManagePeople.any,
+        visible: $page.props.can.manage.content
+            || $page.props.can.manage.gallery
+            || $page.props.can.manage.scholarships
+            || canManagePeople.updateRecords
+            || canManagePeople.importRoster
+            || canManagePeople.mergeRecords
+            || canManagePeople.logContacts
+            || canManagePeople.editContacts
+            || canManagePeople.exportDirectory,
         items: [
             { label: 'Jeopardy', url: route('jeopardy.index'), visible: $page.props.can.manage.content },
             { label: 'Manage Content', url: route('admin.content.index'), visible: $page.props.can.manage.content },
             { label: 'Manage Gallery', url: route('admin.gallery.index'), visible: $page.props.can.manage.gallery },
             { label: 'Scholarship Applications', url: route('manage.scholarships.index'), visible: $page.props.can.manage.scholarships },
-            { label: 'Member Directory', url: route('manage.member-directory.index'), visible: canManagePeople.directory },
             { label: 'Roster Imports', url: route('manage.member-directory.imports.index'), visible: canManagePeople.importRoster },
         ],
     },

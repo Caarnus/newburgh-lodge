@@ -25,7 +25,7 @@ class StorePersonRelationshipRequest extends FormRequest
         );
 
         return [
-            'from' => ['nullable', Rule::in(['members', 'widows', 'orphans', 'relatives'])],
+            'from' => ['nullable', Rule::in(['all', 'members', 'widows', 'orphans', 'relatives', 'others'])],
             'related_person_mode' => ['required', Rule::in(['existing', 'new'])],
 
             'related_person_id' => [

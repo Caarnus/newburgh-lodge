@@ -86,6 +86,8 @@ const classificationLabels = computed(() => [
     props.person.classifications?.is_orphan ? 'Orphan' : null,
     props.person.classifications?.is_relative ? 'Relative' : null,
 ].filter(Boolean));
+
+const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDateString() : '—';
 </script>
 
 <template>
@@ -244,20 +246,20 @@ const classificationLabels = computed(() => [
                             />
                         </div>
                         <div>
-                            <label class="mb-2 block text-sm font-medium">EA Date</label>
-                            <InputText v-model="form.member_profile.ea_date" type="date" class="w-full" />
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">EA Date</div>
+                            <div>{{ formatDate(person.member_profile?.ea_date) }}</div>
                         </div>
                         <div>
-                            <label class="mb-2 block text-sm font-medium">FC Date</label>
-                            <InputText v-model="form.member_profile.fc_date" type="date" class="w-full" />
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">FC Date</div>
+                            <div>{{ formatDate(person.member_profile?.fc_date) }}</div>
                         </div>
                         <div>
-                            <label class="mb-2 block text-sm font-medium">MM Date</label>
-                            <InputText v-model="form.member_profile.mm_date" type="date" class="w-full" />
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">MM Date</div>
+                            <div>{{ formatDate(person.member_profile?.mm_date) }}</div>
                         </div>
                         <div>
-                            <label class="mb-2 block text-sm font-medium">Demit Date</label>
-                            <InputText v-model="form.member_profile.demit_date" type="date" class="w-full" />
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Demit Date</div>
+                            <div>{{ formatDate(person.member_profile?.demit_date) }}</div>
                         </div>
                         <div class="md:col-span-2 flex flex-wrap items-center gap-6">
                             <label class="inline-flex items-center gap-2 text-sm">
@@ -279,6 +281,22 @@ const classificationLabels = computed(() => [
                         <div>
                             <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Status</div>
                             <div>{{ person.member_profile?.status || '—' }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">EA Date</div>
+                            <div>{{ formatDate(person.member_profile?.ea_date) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">FC Date</div>
+                            <div>{{ formatDate(person.member_profile?.fc_date) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">MM Date</div>
+                            <div>{{ formatDate(person.member_profile?.mm_date) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Demit Date</div>
+                            <div>{{ formatDate(person.member_profile?.demit_date) }}</div>
                         </div>
                         <div>
                             <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Directory Visible</div>

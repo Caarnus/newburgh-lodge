@@ -4,6 +4,7 @@ namespace App\Http\Requests\People;
 
 use App\Enums\RelationshipType;
 use App\Helpers\People\PeoplePermissions;
+use App\Helpers\RoleEnum;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -11,7 +12,17 @@ class IndexRelativeDirectoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->canAny(PeoplePermissions::directoryPermissions()) ?? false;
+        $user = $this->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        $memberRole = RoleEnum::MEMBER->value;
+
+        return $user->canAny(PeoplePermissions::directoryPermissions())
+            || $user->hasRole($memberRole)
+            || $user->hasRole(strtolower($memberRole));
     }
 
     public function rules(): array

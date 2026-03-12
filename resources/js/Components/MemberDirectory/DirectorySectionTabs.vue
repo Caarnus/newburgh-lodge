@@ -1,5 +1,6 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { Link, usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
     active: {
@@ -11,6 +12,14 @@ const props = defineProps({
         default: () => ({}),
     },
 });
+
+const page = usePage();
+const peopleCan = computed(() => page.props?.can?.manage?.people ?? {});
+const canViewAnyDirectorySection = computed(() => (
+    Boolean(peopleCan.value.members)
+    || Boolean(peopleCan.value.widows)
+    || Boolean(peopleCan.value.orphans)
+));
 
 const only = [
     'section',
@@ -30,12 +39,14 @@ const sharedData = () => ({
     page: undefined,
 });
 
-const tabs = [
-    { key: 'members', label: 'Members', href: route('manage.member-directory.members.index') },
-    { key: 'widows', label: 'Widows', href: route('manage.member-directory.widows.index') },
-    { key: 'orphans', label: 'Orphans', href: route('manage.member-directory.orphans.index') },
-    { key: 'relatives', label: 'Relatives', href: route('manage.member-directory.relatives.index') },
-];
+const tabs = computed(() => ([
+    { key: 'all', label: 'All People', href: route('manage.member-directory.all.index'), visible: canViewAnyDirectorySection.value },
+    { key: 'members', label: 'Members', href: route('manage.member-directory.members.index'), visible: Boolean(peopleCan.value.members) },
+    { key: 'widows', label: 'Widows', href: route('manage.member-directory.widows.index'), visible: Boolean(peopleCan.value.widows) },
+    { key: 'orphans', label: 'Orphans', href: route('manage.member-directory.orphans.index'), visible: Boolean(peopleCan.value.orphans) },
+    { key: 'relatives', label: 'Relatives', href: route('manage.member-directory.relatives.index'), visible: canViewAnyDirectorySection.value },
+    { key: 'others', label: 'Others', href: route('manage.member-directory.others.index'), visible: canViewAnyDirectorySection.value },
+]).filter((tab) => tab.visible));
 </script>
 
 <template>

@@ -7,12 +7,11 @@ export default {
 </script>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
-import Tag from 'primevue/tag';
 import DirectoryFilterBar from '@/Components/MemberDirectory/DirectoryFilterBar.vue';
 import DirectorySectionTabs from '@/Components/MemberDirectory/DirectorySectionTabs.vue';
 import QuickContactLogModal from '@/Components/MemberDirectory/QuickContactLogModal.vue';
@@ -34,6 +33,8 @@ const canCreatePeople = computed(() => Boolean(page.props?.can?.manage?.people?.
 const canImportRoster = computed(() => Boolean(page.props?.can?.manage?.people?.importRoster));
 const canExportDirectory = computed(() => Boolean(page.props?.can?.manage?.people?.exportDirectory));
 const canLogContacts = computed(() => Boolean(page.props?.can?.manage?.people?.logContacts));
+const canViewDetails = computed(() => Boolean(page.props?.can?.manage?.people?.details));
+const showActionsColumn = computed(() => canLogContacts.value || canViewDetails.value);
 
 const only = [
     'section',
@@ -47,30 +48,78 @@ const only = [
 ];
 
 const routeNameBySection = {
+    all: 'manage.member-directory.all.index',
     members: 'manage.member-directory.members.index',
     widows: 'manage.member-directory.widows.index',
     orphans: 'manage.member-directory.orphans.index',
     relatives: 'manage.member-directory.relatives.index',
+    others: 'manage.member-directory.others.index',
 };
 
-const currentRoute = computed(() => routeNameBySection[props.section] ?? routeNameBySection.members);
+const currentRoute = computed(() => routeNameBySection[props.section] ?? routeNameBySection.all);
 const countLabel = computed(() => ({
+    all: 'people',
     members: 'members',
     widows: 'widows',
     orphans: 'orphans',
     relatives: 'relatives',
+    others: 'people',
 }[props.section] ?? 'people'));
 
-const showMemberColumns = computed(() => props.section === 'members');
+const showMemberColumns = computed(() => ['all', 'members'].includes(props.section));
 const showCareColumns = computed(() => ['widows', 'orphans'].includes(props.section));
 const showRelativeColumns = computed(() => props.section === 'relatives');
+const hideDeceasedStorageKey = 'member-directory.hide-deceased';
+const normalizeHideDeceased = (value) => (
+    value === true
+    || value === 1
+    || value === '1'
+    || value === 'true'
+    || value === 'on'
+);
+const hasHideDeceasedInUrl = computed(() => {
+    const url = String(page.url ?? '');
+    const query = url.split('?')[1] ?? '';
+
+    return new URLSearchParams(query).has('hide_deceased');
+});
+
+const readPersistedHideDeceased = () => {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    const value = window.localStorage.getItem(hideDeceasedStorageKey);
+
+    if (value === null) {
+        return null;
+    }
+
+    return value === 'true';
+};
+
+const persistHideDeceased = (value) => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.localStorage.setItem(hideDeceasedStorageKey, value ? 'true' : 'false');
+};
 
 const pruneFilters = (filters) => Object.fromEntries(
-    Object.entries(filters).filter(([, value]) => value !== null && value !== '' && value !== false)
+    Object.entries(filters).filter(([, value]) => value !== null && value !== '')
 );
 
 const visitSection = (nextFilters) => {
-    router.get(route(currentRoute.value), pruneFilters(nextFilters), {
+    const hideDeceased = normalizeHideDeceased(nextFilters.hide_deceased);
+    const normalizedFilters = {
+        ...nextFilters,
+        hide_deceased: hideDeceased ? 1 : 0,
+    };
+
+    persistHideDeceased(hideDeceased);
+
+    router.get(route(currentRoute.value), pruneFilters(normalizedFilters), {
         only,
         preserveScroll: true,
         preserveState: true,
@@ -124,6 +173,32 @@ const onQuickLogSaved = () => {
         preserveState: true,
     });
 };
+
+onMounted(() => {
+    const persisted = readPersistedHideDeceased();
+    const current = normalizeHideDeceased(props.filters.hide_deceased);
+
+    if (persisted === null) {
+        persistHideDeceased(current);
+        return;
+    }
+
+    if (hasHideDeceasedInUrl.value) {
+        persistHideDeceased(current);
+        return;
+    }
+
+    if (persisted !== current) {
+        visitSection({
+            ...props.filters,
+            hide_deceased: persisted,
+            page: 1,
+        });
+        return;
+    }
+
+    persistHideDeceased(current);
+});
 </script>
 
 <template>
@@ -240,20 +315,11 @@ const onQuickLogSaved = () => {
                     </template>
                 </Column>
 
-                <Column header="Deceased" style="min-width: 10rem">
-                    <template #body="{ data }">
-                        <div class="flex flex-col gap-1">
-                            <Tag :severity="data.is_deceased ? 'danger' : 'success'" :value="data.is_deceased ? 'Yes' : 'No'" />
-                            <span v-if="data.is_deceased" class="text-xs text-surface-500">{{ formatDate(data.death_date) }}</span>
-                        </div>
-                    </template>
-                </Column>
-
                 <Column header="Last Contact" style="min-width: 11rem">
                     <template #body="{ data }">{{ formatDateTime(data.last_contact_at) }}</template>
                 </Column>
 
-                <Column header="Actions" style="min-width: 9rem">
+                <Column v-if="showActionsColumn" header="Actions" style="min-width: 9rem">
                     <template #body="{ data }">
                         <div class="flex flex-wrap items-center gap-2">
                             <Button
@@ -264,6 +330,7 @@ const onQuickLogSaved = () => {
                                 @click="openQuickLog(data)"
                             />
                             <Link
+                                v-if="canViewDetails"
                                 :href="route('manage.member-directory.people.show', { person: data.id, from: section })"
                                 class="inline-flex items-center rounded-lg border border-surface-300 px-3 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
                             >

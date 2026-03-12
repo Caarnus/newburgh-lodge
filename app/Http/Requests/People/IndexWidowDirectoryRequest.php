@@ -3,6 +3,7 @@
 namespace App\Http\Requests\People;
 
 use App\Helpers\People\PeoplePermissions;
+use App\Helpers\RoleEnum;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,7 +11,18 @@ class IndexWidowDirectoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can(PeoplePermissions::VIEW_WIDOW_DIRECTORY) ?? false;
+        $user = $this->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        $memberRole = RoleEnum::MEMBER->value;
+
+        return $user->can(PeoplePermissions::VIEW_WIDOW_DIRECTORY)
+            || $user->can(PeoplePermissions::VIEW_MEMBER_DIRECTORY)
+            || $user->hasRole($memberRole)
+            || $user->hasRole(strtolower($memberRole));
     }
 
     public function rules(): array

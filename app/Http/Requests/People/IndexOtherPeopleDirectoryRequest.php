@@ -7,7 +7,7 @@ use App\Helpers\RoleEnum;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class IndexOrphanDirectoryRequest extends FormRequest
+class IndexOtherPeopleDirectoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,8 +19,7 @@ class IndexOrphanDirectoryRequest extends FormRequest
 
         $memberRole = RoleEnum::MEMBER->value;
 
-        return $user->can(PeoplePermissions::VIEW_ORPHAN_DIRECTORY)
-            || $user->can(PeoplePermissions::VIEW_MEMBER_DIRECTORY)
+        return $user->canAny(PeoplePermissions::directoryPermissions())
             || $user->hasRole($memberRole)
             || $user->hasRole(strtolower($memberRole));
     }
@@ -33,8 +32,6 @@ class IndexOrphanDirectoryRequest extends FormRequest
             'sort' => ['nullable', Rule::in([
                 'name',
                 '-name',
-                'death_date',
-                '-death_date',
                 'last_contact',
                 '-last_contact',
             ])],

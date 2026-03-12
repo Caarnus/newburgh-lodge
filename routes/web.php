@@ -9,9 +9,12 @@ use App\Http\Controllers\GalleryAdminController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\JeopardyQuestionController;
 use App\Helpers\People\PeoplePermissions;
+use App\Helpers\RoleEnum;
+use App\Http\Controllers\Manage\AllPeopleDirectoryController;
 use App\Http\Controllers\Manage\MemberDirectoryController;
 use App\Http\Controllers\Manage\MemberRosterImportController;
 use App\Http\Controllers\Manage\MemberSelfProfileController;
+use App\Http\Controllers\Manage\OtherPeopleDirectoryController;
 use App\Http\Controllers\Manage\OrphanDirectoryController;
 use App\Http\Controllers\Manage\PersonContactLogController;
 use App\Http\Controllers\Manage\PersonDirectoryController;
@@ -292,24 +295,23 @@ Route::middleware(['auth'])
     ->group(function () {
         Route::get('/', function () {
             $user = request()->user();
+            $memberRole = RoleEnum::MEMBER->value;
+            $hasMemberRole = ($user?->hasRole($memberRole) ?? false)
+                || ($user?->hasRole(strtolower($memberRole)) ?? false);
+            $canViewDirectory = ($user?->canAny(PeoplePermissions::directoryPermissions()) ?? false)
+                || $hasMemberRole;
 
-            if ($user?->can(PeoplePermissions::VIEW_MEMBER_DIRECTORY)) {
-                return redirect()->route('manage.member-directory.members.index');
-            }
-
-            if ($user?->can(PeoplePermissions::VIEW_WIDOW_DIRECTORY)) {
-                return redirect()->route('manage.member-directory.widows.index');
-            }
-
-            if ($user?->can(PeoplePermissions::VIEW_ORPHAN_DIRECTORY)) {
-                return redirect()->route('manage.member-directory.orphans.index');
+            if ($canViewDirectory) {
+                return redirect()->route('manage.member-directory.all.index');
             }
 
             abort(403);
         })->name('index');
 
+        Route::get('all', [AllPeopleDirectoryController::class, 'index'])
+            ->name('all.index');
+
         Route::get('members', [MemberDirectoryController::class, 'index'])
-            ->middleware('can:' . PeoplePermissions::VIEW_MEMBER_DIRECTORY)
             ->name('members.index');
 
         Route::get('members/export', [MemberDirectoryController::class, 'export'])
@@ -320,15 +322,16 @@ Route::middleware(['auth'])
             ->name('self-profile.show');
 
         Route::get('widows', [WidowDirectoryController::class, 'index'])
-            ->middleware('can:' . PeoplePermissions::VIEW_WIDOW_DIRECTORY)
             ->name('widows.index');
 
         Route::get('orphans', [OrphanDirectoryController::class, 'index'])
-            ->middleware('can:' . PeoplePermissions::VIEW_ORPHAN_DIRECTORY)
             ->name('orphans.index');
 
         Route::get('relatives', [RelativeDirectoryController::class, 'index'])
             ->name('relatives.index');
+
+        Route::get('others', [OtherPeopleDirectoryController::class, 'index'])
+            ->name('others.index');
 
         Route::get('imports', [MemberRosterImportController::class, 'index'])
             ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
@@ -359,7 +362,6 @@ Route::middleware(['auth'])
             ->name('people.search-for-user-link');
 
         Route::get('people/{person}', [PersonDirectoryController::class, 'show'])
-            ->middleware('can:' . PeoplePermissions::VIEW_MEMBER_DETAILS)
             ->name('people.show');
 
         Route::patch('people/{person}', [PersonDirectoryController::class, 'update'])
