@@ -169,6 +169,8 @@ class DirectoryPersonPresenter
                 'id' => $relationship->id,
                 'type' => $relationship->relationship_type?->value,
                 'label' => self::relationshipLabel($relationship->relationship_type?->value),
+                'inverse_type' => $relationship->inverse_relationship_type?->value,
+                'inverse_label' => self::relationshipLabel($relationship->inverse_relationship_type?->value),
                 'is_primary' => (bool) $relationship->is_primary,
                 'notes' => $relationship->notes,
                 'person' => $relationship->relatedPerson ? [
@@ -190,6 +192,8 @@ class DirectoryPersonPresenter
                 'id' => $relationship->id,
                 'type' => $relationship->relationship_type?->value,
                 'label' => self::relationshipLabel($relationship->relationship_type?->value),
+                'inverse_type' => $relationship->inverse_relationship_type?->value,
+                'inverse_label' => self::relationshipLabel($relationship->inverse_relationship_type?->value),
                 'is_primary' => (bool) $relationship->is_primary,
                 'notes' => $relationship->notes,
                 'person' => $relationship->person ? [

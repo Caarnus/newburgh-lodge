@@ -110,6 +110,7 @@ class PersonDirectoryController extends Controller
 
         return Inertia::render('Admin/MemberDirectory/Show', [
             'person' => DirectoryPersonPresenter::detail($person),
+            'relationshipTypeOptions' => $directoryService->relationshipTypeOptions(),
             'fromSection' => $request->string('from')->toString() ?: null,
         ]);
     }

@@ -13,6 +13,7 @@ use App\Http\Controllers\Manage\MemberDirectoryController;
 use App\Http\Controllers\Manage\MemberRosterImportController;
 use App\Http\Controllers\Manage\OrphanDirectoryController;
 use App\Http\Controllers\Manage\PersonDirectoryController;
+use App\Http\Controllers\Manage\PersonRelationshipController;
 use App\Http\Controllers\Manage\RelativeDirectoryController;
 use App\Http\Controllers\Manage\UserPersonLinkController;
 use App\Http\Controllers\Manage\WidowDirectoryController;
@@ -355,6 +356,18 @@ Route::middleware(['auth'])
         Route::get('people/{person}', [PersonDirectoryController::class, 'show'])
             ->middleware('can:' . PeoplePermissions::VIEW_MEMBER_DETAILS)
             ->name('people.show');
+
+        Route::post('people/{person}/relationships', [PersonRelationshipController::class, 'store'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
+            ->name('people.relationships.store');
+
+        Route::put('people/{person}/relationships/{relationship}', [PersonRelationshipController::class, 'update'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
+            ->name('people.relationships.update');
+
+        Route::delete('people/{person}/relationships/{relationship}', [PersonRelationshipController::class, 'destroy'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
+            ->name('people.relationships.destroy');
 
         Route::get('users/{user}/person-link', [UserPersonLinkController::class, 'show'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
