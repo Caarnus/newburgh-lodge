@@ -63,7 +63,6 @@ class UserPersonLinkController extends Controller
                 'member_profile' => $person->memberProfile ? [
                     'member_number' => $person->memberProfile->member_number,
                     'status' => $person->memberProfile->status,
-                    'member_type' => $person->memberProfile->member_type,
                 ] : null,
             ])->values()
         );

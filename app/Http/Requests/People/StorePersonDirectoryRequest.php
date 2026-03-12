@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\People;
 
+use App\Enums\MemberStatus;
 use App\Enums\RelationshipType;
 use App\Helpers\People\PeoplePermissions;
 use Illuminate\Foundation\Http\FormRequest;
@@ -52,8 +53,8 @@ class StorePersonDirectoryRequest extends FormRequest
                 Rule::unique('member_profiles', 'member_number'),
                 Rule::requiredIf(fn () => $this->string('record_type')->toString() === 'member'),
             ],
-            'member_status' => ['nullable', 'string', 'max:120'],
-            'member_type' => ['nullable', 'string', 'max:120'],
+            'member_status' => ['nullable', Rule::in(MemberStatus::values())],
+            'member_type' => ['prohibited'],
             'ea_date' => ['nullable', 'date'],
             'fc_date' => ['nullable', 'date'],
             'mm_date' => ['nullable', 'date'],

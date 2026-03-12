@@ -19,7 +19,6 @@ const only = [
     'filters',
     'records',
     'statusOptions',
-    'memberTypeOptions',
     'relationshipTypeOptions',
     'sortOptions',
 ];

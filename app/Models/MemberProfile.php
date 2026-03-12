@@ -14,7 +14,6 @@ class MemberProfile extends Model
         'person_id',
         'member_number',
         'status',
-        'member_type',
         'ea_date',
         'fc_date',
         'mm_date',

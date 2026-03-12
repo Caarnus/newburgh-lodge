@@ -2,8 +2,8 @@
 
 namespace App\Services\People\Directory;
 
+use App\Enums\MemberStatus;
 use App\Enums\RelationshipType;
-use App\Models\MemberProfile;
 use App\Models\Person;
 use App\Models\PersonContactLog;
 use App\Models\PersonRelationship;
@@ -30,10 +30,6 @@ class PeopleDirectoryService
             $query->where('member_profiles.status', $filters['status']);
         }
 
-        if (filled($filters['member_type'] ?? null)) {
-            $query->where('member_profiles.member_type', $filters['member_type']);
-        }
-
         $this->applyHideDeceased($query, $filters);
         $this->applyMemberSort($query, $filters['sort'] ?? 'name');
 
@@ -53,10 +49,6 @@ class PeopleDirectoryService
 
         if (filled($filters['status'] ?? null)) {
             $query->where('member_profiles.status', $filters['status']);
-        }
-
-        if (filled($filters['member_type'] ?? null)) {
-            $query->where('member_profiles.member_type', $filters['member_type']);
         }
 
         $this->applyHideDeceased($query, $filters);
@@ -153,28 +145,7 @@ class PeopleDirectoryService
 
     public function memberStatusOptions(): array
     {
-        return MemberProfile::query()
-            ->whereNotNull('status')
-            ->where('status', '!=', '')
-            ->distinct()
-            ->orderBy('status')
-            ->pluck('status')
-            ->map(fn (string $status) => ['label' => $status, 'value' => $status])
-            ->values()
-            ->all();
-    }
-
-    public function memberTypeOptions(): array
-    {
-        return MemberProfile::query()
-            ->whereNotNull('member_type')
-            ->where('member_type', '!=', '')
-            ->distinct()
-            ->orderBy('member_type')
-            ->pluck('member_type')
-            ->map(fn (string $memberType) => ['label' => $memberType, 'value' => $memberType])
-            ->values()
-            ->all();
+        return MemberStatus::options();
     }
 
     public function relationshipTypeOptions(): array

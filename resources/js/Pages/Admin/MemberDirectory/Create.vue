@@ -18,7 +18,6 @@ import Textarea from 'primevue/textarea';
 
 const props = defineProps({
     memberStatusOptions: { type: Array, default: () => [] },
-    memberTypeOptions: { type: Array, default: () => [] },
     relationshipTypeOptions: { type: Array, default: () => [] },
 });
 
@@ -44,7 +43,6 @@ const form = useForm({
 
     member_number: '',
     member_status: null,
-    member_type: null,
     ea_date: '',
     fc_date: '',
     mm_date: '',
@@ -221,17 +219,6 @@ const submit = () => {
                         <Select
                             v-model="form.member_status"
                             :options="memberStatusOptions"
-                            option-label="label"
-                            option-value="value"
-                            class="w-full"
-                            show-clear
-                        />
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium">Type</label>
-                        <Select
-                            v-model="form.member_type"
-                            :options="memberTypeOptions"
                             option-label="label"
                             option-value="value"
                             class="w-full"

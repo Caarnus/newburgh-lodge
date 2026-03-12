@@ -2,6 +2,7 @@
 
 namespace App\Services\People\Imports;
 
+use App\Enums\MemberStatus;
 use Carbon\Carbon;
 use DateTimeInterface;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -78,12 +79,11 @@ class MemberRosterSpreadsheetService
 
     protected function normalizeRosterRow(array $raw): array
     {
-        $status = $this->normalizeString($raw['Status'] ?? null);
+        $status = $this->normalizeStatus($raw['Status'] ?? null);
 
         return [
             'member_number' => $this->normalizeString($raw['Member ID'] ?? null),
             'status' => $status,
-            'member_type' => $this->mapMemberType($status),
             'first_name' => $this->normalizeString($raw['First'] ?? null),
             'middle_name' => $this->normalizeString($raw['Middle'] ?? null),
             'last_name' => $this->normalizeString($raw['Last'] ?? null),
@@ -103,10 +103,25 @@ class MemberRosterSpreadsheetService
         ];
     }
 
-    protected function mapMemberType(?string $status): ?string
+    protected function normalizeStatus(mixed $value): ?string
     {
-        return match ($status) {
-            'Master Mason', 'Entered Apprentice', 'Fellow Craft' => 'member',
+        $status = $this->normalizeString($value);
+
+        if (! $status) {
+            return null;
+        }
+
+        $normalized = strtolower(preg_replace('/[^a-z0-9]+/', ' ', $status) ?? '');
+        $normalized = trim($normalized);
+
+        return match ($normalized) {
+            'master mason' => MemberStatus::MasterMason->value,
+            'fellow craft', 'fellowcraft' => MemberStatus::Fellowcraft->value,
+            'entered apprentice' => MemberStatus::EnteredApprentice->value,
+            'candidate' => MemberStatus::Candidate->value,
+            'suspended' => MemberStatus::Suspended->value,
+            'lost' => MemberStatus::Lost->value,
+            'demitted', 'demit' => MemberStatus::Demitted->value,
             default => null,
         };
     }

@@ -17,7 +17,6 @@ class MemberDirectoryController extends Controller
         $filters = [
             'q' => $request->string('q')->toString() ?: null,
             'status' => $request->string('status')->toString() ?: null,
-            'member_type' => $request->string('member_type')->toString() ?: null,
             'hide_deceased' => $request->boolean('hide_deceased'),
             'sort' => $request->string('sort')->toString() ?: 'name',
             'page' => $request->integer('page') ?: 1,
@@ -30,11 +29,10 @@ class MemberDirectoryController extends Controller
         return Inertia::render('Admin/MemberDirectory/Index', [
             'section' => 'members',
             'title' => 'Member Directory',
-            'description' => 'Internal roster view with filters for status, type, and deceased visibility.',
+            'description' => 'Internal roster view with filters for status and deceased visibility.',
             'filters' => $filters,
             'records' => $records,
             'statusOptions' => $directoryService->memberStatusOptions(),
-            'memberTypeOptions' => $directoryService->memberTypeOptions(),
             'relationshipTypeOptions' => [],
             'sortOptions' => $directoryService->memberSortOptions(),
         ]);
@@ -45,7 +43,6 @@ class MemberDirectoryController extends Controller
         $filters = [
             'q' => $request->string('q')->toString() ?: null,
             'status' => $request->string('status')->toString() ?: null,
-            'member_type' => $request->string('member_type')->toString() ?: null,
             'hide_deceased' => $request->boolean('hide_deceased'),
             'sort' => $request->string('sort')->toString() ?: 'name',
         ];
@@ -60,7 +57,6 @@ class MemberDirectoryController extends Controller
                 'Name',
                 'Member Number',
                 'Status',
-                'Type',
                 'Email',
                 'Phone',
                 'City',
@@ -75,7 +71,6 @@ class MemberDirectoryController extends Controller
                     $row['display_name'],
                     $row['member_profile']['member_number'] ?? null,
                     $row['member_profile']['status'] ?? null,
-                    $row['member_profile']['member_type'] ?? null,
                     $row['email'] ?? null,
                     $row['phone'] ?? null,
                     $row['city'] ?? null,

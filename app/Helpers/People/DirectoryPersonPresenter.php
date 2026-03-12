@@ -28,7 +28,6 @@ class DirectoryPersonPresenter
             'member_profile' => $person->memberProfile ? [
                 'member_number' => $person->memberProfile->member_number,
                 'status' => $person->memberProfile->status,
-                'member_type' => $person->memberProfile->member_type,
                 'directory_visible' => (bool) $person->memberProfile->directory_visible,
                 'ea_date' => self::date($person->memberProfile->ea_date),
                 'fc_date' => self::date($person->memberProfile->fc_date),
@@ -91,6 +90,10 @@ class DirectoryPersonPresenter
             'id' => $person->id,
             'display_name' => $person->display_name,
             'full_name' => $person->full_name,
+            'first_name' => $person->first_name,
+            'middle_name' => $person->middle_name,
+            'last_name' => $person->last_name,
+            'suffix' => $person->suffix,
             'preferred_name' => $person->preferred_name,
             'email' => $person->email,
             'phone' => $person->phone,
@@ -107,7 +110,6 @@ class DirectoryPersonPresenter
             'member_profile' => $person->memberProfile ? [
                 'member_number' => $person->memberProfile->member_number,
                 'status' => $person->memberProfile->status,
-                'member_type' => $person->memberProfile->member_type,
                 'ea_date' => self::date($person->memberProfile->ea_date),
                 'fc_date' => self::date($person->memberProfile->fc_date),
                 'mm_date' => self::date($person->memberProfile->mm_date),

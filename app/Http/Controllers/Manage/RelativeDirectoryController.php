@@ -32,7 +32,6 @@ class RelativeDirectoryController extends Controller
             'filters' => $filters,
             'records' => $records,
             'statusOptions' => [],
-            'memberTypeOptions' => [],
             'relationshipTypeOptions' => $directoryService->relationshipTypeOptions(),
             'sortOptions' => $directoryService->relativeSortOptions(),
         ]);

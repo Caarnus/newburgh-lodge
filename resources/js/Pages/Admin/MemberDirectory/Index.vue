@@ -7,7 +7,7 @@ export default {
 </script>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
@@ -15,6 +15,7 @@ import DataTable from 'primevue/datatable';
 import Tag from 'primevue/tag';
 import DirectoryFilterBar from '@/Components/MemberDirectory/DirectoryFilterBar.vue';
 import DirectorySectionTabs from '@/Components/MemberDirectory/DirectorySectionTabs.vue';
+import QuickContactLogModal from '@/Components/MemberDirectory/QuickContactLogModal.vue';
 
 const props = defineProps({
     section: { type: String, required: true },
@@ -24,7 +25,6 @@ const props = defineProps({
     records: { type: Object, required: true },
     sortOptions: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
-    memberTypeOptions: { type: Array, default: () => [] },
     relationshipTypeOptions: { type: Array, default: () => [] },
 });
 
@@ -33,6 +33,7 @@ const page = usePage();
 const canCreatePeople = computed(() => Boolean(page.props?.can?.manage?.people?.updateRecords));
 const canImportRoster = computed(() => Boolean(page.props?.can?.manage?.people?.importRoster));
 const canExportDirectory = computed(() => Boolean(page.props?.can?.manage?.people?.exportDirectory));
+const canLogContacts = computed(() => Boolean(page.props?.can?.manage?.people?.logContacts));
 
 const only = [
     'section',
@@ -41,7 +42,6 @@ const only = [
     'filters',
     'records',
     'statusOptions',
-    'memberTypeOptions',
     'relationshipTypeOptions',
     'sortOptions',
 ];
@@ -95,6 +95,35 @@ const exportFilters = computed(() => pruneFilters({
     page: undefined,
     per_page: undefined,
 }));
+
+const quickLogVisible = ref(false);
+const quickLogPerson = ref(null);
+
+const openQuickLog = (person) => {
+    quickLogPerson.value = person;
+    quickLogVisible.value = true;
+};
+
+const closeQuickLog = () => {
+    quickLogVisible.value = false;
+    quickLogPerson.value = null;
+};
+
+const onQuickLogVisibleChange = (value) => {
+    quickLogVisible.value = value;
+
+    if (!value) {
+        closeQuickLog();
+    }
+};
+
+const onQuickLogSaved = () => {
+    router.reload({
+        only: ['records'],
+        preserveScroll: true,
+        preserveState: true,
+    });
+};
 </script>
 
 <template>
@@ -132,7 +161,6 @@ const exportFilters = computed(() => pruneFilters({
             :filters="filters"
             :sort-options="sortOptions"
             :status-options="statusOptions"
-            :member-type-options="memberTypeOptions"
             :relationship-type-options="relationshipTypeOptions"
             @apply="visitSection"
             @reset="visitSection"
@@ -177,10 +205,6 @@ const exportFilters = computed(() => pruneFilters({
 
                 <Column v-if="showMemberColumns" header="Status" style="min-width: 9rem">
                     <template #body="{ data }">{{ data.member_profile?.status || '—' }}</template>
-                </Column>
-
-                <Column v-if="showMemberColumns" header="Type" style="min-width: 9rem">
-                    <template #body="{ data }">{{ data.member_profile?.member_type || '—' }}</template>
                 </Column>
 
                 <Column v-if="showCareColumns" header="Related Member" style="min-width: 14rem">
@@ -231,15 +255,32 @@ const exportFilters = computed(() => pruneFilters({
 
                 <Column header="Actions" style="min-width: 9rem">
                     <template #body="{ data }">
-                        <Link
-                            :href="route('manage.member-directory.people.show', { person: data.id, from: section })"
-                            class="inline-flex items-center rounded-lg border border-surface-300 px-3 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
-                        >
-                            View
-                        </Link>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <Button
+                                v-if="canLogContacts"
+                                text
+                                size="small"
+                                label="Quick Log"
+                                @click="openQuickLog(data)"
+                            />
+                            <Link
+                                :href="route('manage.member-directory.people.show', { person: data.id, from: section })"
+                                class="inline-flex items-center rounded-lg border border-surface-300 px-3 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
+                            >
+                                View
+                            </Link>
+                        </div>
                     </template>
                 </Column>
             </DataTable>
         </div>
+
+        <QuickContactLogModal
+            :visible="quickLogVisible"
+            :person="quickLogPerson"
+            :from-section="section"
+            @update:visible="onQuickLogVisibleChange"
+            @saved="onQuickLogSaved"
+        />
     </div>
 </template>

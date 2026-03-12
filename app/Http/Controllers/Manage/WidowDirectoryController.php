@@ -31,7 +31,6 @@ class WidowDirectoryController extends Controller
             'filters' => $filters,
             'records' => $records,
             'statusOptions' => [],
-            'memberTypeOptions' => [],
             'relationshipTypeOptions' => [],
             'sortOptions' => $directoryService->careSortOptions(),
         ]);

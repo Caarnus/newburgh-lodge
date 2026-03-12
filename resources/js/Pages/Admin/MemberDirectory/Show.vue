@@ -19,9 +19,11 @@ import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
+import QuickContactLogModal from '@/Components/MemberDirectory/QuickContactLogModal.vue';
 
 const props = defineProps({
     person: { type: Object, required: true },
+    memberStatusOptions: { type: Array, default: () => [] },
     relationshipTypeOptions: { type: Array, default: () => [] },
     fromSection: { type: String, default: null },
 });
@@ -48,13 +50,57 @@ const classifications = computed(() => [
     props.person.classifications?.is_relative ? 'Relative' : null,
 ].filter(Boolean));
 
-const canManageRelationships = computed(() => Boolean(page.props?.can?.manage?.people?.updateRecords));
+const canManageRecords = computed(() => Boolean(page.props?.can?.manage?.people?.updateRecords));
+const canManageRelationships = canManageRecords;
+const canLogContacts = computed(() => Boolean(page.props?.can?.manage?.people?.logContacts));
+const canEditContacts = computed(() => Boolean(page.props?.can?.manage?.people?.editContacts));
 const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDateString() : '—';
-const formatDateTime = (value) => value ? new Date(value).toLocaleString() : '—';
+const parseDateTime = (value) => {
+    if (!value) {
+        return null;
+    }
+
+    const normalized = String(value).includes('T')
+        ? String(value)
+        : String(value).replace(' ', 'T');
+    const parsed = new Date(normalized);
+
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+const formatDateTime = (value) => {
+    const parsed = parseDateTime(value);
+    return parsed ? parsed.toLocaleString() : '—';
+};
+const toDateTimeLocal = (value) => {
+    const parsed = parseDateTime(value);
+    if (!parsed) {
+        return '';
+    }
+
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    const hours = String(parsed.getHours()).padStart(2, '0');
+    const minutes = String(parsed.getMinutes()).padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
 
 const addRelationshipDialogVisible = ref(false);
 const editRelationshipDialogVisible = ref(false);
 const editingRelationship = ref(null);
+const editRecordDialogVisible = ref(false);
+const quickLogVisible = ref(false);
+const editContactDialogVisible = ref(false);
+const editingContactLog = ref(null);
+
+const contactTypeOptions = [
+    { label: 'Call', value: 'call' },
+    { label: 'Text', value: 'text' },
+    { label: 'Email', value: 'email' },
+    { label: 'Visit', value: 'visit' },
+    { label: 'Other', value: 'other' },
+];
 
 const relatedSearch = ref('');
 const searchingRelated = ref(false);
@@ -91,6 +137,72 @@ const editRelationshipForm = useForm({
     notes: '',
     from: props.fromSection,
 });
+
+const editRecordForm = useForm({
+    first_name: '',
+    middle_name: '',
+    last_name: '',
+    suffix: '',
+    preferred_name: '',
+    email: '',
+    phone: '',
+    address_line_1: '',
+    address_line_2: '',
+    city: '',
+    state: '',
+    postal_code: '',
+    birth_date: '',
+    notes: '',
+    is_deceased: false,
+    death_date: '',
+    member_profile: {
+        member_number: '',
+        status: '',
+        ea_date: '',
+        fc_date: '',
+        mm_date: '',
+        demit_date: '',
+        can_auto_match_registration: true,
+        directory_visible: true,
+    },
+});
+
+const editContactForm = useForm({
+    contacted_at: '',
+    contact_type: null,
+    notes: '',
+    from: props.fromSection,
+});
+
+const populateEditRecordForm = () => {
+    editRecordForm.first_name = props.person.first_name || '';
+    editRecordForm.middle_name = props.person.middle_name || '';
+    editRecordForm.last_name = props.person.last_name || '';
+    editRecordForm.suffix = props.person.suffix || '';
+    editRecordForm.preferred_name = props.person.preferred_name || '';
+    editRecordForm.email = props.person.email || '';
+    editRecordForm.phone = props.person.phone || '';
+    editRecordForm.address_line_1 = props.person.address_line_1 || '';
+    editRecordForm.address_line_2 = props.person.address_line_2 || '';
+    editRecordForm.city = props.person.city || '';
+    editRecordForm.state = props.person.state || '';
+    editRecordForm.postal_code = props.person.postal_code || '';
+    editRecordForm.birth_date = props.person.birth_date || '';
+    editRecordForm.notes = props.person.notes || '';
+    editRecordForm.is_deceased = Boolean(props.person.is_deceased);
+    editRecordForm.death_date = props.person.death_date || '';
+
+    editRecordForm.member_profile = {
+        member_number: props.person.member_profile?.member_number || '',
+        status: props.person.member_profile?.status || '',
+        ea_date: props.person.member_profile?.ea_date || '',
+        fc_date: props.person.member_profile?.fc_date || '',
+        mm_date: props.person.member_profile?.mm_date || '',
+        demit_date: props.person.member_profile?.demit_date || '',
+        can_auto_match_registration: Boolean(props.person.member_profile?.can_auto_match_registration ?? true),
+        directory_visible: Boolean(props.person.member_profile?.directory_visible ?? true),
+    };
+};
 
 const resetCreateRelationshipForm = () => {
     createRelationshipForm.reset();
@@ -226,6 +338,79 @@ const deleteRelationship = (relationship) => {
         },
     );
 };
+
+const openEditRecordDialog = () => {
+    populateEditRecordForm();
+    editRecordForm.clearErrors();
+    editRecordDialogVisible.value = true;
+};
+
+const closeEditRecordDialog = () => {
+    editRecordDialogVisible.value = false;
+    editRecordForm.clearErrors();
+};
+
+const submitEditRecord = () => {
+    editRecordForm.patch(route('manage.member-directory.people.update', { person: props.person.id }), {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => closeEditRecordDialog(),
+    });
+};
+
+const openQuickLogDialog = () => {
+    quickLogVisible.value = true;
+};
+
+const onQuickLogVisibleChange = (value) => {
+    quickLogVisible.value = value;
+};
+
+const onQuickLogSaved = () => {
+    router.reload({
+        only: ['person'],
+        preserveScroll: true,
+        preserveState: true,
+    });
+};
+
+const openEditContactDialog = (contactLog) => {
+    editingContactLog.value = contactLog;
+    editContactForm.reset();
+    editContactForm.clearErrors();
+    editContactForm.contacted_at = toDateTimeLocal(contactLog.contacted_at);
+    editContactForm.contact_type = contactLog.contact_type || null;
+    editContactForm.notes = contactLog.notes || '';
+    editContactForm.from = props.fromSection;
+    editContactDialogVisible.value = true;
+};
+
+const closeEditContactDialog = () => {
+    editContactDialogVisible.value = false;
+    editingContactLog.value = null;
+    editContactForm.reset();
+    editContactForm.clearErrors();
+    editContactForm.from = props.fromSection;
+};
+
+const submitEditContact = () => {
+    if (!editingContactLog.value) {
+        return;
+    }
+
+    editContactForm.from = props.fromSection;
+    editContactForm.put(
+        route('manage.member-directory.people.contact-logs.update', {
+            person: props.person.id,
+            contactLog: editingContactLog.value.id,
+        }),
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => closeEditContactDialog(),
+        },
+    );
+};
 </script>
 
 <template>
@@ -252,6 +437,20 @@ const deleteRelationship = (relationship) => {
                 label="Add Relationship"
                 @click="openAddRelationshipDialog"
             />
+            <Button
+                v-if="canManageRecords"
+                label="Edit Record"
+                severity="secondary"
+                outlined
+                @click="openEditRecordDialog"
+            />
+            <Button
+                v-if="canLogContacts"
+                label="Quick Log Contact"
+                severity="secondary"
+                outlined
+                @click="openQuickLogDialog"
+            />
         </div>
 
         <div class="grid gap-6 lg:grid-cols-2">
@@ -274,6 +473,10 @@ const deleteRelationship = (relationship) => {
                         <div>
                             <div class="font-medium text-surface-700 dark:text-surface-200">Death Date</div>
                             <div>{{ formatDate(person.death_date) }}</div>
+                        </div>
+                        <div>
+                            <div class="font-medium text-surface-700 dark:text-surface-200">Last Contact</div>
+                            <div>{{ formatDateTime(person.last_contact_at) }}</div>
                         </div>
                         <div class="md:col-span-2">
                             <div class="font-medium text-surface-700 dark:text-surface-200">Address</div>
@@ -300,10 +503,6 @@ const deleteRelationship = (relationship) => {
                         <div>
                             <div class="font-medium text-surface-700 dark:text-surface-200">Status</div>
                             <div>{{ person.member_profile.status || '—' }}</div>
-                        </div>
-                        <div>
-                            <div class="font-medium text-surface-700 dark:text-surface-200">Type</div>
-                            <div>{{ person.member_profile.member_type || '—' }}</div>
                         </div>
                         <div>
                             <div class="font-medium text-surface-700 dark:text-surface-200">Directory Visible</div>
@@ -425,9 +624,163 @@ const deleteRelationship = (relationship) => {
                     <Column header="Notes" style="min-width: 18rem">
                         <template #body="{ data }">{{ data.notes || '—' }}</template>
                     </Column>
+                    <Column v-if="canEditContacts" header="Actions" style="min-width: 9rem">
+                        <template #body="{ data }">
+                            <Button
+                                text
+                                size="small"
+                                label="Edit"
+                                @click="openEditContactDialog(data)"
+                            />
+                        </template>
+                    </Column>
+                    <template #empty>
+                        <div class="py-2 text-sm text-surface-500">No contact history yet.</div>
+                    </template>
                 </DataTable>
             </template>
         </Card>
+
+        <Dialog
+            v-model:visible="editRecordDialogVisible"
+            modal
+            header="Edit Person Record"
+            class="w-full sm:w-[52rem]"
+            @hide="closeEditRecordDialog"
+        >
+            <div class="space-y-4">
+                <div class="grid gap-4 md:grid-cols-3">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">First Name</label>
+                        <InputText v-model="editRecordForm.first_name" class="w-full" />
+                        <p v-if="editRecordForm.errors.first_name" class="mt-1 text-sm text-red-500">{{ editRecordForm.errors.first_name }}</p>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Middle Name</label>
+                        <InputText v-model="editRecordForm.middle_name" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Last Name</label>
+                        <InputText v-model="editRecordForm.last_name" class="w-full" />
+                        <p v-if="editRecordForm.errors.last_name" class="mt-1 text-sm text-red-500">{{ editRecordForm.errors.last_name }}</p>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Preferred Name</label>
+                        <InputText v-model="editRecordForm.preferred_name" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Suffix</label>
+                        <InputText v-model="editRecordForm.suffix" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Birth Date</label>
+                        <InputText v-model="editRecordForm.birth_date" type="date" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Email</label>
+                        <InputText v-model="editRecordForm.email" type="email" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Phone</label>
+                        <InputText v-model="editRecordForm.phone" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Address Line 1</label>
+                        <InputText v-model="editRecordForm.address_line_1" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Address Line 2</label>
+                        <InputText v-model="editRecordForm.address_line_2" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">City</label>
+                        <InputText v-model="editRecordForm.city" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">State</label>
+                        <InputText v-model="editRecordForm.state" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Postal Code</label>
+                        <InputText v-model="editRecordForm.postal_code" class="w-full" />
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="mb-2 block text-sm font-medium">Notes</label>
+                        <Textarea v-model="editRecordForm.notes" rows="3" class="w-full" />
+                    </div>
+                    <div class="md:col-span-3 flex flex-wrap items-center gap-6">
+                        <label class="inline-flex items-center gap-2 text-sm">
+                            <Checkbox v-model="editRecordForm.is_deceased" binary />
+                            <span>Marked deceased</span>
+                        </label>
+                        <div v-if="editRecordForm.is_deceased" class="w-full md:w-64">
+                            <label class="mb-2 block text-sm font-medium">Death Date</label>
+                            <InputText v-model="editRecordForm.death_date" type="date" class="w-full" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid gap-4 border-t border-surface-200 pt-4 dark:border-surface-700 md:grid-cols-3">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Member Number</label>
+                        <InputText v-model="editRecordForm.member_profile.member_number" class="w-full" />
+                        <p v-if="editRecordForm.errors['member_profile.member_number']" class="mt-1 text-sm text-red-500">
+                            {{ editRecordForm.errors['member_profile.member_number'] }}
+                        </p>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Status</label>
+                        <Select
+                            v-model="editRecordForm.member_profile.status"
+                            :options="memberStatusOptions"
+                            option-label="label"
+                            option-value="value"
+                            class="w-full"
+                            show-clear
+                        />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">EA Date</label>
+                        <InputText v-model="editRecordForm.member_profile.ea_date" type="date" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">FC Date</label>
+                        <InputText v-model="editRecordForm.member_profile.fc_date" type="date" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">MM Date</label>
+                        <InputText v-model="editRecordForm.member_profile.mm_date" type="date" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Demit Date</label>
+                        <InputText v-model="editRecordForm.member_profile.demit_date" type="date" class="w-full" />
+                    </div>
+                    <div class="md:col-span-2 flex flex-wrap items-center gap-6">
+                        <label class="inline-flex items-center gap-2 text-sm">
+                            <Checkbox v-model="editRecordForm.member_profile.can_auto_match_registration" binary />
+                            <span>Auto-match registration by email</span>
+                        </label>
+                        <label class="inline-flex items-center gap-2 text-sm">
+                            <Checkbox v-model="editRecordForm.member_profile.directory_visible" binary />
+                            <span>Visible in directory</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <template #footer>
+                <Button
+                    label="Cancel"
+                    severity="secondary"
+                    text
+                    @click="closeEditRecordDialog"
+                />
+                <Button
+                    label="Save Record"
+                    :loading="editRecordForm.processing"
+                    @click="submitEditRecord"
+                />
+            </template>
+        </Dialog>
 
         <Dialog
             v-model:visible="addRelationshipDialogVisible"
@@ -679,5 +1032,67 @@ const deleteRelationship = (relationship) => {
                 />
             </template>
         </Dialog>
+
+        <Dialog
+            v-model:visible="editContactDialogVisible"
+            modal
+            header="Edit Contact Log"
+            class="w-full sm:w-[34rem]"
+            @hide="closeEditContactDialog"
+        >
+            <div class="space-y-4">
+                <div>
+                    <label class="mb-2 block text-sm font-medium">Contacted At</label>
+                    <InputText v-model="editContactForm.contacted_at" type="datetime-local" class="w-full" />
+                    <p v-if="editContactForm.errors.contacted_at" class="mt-1 text-sm text-red-500">
+                        {{ editContactForm.errors.contacted_at }}
+                    </p>
+                </div>
+
+                <div>
+                    <label class="mb-2 block text-sm font-medium">Contact Type</label>
+                    <Select
+                        v-model="editContactForm.contact_type"
+                        :options="contactTypeOptions"
+                        option-label="label"
+                        option-value="value"
+                        class="w-full"
+                        show-clear
+                    />
+                    <p v-if="editContactForm.errors.contact_type" class="mt-1 text-sm text-red-500">
+                        {{ editContactForm.errors.contact_type }}
+                    </p>
+                </div>
+
+                <div>
+                    <label class="mb-2 block text-sm font-medium">Notes</label>
+                    <Textarea v-model="editContactForm.notes" rows="4" class="w-full" />
+                    <p v-if="editContactForm.errors.notes" class="mt-1 text-sm text-red-500">
+                        {{ editContactForm.errors.notes }}
+                    </p>
+                </div>
+            </div>
+            <template #footer>
+                <Button
+                    label="Cancel"
+                    severity="secondary"
+                    text
+                    @click="closeEditContactDialog"
+                />
+                <Button
+                    label="Update Log"
+                    :loading="editContactForm.processing"
+                    @click="submitEditContact"
+                />
+            </template>
+        </Dialog>
+
+        <QuickContactLogModal
+            :visible="quickLogVisible"
+            :person="person"
+            :from-section="fromSection"
+            @update:visible="onQuickLogVisibleChange"
+            @saved="onQuickLogSaved"
+        />
     </div>
 </template>

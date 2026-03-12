@@ -22,10 +22,6 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    memberTypeOptions: {
-        type: Array,
-        default: () => [],
-    },
     relationshipTypeOptions: {
         type: Array,
         default: () => [],
@@ -37,7 +33,6 @@ const emit = defineEmits(['apply', 'reset']);
 const localFilters = reactive({
     q: props.filters.q ?? null,
     status: props.filters.status ?? null,
-    member_type: props.filters.member_type ?? null,
     relationship_type: props.filters.relationship_type ?? null,
     hide_deceased: Boolean(props.filters.hide_deceased),
     sort: props.filters.sort ?? 'name',
@@ -49,7 +44,6 @@ watch(
     (filters) => {
         localFilters.q = filters.q ?? null;
         localFilters.status = filters.status ?? null;
-        localFilters.member_type = filters.member_type ?? null;
         localFilters.relationship_type = filters.relationship_type ?? null;
         localFilters.hide_deceased = Boolean(filters.hide_deceased);
         localFilters.sort = filters.sort ?? 'name';
@@ -62,7 +56,6 @@ watch(
     () => props.section,
     () => {
         localFilters.status = null;
-        localFilters.member_type = null;
         localFilters.relationship_type = null;
         localFilters.sort = 'name';
     }
@@ -87,7 +80,6 @@ const submit = () => {
     emit('apply', {
         q: localFilters.q,
         status: localFilters.status,
-        member_type: localFilters.member_type,
         relationship_type: localFilters.relationship_type,
         hide_deceased: localFilters.hide_deceased,
         sort: localFilters.sort,
@@ -99,7 +91,6 @@ const submit = () => {
 const reset = () => {
     localFilters.q = null;
     localFilters.status = null;
-    localFilters.member_type = null;
     localFilters.relationship_type = null;
     localFilters.hide_deceased = false;
     localFilters.sort = 'name';
@@ -108,7 +99,6 @@ const reset = () => {
     emit('reset', {
         q: null,
         status: null,
-        member_type: null,
         relationship_type: null,
         hide_deceased: false,
         sort: 'name',
@@ -145,21 +135,6 @@ const reset = () => {
                     class="w-full"
                     show-clear
                     placeholder="Any status"
-                />
-            </div>
-
-            <div v-if="showMemberFilters">
-                <label class="mb-2 block text-sm font-medium text-surface-700 dark:text-surface-200">
-                    Member Type
-                </label>
-                <Select
-                    v-model="localFilters.member_type"
-                    :options="memberTypeOptions"
-                    option-label="label"
-                    option-value="value"
-                    class="w-full"
-                    show-clear
-                    placeholder="Any type"
                 />
             </div>
 

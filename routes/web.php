@@ -11,7 +11,9 @@ use App\Http\Controllers\JeopardyQuestionController;
 use App\Helpers\People\PeoplePermissions;
 use App\Http\Controllers\Manage\MemberDirectoryController;
 use App\Http\Controllers\Manage\MemberRosterImportController;
+use App\Http\Controllers\Manage\MemberSelfProfileController;
 use App\Http\Controllers\Manage\OrphanDirectoryController;
+use App\Http\Controllers\Manage\PersonContactLogController;
 use App\Http\Controllers\Manage\PersonDirectoryController;
 use App\Http\Controllers\Manage\PersonRelationshipController;
 use App\Http\Controllers\Manage\RelativeDirectoryController;
@@ -314,6 +316,9 @@ Route::middleware(['auth'])
             ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
             ->name('members.export');
 
+        Route::get('self-profile', [MemberSelfProfileController::class, 'show'])
+            ->name('self-profile.show');
+
         Route::get('widows', [WidowDirectoryController::class, 'index'])
             ->middleware('can:' . PeoplePermissions::VIEW_WIDOW_DIRECTORY)
             ->name('widows.index');
@@ -357,6 +362,9 @@ Route::middleware(['auth'])
             ->middleware('can:' . PeoplePermissions::VIEW_MEMBER_DETAILS)
             ->name('people.show');
 
+        Route::patch('people/{person}', [PersonDirectoryController::class, 'update'])
+            ->name('people.update');
+
         Route::post('people/{person}/relationships', [PersonRelationshipController::class, 'store'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
             ->name('people.relationships.store');
@@ -368,6 +376,14 @@ Route::middleware(['auth'])
         Route::delete('people/{person}/relationships/{relationship}', [PersonRelationshipController::class, 'destroy'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
             ->name('people.relationships.destroy');
+
+        Route::post('people/{person}/contact-logs', [PersonContactLogController::class, 'store'])
+            ->middleware('can:' . PeoplePermissions::LOG_CARE_CONTACTS)
+            ->name('people.contact-logs.store');
+
+        Route::put('people/{person}/contact-logs/{contactLog}', [PersonContactLogController::class, 'update'])
+            ->middleware('can:' . PeoplePermissions::EDIT_CARE_CONTACTS)
+            ->name('people.contact-logs.update');
 
         Route::get('users/{user}/person-link', [UserPersonLinkController::class, 'show'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)

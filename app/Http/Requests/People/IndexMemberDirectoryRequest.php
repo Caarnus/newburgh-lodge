@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\People;
 
+use App\Enums\MemberStatus;
 use App\Helpers\People\PeoplePermissions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -17,8 +18,7 @@ class IndexMemberDirectoryRequest extends FormRequest
     {
         return [
             'q' => ['nullable', 'string', 'max:120'],
-            'status' => ['nullable', 'string', 'max:100'],
-            'member_type' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', Rule::in(MemberStatus::values())],
             'hide_deceased' => ['nullable', 'boolean'],
             'sort' => ['nullable', Rule::in([
                 'name',

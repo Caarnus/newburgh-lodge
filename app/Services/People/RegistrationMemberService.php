@@ -119,7 +119,6 @@ class RegistrationMemberService
                 'id' => $person->memberProfile->id,
                 'member_number' => $person->memberProfile->member_number,
                 'status' => $person->memberProfile->status,
-                'member_type' => $person->memberProfile->member_type,
                 'can_auto_match_registration' => $person->memberProfile->can_auto_match_registration,
             ] : null,
         ];

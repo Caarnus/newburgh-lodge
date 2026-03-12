@@ -163,7 +163,6 @@ class MemberRosterImportService
             $profile->fill($this->filterNulls([
                 'member_number' => $data['member_number'] ?? null,
                 'status' => $data['status'] ?? null,
-                'member_type' => $data['member_type'] ?? null,
                 'ea_date' => $data['ea_date'] ?? null,
                 'fc_date' => $data['fc_date'] ?? null,
                 'mm_date' => $data['mm_date'] ?? null,

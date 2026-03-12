@@ -11,6 +11,11 @@ const toggleDark = useToggle(isDark);
 const $page = usePage();
 const $user = $page.props.auth?.user;
 const canManagePeople = $page.props.can.manage.people;
+const canAccessSelfProfile = Boolean(
+    $user
+    && $user.person_id
+    && (canManagePeople.viewOwnProfile || canManagePeople.updateOwnProfile || canManagePeople.updateRecords)
+);
 
 const isAuthenticated = !!$user;
 
@@ -83,6 +88,7 @@ const navMenuItems = ref([
         items: [
             { label: 'Log In', url: route('login'), visible: !page.props.auth.user },
             { label: 'Register', url: route('register'), visible: !page.props.auth.user },
+            { label: 'My Member Profile', url: route('manage.member-directory.self-profile.show'), visible: canAccessSelfProfile },
             { label: 'Profile', url: route('profile.show'), active: route().current('profile.show'), visible: !!page.props.auth.user },
             { label: 'Log Out', command: () => logout(), visible: !!page.props.auth.user },
         ],
