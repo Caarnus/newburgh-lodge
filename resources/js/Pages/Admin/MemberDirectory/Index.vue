@@ -8,7 +8,7 @@ export default {
 
 <script setup>
 import { computed } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
@@ -27,6 +27,12 @@ const props = defineProps({
     memberTypeOptions: { type: Array, default: () => [] },
     relationshipTypeOptions: { type: Array, default: () => [] },
 });
+
+const page = usePage();
+
+const canCreatePeople = computed(() => Boolean(page.props?.can?.manage?.people?.updateRecords));
+const canImportRoster = computed(() => Boolean(page.props?.can?.manage?.people?.importRoster));
+const canExportDirectory = computed(() => Boolean(page.props?.can?.manage?.people?.exportDirectory));
 
 const only = [
     'section',
@@ -83,17 +89,41 @@ const onPage = (event) => {
 const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDateString() : '—';
 const formatDateTime = (value) => value ? new Date(value).toLocaleString() : '—';
 const relationshipLabel = (value) => value || '—';
+
+const exportFilters = computed(() => pruneFilters({
+    ...props.filters,
+    page: undefined,
+    per_page: undefined,
+}));
 </script>
 
 <template>
     <div class="space-y-6 p-6">
         <div class="space-y-4">
             <DirectorySectionTabs :active="section" :filters="filters" />
-            <div>
-                <h1 class="text-3xl font-semibold text-surface-900 dark:text-surface-0">{{ title }}</h1>
-                <p class="mt-2 text-surface-600 dark:text-surface-300">
-                    {{ description }}
-                </p>
+            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h1 class="text-3xl font-semibold text-surface-900 dark:text-surface-0">{{ title }}</h1>
+                    <p class="mt-2 text-surface-600 dark:text-surface-300">
+                        {{ description }}
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <Link
+                        v-if="canCreatePeople"
+                        :href="route('manage.member-directory.people.create')"
+                        class="inline-flex items-center rounded-lg border border-surface-300 px-3 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
+                    >
+                        New Person
+                    </Link>
+                    <Link
+                        v-if="canImportRoster"
+                        :href="route('manage.member-directory.imports.index')"
+                        class="inline-flex items-center rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition hover:opacity-90"
+                    >
+                        Import Roster
+                    </Link>
+                </div>
             </div>
         </div>
 
@@ -113,7 +143,14 @@ const relationshipLabel = (value) => value || '—';
                 <div class="text-sm text-surface-600 dark:text-surface-300">
                     Showing {{ records.from ?? 0 }}–{{ records.to ?? 0 }} of {{ records.total ?? 0 }} {{ countLabel }}.
                 </div>
-                <Button v-if="section === 'members'" label="Export" severity="secondary" outlined disabled />
+                <Link
+                    v-if="section === 'members' && canExportDirectory"
+                    :href="route('manage.member-directory.members.export', exportFilters)"
+                    class="inline-flex items-center rounded-lg border border-surface-300 px-3 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
+                >
+                    Export
+                </Link>
+                <Button v-else-if="section === 'members'" label="Export" severity="secondary" outlined disabled />
             </div>
 
             <DataTable

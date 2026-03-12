@@ -10,6 +10,7 @@ use App\Models\PersonRelationship;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class PeopleDirectoryService
@@ -37,6 +38,31 @@ class PeopleDirectoryService
         $this->applyMemberSort($query, $filters['sort'] ?? 'name');
 
         return $query->paginate($this->perPage($filters))->withQueryString();
+    }
+
+    public function exportMembers(array $filters): Collection
+    {
+        $query = Person::query()
+            ->select('people.*')
+            ->leftJoin('member_profiles', 'member_profiles.person_id', '=', 'people.id')
+            ->whereNotNull('member_profiles.id')
+            ->with('memberProfile')
+            ->selectSub($this->latestContactSubquery(), 'last_contact_at');
+
+        $this->applyCommonSearch($query, $filters['q'] ?? null, includeMemberNumber: true);
+
+        if (filled($filters['status'] ?? null)) {
+            $query->where('member_profiles.status', $filters['status']);
+        }
+
+        if (filled($filters['member_type'] ?? null)) {
+            $query->where('member_profiles.member_type', $filters['member_type']);
+        }
+
+        $this->applyHideDeceased($query, $filters);
+        $this->applyMemberSort($query, $filters['sort'] ?? 'name');
+
+        return $query->get();
     }
 
     public function paginateWidows(array $filters): LengthAwarePaginator

@@ -61,7 +61,7 @@ class MemberRosterImportService
                         'row_number' => $row['row_number'],
                         'row_hash' => hash('sha256', json_encode($row['normalized'])),
                         'status' => $match['status'],
-                        'match_strategy' => $match['strategy'],
+                        'match_strategy' => $match['match_strategy'] ?? $match['strategy'] ?? null,
                         'matched_person_id' => $match['matched_person_id'],
                         'matched_member_profile_id' => $match['matched_member_profile_id'],
                         'raw_payload' => $row['raw'],
@@ -138,7 +138,7 @@ class MemberRosterImportService
             $person = $row->matchedPerson;
 
             if (!$person) {
-                $person = Person::create($this->filterNulls([
+                $person = Person::create([
                     'first_name' => $data['first_name'] ?? null,
                     'middle_name' => $data['middle_name'] ?? null,
                     'last_name' => $data['last_name'] ?? null,
@@ -150,7 +150,9 @@ class MemberRosterImportService
                     'state' => $data['state'] ?? null,
                     'postal_code' => $data['postal_code'] ?? null,
                     'birth_date' => $data['birth_date'] ?? null,
-                ]));
+                    'is_deceased' => false,
+                    'death_date' => $data['death_date'] ?? null,
+                ]);
             } else {
                 $person->fill($this->mergeIntoExistingPerson($person, $data));
                 $person->save();

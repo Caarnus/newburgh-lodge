@@ -10,6 +10,7 @@ use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\JeopardyQuestionController;
 use App\Helpers\People\PeoplePermissions;
 use App\Http\Controllers\Manage\MemberDirectoryController;
+use App\Http\Controllers\Manage\MemberRosterImportController;
 use App\Http\Controllers\Manage\OrphanDirectoryController;
 use App\Http\Controllers\Manage\PersonDirectoryController;
 use App\Http\Controllers\Manage\RelativeDirectoryController;
@@ -245,6 +246,10 @@ Route::middleware(['auth'])
             ->middleware('can:' . PeoplePermissions::VIEW_MEMBER_DIRECTORY)
             ->name('manage.member-directory.members.index');
 
+        Route::get('members/export', [MemberDirectoryController::class, 'export'])
+            ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
+            ->name('manage.member-directory.members.export');
+
         Route::get('widows', [WidowDirectoryController::class, 'index'])
             ->middleware('can:' . PeoplePermissions::VIEW_WIDOW_DIRECTORY)
             ->name('manage.member-directory.widows.index');
@@ -256,6 +261,34 @@ Route::middleware(['auth'])
         Route::get('relatives', [RelativeDirectoryController::class, 'index'])
             ->name('manage.member-directory.relatives.index');
 
+        Route::get('imports', [MemberRosterImportController::class, 'index'])
+            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
+            ->name('manage.member-directory.imports.index');
+
+        Route::post('imports', [MemberRosterImportController::class, 'store'])
+            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
+            ->name('manage.member-directory.imports.store');
+
+        Route::get('imports/{importBatch}', [MemberRosterImportController::class, 'show'])
+            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
+            ->name('manage.member-directory.imports.show');
+
+        Route::post('imports/{importBatch}/apply', [MemberRosterImportController::class, 'apply'])
+            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
+            ->name('manage.member-directory.imports.apply');
+
+        Route::get('people/create', [PersonDirectoryController::class, 'create'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
+            ->name('manage.member-directory.people.create');
+
+        Route::post('people', [PersonDirectoryController::class, 'store'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
+            ->name('manage.member-directory.people.store');
+
+        Route::get('people/search-for-user-link', [UserPersonLinkController::class, 'searchPeople'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
+            ->name('manage.member-directory.people.search-for-user-link');
+
         Route::get('people/{person}', [PersonDirectoryController::class, 'show'])
             ->middleware('can:' . PeoplePermissions::VIEW_MEMBER_DETAILS)
             ->name('manage.member-directory.people.show');
@@ -263,10 +296,6 @@ Route::middleware(['auth'])
         Route::get('users/{user}/person-link', [UserPersonLinkController::class, 'show'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
             ->name('manage.member-directory.users.person-link.show');
-
-        Route::get('people/search-for-user-link', [UserPersonLinkController::class, 'searchPeople'])
-            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
-            ->name('manage.member-directory.people.search-for-user-link');
 
         Route::post('users/{user}/person-link', [UserPersonLinkController::class, 'link'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
