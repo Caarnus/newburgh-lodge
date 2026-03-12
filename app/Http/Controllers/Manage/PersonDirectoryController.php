@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Manage;
 
 use App\Enums\RelationshipType;
+use App\Helpers\Audit;
 use App\Helpers\People\DirectoryPersonPresenter;
 use App\Helpers\People\PeoplePermissions;
 use App\Http\Controllers\Controller;
@@ -119,6 +120,8 @@ class PersonDirectoryController extends Controller
     public function update(UpdatePersonDirectoryRequest $request, Person $person): RedirectResponse
     {
         $canManageRecords = $request->user()?->can(PeoplePermissions::UPDATE_MEMBER_RECORDS) ?? false;
+        $person->loadMissing('memberProfile');
+        $before = $this->auditSnapshot($person, $canManageRecords);
 
         DB::transaction(function () use ($request, $person, $canManageRecords) {
             $personData = [
@@ -196,6 +199,63 @@ class PersonDirectoryController extends Controller
             );
         });
 
+        $person->refresh()->load('memberProfile');
+        $after = $this->auditSnapshot($person, $canManageRecords);
+
+        if ($before !== $after) {
+            Audit::log(
+                $request,
+                $canManageRecords ? 'person.record.updated' : 'person.self_profile.updated',
+                $person,
+                changes: [
+                    'before' => $before,
+                    'after' => $after,
+                ],
+                meta: [
+                    'self_service' => ! $canManageRecords,
+                ],
+            );
+        }
+
         return back()->with('success', $canManageRecords ? 'Person record updated.' : 'Profile updated.');
+    }
+
+    protected function auditSnapshot(Person $person, bool $canManageRecords): array
+    {
+        $snapshot = [
+            'preferred_name' => $person->preferred_name,
+            'email' => $person->email,
+            'phone' => $person->phone,
+            'address_line_1' => $person->address_line_1,
+            'address_line_2' => $person->address_line_2,
+            'city' => $person->city,
+            'state' => $person->state,
+            'postal_code' => $person->postal_code,
+        ];
+
+        if (! $canManageRecords) {
+            return $snapshot;
+        }
+
+        return array_merge($snapshot, [
+            'first_name' => $person->first_name,
+            'middle_name' => $person->middle_name,
+            'last_name' => $person->last_name,
+            'suffix' => $person->suffix,
+            'birth_date' => optional($person->birth_date)->toDateString(),
+            'notes' => $person->notes,
+            'is_deceased' => (bool) $person->is_deceased,
+            'death_date' => optional($person->death_date)->toDateString(),
+            'member_profile' => $person->memberProfile ? [
+                'member_number' => $person->memberProfile->member_number,
+                'status' => $person->memberProfile->status,
+                'ea_date' => optional($person->memberProfile->ea_date)->toDateString(),
+                'fc_date' => optional($person->memberProfile->fc_date)->toDateString(),
+                'mm_date' => optional($person->memberProfile->mm_date)->toDateString(),
+                'demit_date' => optional($person->memberProfile->demit_date)->toDateString(),
+                'can_auto_match_registration' => (bool) $person->memberProfile->can_auto_match_registration,
+                'directory_visible' => (bool) $person->memberProfile->directory_visible,
+            ] : null,
+        ]);
     }
 }

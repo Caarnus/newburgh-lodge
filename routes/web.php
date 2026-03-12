@@ -310,6 +310,9 @@ Route::middleware(['auth'])
 
         Route::get('all', [AllPeopleDirectoryController::class, 'index'])
             ->name('all.index');
+        Route::get('all/export', [AllPeopleDirectoryController::class, 'export'])
+            ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
+            ->name('all.export');
 
         Route::get('members', [MemberDirectoryController::class, 'index'])
             ->name('members.index');
@@ -323,15 +326,27 @@ Route::middleware(['auth'])
 
         Route::get('widows', [WidowDirectoryController::class, 'index'])
             ->name('widows.index');
+        Route::get('widows/export', [WidowDirectoryController::class, 'export'])
+            ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
+            ->name('widows.export');
 
         Route::get('orphans', [OrphanDirectoryController::class, 'index'])
             ->name('orphans.index');
+        Route::get('orphans/export', [OrphanDirectoryController::class, 'export'])
+            ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
+            ->name('orphans.export');
 
         Route::get('relatives', [RelativeDirectoryController::class, 'index'])
             ->name('relatives.index');
+        Route::get('relatives/export', [RelativeDirectoryController::class, 'export'])
+            ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
+            ->name('relatives.export');
 
         Route::get('others', [OtherPeopleDirectoryController::class, 'index'])
             ->name('others.index');
+        Route::get('others/export', [OtherPeopleDirectoryController::class, 'export'])
+            ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
+            ->name('others.export');
 
         Route::get('imports', [MemberRosterImportController::class, 'index'])
             ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)

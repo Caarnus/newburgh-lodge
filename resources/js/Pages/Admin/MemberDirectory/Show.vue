@@ -418,7 +418,7 @@ const submitEditContact = () => {
 </script>
 
 <template>
-    <div class="space-y-6 p-6">
+    <div class="space-y-6 p-4 md:p-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
                 <div class="text-sm text-surface-500 dark:text-surface-400">
@@ -432,11 +432,11 @@ const submitEditContact = () => {
             </div>
             <Link
                 :href="route(backRoute)"
-                class="inline-flex items-center rounded-lg border border-surface-300 px-4 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
+                class="hidden md:inline-flex items-center rounded-lg border border-surface-300 px-4 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
             >
                 {{ backLabel }}
             </Link>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
                 <Button
                     v-if="canManageRelationships"
                     label="Add Relationship"
@@ -542,74 +542,134 @@ const submitEditContact = () => {
             <Card>
                 <template #title>Relationships</template>
                 <template #content>
-                    <DataTable :value="person.relationships" data-key="id" responsive-layout="scroll">
-                        <Column header="Type">
-                            <template #body="{ data }">{{ data.label || '—' }}</template>
-                        </Column>
-                        <Column header="Person">
-                            <template #body="{ data }">{{ data.person?.display_name || '—' }}</template>
-                        </Column>
-                        <Column header="Member #">
-                            <template #body="{ data }">{{ data.person?.member_number || '—' }}</template>
-                        </Column>
-                        <Column header="Inverse Type">
-                            <template #body="{ data }">{{ data.inverse_label || '—' }}</template>
-                        </Column>
-                        <Column header="Primary">
-                            <template #body="{ data }">{{ data.is_primary ? 'Yes' : 'No' }}</template>
-                        </Column>
-                        <Column header="Notes" style="min-width: 16rem">
-                            <template #body="{ data }">{{ data.notes || '—' }}</template>
-                        </Column>
-                        <Column v-if="canManageRelationships" header="Actions" style="min-width: 11rem">
-                            <template #body="{ data }">
-                                <div class="flex items-center gap-2">
-                                    <Button
-                                        text
-                                        size="small"
-                                        label="Edit"
-                                        @click="openEditRelationshipDialog(data)"
-                                    />
-                                    <Button
-                                        text
-                                        severity="danger"
-                                        size="small"
-                                        label="Remove"
-                                        @click="deleteRelationship(data)"
-                                    />
-                                </div>
+                    <div class="hidden md:block">
+                        <DataTable :value="person.relationships" data-key="id" responsive-layout="scroll">
+                            <Column header="Type">
+                                <template #body="{ data }">{{ data.label || '—' }}</template>
+                            </Column>
+                            <Column header="Person">
+                                <template #body="{ data }">{{ data.person?.display_name || '—' }}</template>
+                            </Column>
+                            <Column header="Member #">
+                                <template #body="{ data }">{{ data.person?.member_number || '—' }}</template>
+                            </Column>
+                            <Column header="Inverse Type">
+                                <template #body="{ data }">{{ data.inverse_label || '—' }}</template>
+                            </Column>
+                            <Column header="Primary">
+                                <template #body="{ data }">{{ data.is_primary ? 'Yes' : 'No' }}</template>
+                            </Column>
+                            <Column header="Notes" style="min-width: 16rem">
+                                <template #body="{ data }">{{ data.notes || '—' }}</template>
+                            </Column>
+                            <Column v-if="canManageRelationships" header="Actions" style="min-width: 11rem">
+                                <template #body="{ data }">
+                                    <div class="flex items-center gap-2">
+                                        <Button
+                                            text
+                                            size="small"
+                                            label="Edit"
+                                            @click="openEditRelationshipDialog(data)"
+                                        />
+                                        <Button
+                                            text
+                                            severity="danger"
+                                            size="small"
+                                            label="Remove"
+                                            @click="deleteRelationship(data)"
+                                        />
+                                    </div>
+                                </template>
+                            </Column>
+                            <template #empty>
+                                <div class="py-2 text-sm text-surface-500">No relationships recorded.</div>
                             </template>
-                        </Column>
-                        <template #empty>
-                            <div class="py-2 text-sm text-surface-500">No relationships recorded.</div>
-                        </template>
-                    </DataTable>
+                        </DataTable>
+                    </div>
+
+                    <div class="space-y-3 md:hidden">
+                        <div
+                            v-for="relationship in person.relationships"
+                            :key="relationship.id"
+                            class="rounded-lg border border-surface-200 p-3 text-sm dark:border-surface-700"
+                        >
+                            <div><span class="font-medium">Type:</span> {{ relationship.label || '—' }}</div>
+                            <div><span class="font-medium">Person:</span> {{ relationship.person?.display_name || '—' }}</div>
+                            <div><span class="font-medium">Member #:</span> {{ relationship.person?.member_number || '—' }}</div>
+                            <div><span class="font-medium">Inverse:</span> {{ relationship.inverse_label || '—' }}</div>
+                            <div><span class="font-medium">Primary:</span> {{ relationship.is_primary ? 'Yes' : 'No' }}</div>
+                            <div><span class="font-medium">Notes:</span> {{ relationship.notes || '—' }}</div>
+                            <div v-if="canManageRelationships" class="mt-2 flex items-center gap-2">
+                                <Button
+                                    text
+                                    size="small"
+                                    label="Edit"
+                                    @click="openEditRelationshipDialog(relationship)"
+                                />
+                                <Button
+                                    text
+                                    severity="danger"
+                                    size="small"
+                                    label="Remove"
+                                    @click="deleteRelationship(relationship)"
+                                />
+                            </div>
+                        </div>
+                        <div
+                            v-if="!person.relationships?.length"
+                            class="rounded-lg border border-surface-200 p-3 text-sm text-surface-500 dark:border-surface-700"
+                        >
+                            No relationships recorded.
+                        </div>
+                    </div>
                 </template>
             </Card>
 
             <Card>
                 <template #title>Related To This Person</template>
                 <template #content>
-                    <DataTable :value="person.inverse_relationships" data-key="id" responsive-layout="scroll">
-                        <Column header="Type">
-                            <template #body="{ data }">{{ data.label || '—' }}</template>
-                        </Column>
-                        <Column header="Person">
-                            <template #body="{ data }">{{ data.person?.display_name || '—' }}</template>
-                        </Column>
-                        <Column header="Member #">
-                            <template #body="{ data }">{{ data.person?.member_number || '—' }}</template>
-                        </Column>
-                        <Column header="Primary">
-                            <template #body="{ data }">{{ data.is_primary ? 'Yes' : 'No' }}</template>
-                        </Column>
-                        <Column header="Notes" style="min-width: 16rem">
-                            <template #body="{ data }">{{ data.notes || '—' }}</template>
-                        </Column>
-                        <template #empty>
-                            <div class="py-2 text-sm text-surface-500">No incoming relationships recorded.</div>
-                        </template>
-                    </DataTable>
+                    <div class="hidden md:block">
+                        <DataTable :value="person.inverse_relationships" data-key="id" responsive-layout="scroll">
+                            <Column header="Type">
+                                <template #body="{ data }">{{ data.label || '—' }}</template>
+                            </Column>
+                            <Column header="Person">
+                                <template #body="{ data }">{{ data.person?.display_name || '—' }}</template>
+                            </Column>
+                            <Column header="Member #">
+                                <template #body="{ data }">{{ data.person?.member_number || '—' }}</template>
+                            </Column>
+                            <Column header="Primary">
+                                <template #body="{ data }">{{ data.is_primary ? 'Yes' : 'No' }}</template>
+                            </Column>
+                            <Column header="Notes" style="min-width: 16rem">
+                                <template #body="{ data }">{{ data.notes || '—' }}</template>
+                            </Column>
+                            <template #empty>
+                                <div class="py-2 text-sm text-surface-500">No incoming relationships recorded.</div>
+                            </template>
+                        </DataTable>
+                    </div>
+
+                    <div class="space-y-3 md:hidden">
+                        <div
+                            v-for="relationship in person.inverse_relationships"
+                            :key="relationship.id"
+                            class="rounded-lg border border-surface-200 p-3 text-sm dark:border-surface-700"
+                        >
+                            <div><span class="font-medium">Type:</span> {{ relationship.label || '—' }}</div>
+                            <div><span class="font-medium">Person:</span> {{ relationship.person?.display_name || '—' }}</div>
+                            <div><span class="font-medium">Member #:</span> {{ relationship.person?.member_number || '—' }}</div>
+                            <div><span class="font-medium">Primary:</span> {{ relationship.is_primary ? 'Yes' : 'No' }}</div>
+                            <div><span class="font-medium">Notes:</span> {{ relationship.notes || '—' }}</div>
+                        </div>
+                        <div
+                            v-if="!person.inverse_relationships?.length"
+                            class="rounded-lg border border-surface-200 p-3 text-sm text-surface-500 dark:border-surface-700"
+                        >
+                            No incoming relationships recorded.
+                        </div>
+                    </div>
                 </template>
             </Card>
         </div>
@@ -617,33 +677,62 @@ const submitEditContact = () => {
         <Card>
             <template #title>Contact History</template>
             <template #content>
-                <DataTable :value="person.contact_logs" data-key="id" responsive-layout="scroll">
-                    <Column header="Contacted At">
-                        <template #body="{ data }">{{ formatDateTime(data.contacted_at) }}</template>
-                    </Column>
-                    <Column header="Type">
-                        <template #body="{ data }">{{ data.contact_type || '—' }}</template>
-                    </Column>
-                    <Column header="Created By">
-                        <template #body="{ data }">{{ data.created_by || '—' }}</template>
-                    </Column>
-                    <Column header="Notes" style="min-width: 18rem">
-                        <template #body="{ data }">{{ data.notes || '—' }}</template>
-                    </Column>
-                    <Column v-if="canEditContacts" header="Actions" style="min-width: 9rem">
-                        <template #body="{ data }">
+                <div class="hidden md:block">
+                    <DataTable :value="person.contact_logs" data-key="id" responsive-layout="scroll">
+                        <Column header="Contacted At">
+                            <template #body="{ data }">{{ formatDateTime(data.contacted_at) }}</template>
+                        </Column>
+                        <Column header="Type">
+                            <template #body="{ data }">{{ data.contact_type || '—' }}</template>
+                        </Column>
+                        <Column header="Created By">
+                            <template #body="{ data }">{{ data.created_by || '—' }}</template>
+                        </Column>
+                        <Column header="Notes" style="min-width: 18rem">
+                            <template #body="{ data }">{{ data.notes || '—' }}</template>
+                        </Column>
+                        <Column v-if="canEditContacts" header="Actions" style="min-width: 9rem">
+                            <template #body="{ data }">
+                                <Button
+                                    text
+                                    size="small"
+                                    label="Edit"
+                                    @click="openEditContactDialog(data)"
+                                />
+                            </template>
+                        </Column>
+                        <template #empty>
+                            <div class="py-2 text-sm text-surface-500">No contact history yet.</div>
+                        </template>
+                    </DataTable>
+                </div>
+
+                <div class="space-y-3 md:hidden">
+                    <div
+                        v-for="contactLog in person.contact_logs"
+                        :key="contactLog.id"
+                        class="rounded-lg border border-surface-200 p-3 text-sm dark:border-surface-700"
+                    >
+                        <div><span class="font-medium">Contacted:</span> {{ formatDateTime(contactLog.contacted_at) }}</div>
+                        <div><span class="font-medium">Type:</span> {{ contactLog.contact_type || '—' }}</div>
+                        <div><span class="font-medium">Created By:</span> {{ contactLog.created_by || '—' }}</div>
+                        <div><span class="font-medium">Notes:</span> {{ contactLog.notes || '—' }}</div>
+                        <div v-if="canEditContacts" class="mt-2">
                             <Button
                                 text
                                 size="small"
                                 label="Edit"
-                                @click="openEditContactDialog(data)"
+                                @click="openEditContactDialog(contactLog)"
                             />
-                        </template>
-                    </Column>
-                    <template #empty>
-                        <div class="py-2 text-sm text-surface-500">No contact history yet.</div>
-                    </template>
-                </DataTable>
+                        </div>
+                    </div>
+                    <div
+                        v-if="!person.contact_logs?.length"
+                        class="rounded-lg border border-surface-200 p-3 text-sm text-surface-500 dark:border-surface-700"
+                    >
+                        No contact history yet.
+                    </div>
+                </div>
             </template>
         </Card>
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -91,5 +92,67 @@ class Person extends Model
             ->where('relationship_type', $type)
             ->orderByDesc('is_primary')
             ->first();
+    }
+
+    public function scopeHideDeceased(Builder $query, bool $hide = true): Builder
+    {
+        if (! $hide) {
+            return $query;
+        }
+
+        return $query
+            ->where(function (Builder $statusBuilder) {
+                $statusBuilder
+                    ->where('people.is_deceased', false)
+                    ->orWhereNull('people.is_deceased');
+            })
+            ->whereNull('people.death_date');
+    }
+
+    public function scopeWhereHasEmailValue(Builder $query, ?string $hasEmail): Builder
+    {
+        if ($hasEmail === 'yes') {
+            return $query->whereRaw("TRIM(COALESCE(people.email, '')) <> ''");
+        }
+
+        if ($hasEmail === 'no') {
+            return $query->where(function (Builder $builder) {
+                $builder->whereNull('people.email')
+                    ->orWhereRaw("TRIM(COALESCE(people.email, '')) = ''");
+            });
+        }
+
+        return $query;
+    }
+
+    public function scopeWhereHasPhoneValue(Builder $query, ?string $hasPhone): Builder
+    {
+        if ($hasPhone === 'yes') {
+            return $query->whereRaw("TRIM(COALESCE(people.phone, '')) <> ''");
+        }
+
+        if ($hasPhone === 'no') {
+            return $query->where(function (Builder $builder) {
+                $builder->whereNull('people.phone')
+                    ->orWhereRaw("TRIM(COALESCE(people.phone, '')) = ''");
+            });
+        }
+
+        return $query;
+    }
+
+    public function scopeWhereLastContactOlderThanDays(Builder $query, ?int $days): Builder
+    {
+        $days = (int) $days;
+
+        if ($days <= 0) {
+            return $query;
+        }
+
+        $threshold = now()->subDays($days);
+
+        return $query->whereDoesntHave('contactLogs', function (Builder $contactQuery) use ($threshold) {
+            $contactQuery->where('contacted_at', '>=', $threshold);
+        });
     }
 }

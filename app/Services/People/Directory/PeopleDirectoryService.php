@@ -17,140 +17,74 @@ class PeopleDirectoryService
 {
     public function paginateMembers(array $filters): LengthAwarePaginator
     {
-        $query = Person::query()
-            ->select('people.*')
-            ->leftJoin('member_profiles', 'member_profiles.person_id', '=', 'people.id')
-            ->whereNotNull('member_profiles.id')
-            ->with('memberProfile')
-            ->selectSub($this->latestContactSubquery(), 'last_contact_at');
-
-        $this->applyCommonSearch($query, $filters['q'] ?? null, includeMemberNumber: true);
-
-        if (filled($filters['status'] ?? null)) {
-            $query->where('member_profiles.status', $filters['status']);
-        }
-
-        $this->applyHideDeceased($query, $filters);
-        $this->applyMemberSort($query, $filters['sort'] ?? 'name');
-
-        return $query->paginate($this->perPage($filters))->withQueryString();
+        return $this->memberQuery($filters)
+            ->paginate($this->perPage($filters))
+            ->withQueryString();
     }
 
     public function exportMembers(array $filters): Collection
     {
-        $query = Person::query()
-            ->select('people.*')
-            ->leftJoin('member_profiles', 'member_profiles.person_id', '=', 'people.id')
-            ->whereNotNull('member_profiles.id')
-            ->with('memberProfile')
-            ->selectSub($this->latestContactSubquery(), 'last_contact_at');
-
-        $this->applyCommonSearch($query, $filters['q'] ?? null, includeMemberNumber: true);
-
-        if (filled($filters['status'] ?? null)) {
-            $query->where('member_profiles.status', $filters['status']);
-        }
-
-        $this->applyHideDeceased($query, $filters);
-        $this->applyMemberSort($query, $filters['sort'] ?? 'name');
-
-        return $query->get();
+        return $this->memberQuery($filters)->get();
     }
 
     public function paginateWidows(array $filters): LengthAwarePaginator
     {
-        $query = Person::query()
-            ->select('people.*')
-            ->with(['relationships' => $this->careRelationshipLoader(RelationshipType::Spouse)])
-            ->selectSub($this->latestContactSubquery(), 'last_contact_at')
-            ->selectSub($this->relatedDeceasedDeathDateSubquery(RelationshipType::Spouse), 'related_member_death_date')
-            ->where($this->widowConstraint());
+        return $this->widowQuery($filters)
+            ->paginate($this->perPage($filters))
+            ->withQueryString();
+    }
 
-        $this->applyCommonSearch($query, $filters['q'] ?? null);
-        $this->applyHideDeceased($query, $filters);
-        $this->applyCareSort($query, $filters['sort'] ?? 'name');
-
-        return $query->paginate($this->perPage($filters))->withQueryString();
+    public function exportWidows(array $filters): Collection
+    {
+        return $this->widowQuery($filters)->get();
     }
 
     public function paginateOrphans(array $filters): LengthAwarePaginator
     {
-        $query = Person::query()
-            ->select('people.*')
-            ->with(['relationships' => $this->careRelationshipLoader(RelationshipType::Parent)])
-            ->selectSub($this->latestContactSubquery(), 'last_contact_at')
-            ->selectSub($this->relatedDeceasedDeathDateSubquery(RelationshipType::Parent), 'related_member_death_date')
-            ->where($this->orphanConstraint());
+        return $this->orphanQuery($filters)
+            ->paginate($this->perPage($filters))
+            ->withQueryString();
+    }
 
-        $this->applyCommonSearch($query, $filters['q'] ?? null);
-        $this->applyHideDeceased($query, $filters);
-        $this->applyCareSort($query, $filters['sort'] ?? 'name');
-
-        return $query->paginate($this->perPage($filters))->withQueryString();
+    public function exportOrphans(array $filters): Collection
+    {
+        return $this->orphanQuery($filters)->get();
     }
 
     public function paginateRelatives(array $filters): LengthAwarePaginator
     {
-        $query = Person::query()
-            ->select('people.*')
-            ->with([
-                'relationships.relatedPerson.memberProfile',
-                'relatedTo.person.memberProfile',
-            ])
-            ->whereDoesntHave('memberProfile')
-            ->where(function (Builder $builder) use ($filters) {
-                $builder->whereHas('relationships', function (Builder $relationshipQuery) use ($filters) {
-                    if (filled($filters['relationship_type'] ?? null)) {
-                        $relationshipQuery->where('relationship_type', $filters['relationship_type']);
-                    }
-                })->orWhereHas('relatedTo', function (Builder $relationshipQuery) use ($filters) {
-                    if (filled($filters['relationship_type'] ?? null)) {
-                        $relationshipQuery->where('relationship_type', $filters['relationship_type']);
-                    }
-                });
-            })
-            ->whereNot($this->widowConstraint())
-            ->whereNot($this->orphanConstraint())
-            ->selectSub($this->latestContactSubquery(), 'last_contact_at')
-            ->selectSub($this->primaryRelationshipTypeSubquery(), 'primary_relationship_type');
+        return $this->relativeQuery($filters)
+            ->paginate($this->perPage($filters))
+            ->withQueryString();
+    }
 
-        $this->applyCommonSearch($query, $filters['q'] ?? null);
-        $this->applyHideDeceased($query, $filters);
-        $this->applyRelativeSort($query, $filters['sort'] ?? 'name');
-
-        return $query->paginate($this->perPage($filters))->withQueryString();
+    public function exportRelatives(array $filters): Collection
+    {
+        return $this->relativeQuery($filters)->get();
     }
 
     public function paginateOtherPeople(array $filters): LengthAwarePaginator
     {
-        $query = Person::query()
-            ->select('people.*')
-            ->with('memberProfile')
-            ->whereDoesntHave('memberProfile')
-            ->whereDoesntHave('relationships')
-            ->whereDoesntHave('relatedTo')
-            ->selectSub($this->latestContactSubquery(), 'last_contact_at');
+        return $this->otherPeopleQuery($filters)
+            ->paginate($this->perPage($filters))
+            ->withQueryString();
+    }
 
-        $this->applyCommonSearch($query, $filters['q'] ?? null);
-        $this->applyHideDeceased($query, $filters);
-        $this->applyPersonSort($query, $filters['sort'] ?? 'name');
-
-        return $query->paginate($this->perPage($filters))->withQueryString();
+    public function exportOtherPeople(array $filters): Collection
+    {
+        return $this->otherPeopleQuery($filters)->get();
     }
 
     public function paginateAllPeople(array $filters): LengthAwarePaginator
     {
-        $query = Person::query()
-            ->select('people.*')
-            ->leftJoin('member_profiles', 'member_profiles.person_id', '=', 'people.id')
-            ->with('memberProfile')
-            ->selectSub($this->latestContactSubquery(), 'last_contact_at');
+        return $this->allPeopleQuery($filters)
+            ->paginate($this->perPage($filters))
+            ->withQueryString();
+    }
 
-        $this->applyCommonSearch($query, $filters['q'] ?? null, includeMemberNumber: true);
-        $this->applyHideDeceased($query, $filters);
-        $this->applyPersonSort($query, $filters['sort'] ?? 'name');
-
-        return $query->paginate($this->perPage($filters))->withQueryString();
+    public function exportAllPeople(array $filters): Collection
+    {
+        return $this->allPeopleQuery($filters)->get();
     }
 
     public function findPersonForDirectory(int $personId): Person
@@ -244,6 +178,123 @@ class PeopleDirectoryService
         return max(10, min(100, (int) ($filters['per_page'] ?? 25)));
     }
 
+    protected function memberQuery(array $filters): Builder
+    {
+        $query = Person::query()
+            ->select('people.*')
+            ->leftJoin('member_profiles', 'member_profiles.person_id', '=', 'people.id')
+            ->whereNotNull('member_profiles.id')
+            ->with('memberProfile')
+            ->selectSub($this->latestContactSubquery(), 'last_contact_at');
+
+        $this->applyCommonSearch($query, $filters['q'] ?? null, includeMemberNumber: true);
+        $this->applyDirectoryFilters($query, $filters);
+
+        if (filled($filters['status'] ?? null)) {
+            $query->where('member_profiles.status', $filters['status']);
+        }
+
+        $this->applyMemberSort($query, $filters['sort'] ?? 'name');
+
+        return $query;
+    }
+
+    protected function widowQuery(array $filters): Builder
+    {
+        $query = Person::query()
+            ->select('people.*')
+            ->with(['relationships' => $this->careRelationshipLoader(RelationshipType::Spouse)])
+            ->selectSub($this->latestContactSubquery(), 'last_contact_at')
+            ->selectSub($this->relatedDeceasedDeathDateSubquery(RelationshipType::Spouse), 'related_member_death_date')
+            ->where($this->widowConstraint());
+
+        $this->applyCommonSearch($query, $filters['q'] ?? null);
+        $this->applyDirectoryFilters($query, $filters);
+        $this->applyCareSort($query, $filters['sort'] ?? 'name');
+
+        return $query;
+    }
+
+    protected function orphanQuery(array $filters): Builder
+    {
+        $query = Person::query()
+            ->select('people.*')
+            ->with(['relationships' => $this->careRelationshipLoader(RelationshipType::Parent)])
+            ->selectSub($this->latestContactSubquery(), 'last_contact_at')
+            ->selectSub($this->relatedDeceasedDeathDateSubquery(RelationshipType::Parent), 'related_member_death_date')
+            ->where($this->orphanConstraint());
+
+        $this->applyCommonSearch($query, $filters['q'] ?? null);
+        $this->applyDirectoryFilters($query, $filters);
+        $this->applyCareSort($query, $filters['sort'] ?? 'name');
+
+        return $query;
+    }
+
+    protected function relativeQuery(array $filters): Builder
+    {
+        $query = Person::query()
+            ->select('people.*')
+            ->with([
+                'relationships.relatedPerson.memberProfile',
+                'relatedTo.person.memberProfile',
+            ])
+            ->whereDoesntHave('memberProfile')
+            ->where(function (Builder $builder) use ($filters) {
+                $builder->whereHas('relationships', function (Builder $relationshipQuery) use ($filters) {
+                    if (filled($filters['relationship_type'] ?? null)) {
+                        $relationshipQuery->where('relationship_type', $filters['relationship_type']);
+                    }
+                })->orWhereHas('relatedTo', function (Builder $relationshipQuery) use ($filters) {
+                    if (filled($filters['relationship_type'] ?? null)) {
+                        $relationshipQuery->where('relationship_type', $filters['relationship_type']);
+                    }
+                });
+            })
+            ->whereNot($this->widowConstraint())
+            ->whereNot($this->orphanConstraint())
+            ->selectSub($this->latestContactSubquery(), 'last_contact_at')
+            ->selectSub($this->primaryRelationshipTypeSubquery(), 'primary_relationship_type');
+
+        $this->applyCommonSearch($query, $filters['q'] ?? null);
+        $this->applyDirectoryFilters($query, $filters);
+        $this->applyRelativeSort($query, $filters['sort'] ?? 'name');
+
+        return $query;
+    }
+
+    protected function otherPeopleQuery(array $filters): Builder
+    {
+        $query = Person::query()
+            ->select('people.*')
+            ->with('memberProfile')
+            ->whereDoesntHave('memberProfile')
+            ->whereDoesntHave('relationships')
+            ->whereDoesntHave('relatedTo')
+            ->selectSub($this->latestContactSubquery(), 'last_contact_at');
+
+        $this->applyCommonSearch($query, $filters['q'] ?? null);
+        $this->applyDirectoryFilters($query, $filters);
+        $this->applyPersonSort($query, $filters['sort'] ?? 'name');
+
+        return $query;
+    }
+
+    protected function allPeopleQuery(array $filters): Builder
+    {
+        $query = Person::query()
+            ->select('people.*')
+            ->leftJoin('member_profiles', 'member_profiles.person_id', '=', 'people.id')
+            ->with('memberProfile')
+            ->selectSub($this->latestContactSubquery(), 'last_contact_at');
+
+        $this->applyCommonSearch($query, $filters['q'] ?? null, includeMemberNumber: true);
+        $this->applyDirectoryFilters($query, $filters);
+        $this->applyPersonSort($query, $filters['sort'] ?? 'name');
+
+        return $query;
+    }
+
     protected function applyCommonSearch(Builder $query, ?string $term, bool $includeMemberNumber = false): void
     {
         $term = trim((string) $term);
@@ -269,18 +320,15 @@ class PeopleDirectoryService
         });
     }
 
-    protected function applyHideDeceased(Builder $query, array $filters): void
+    protected function applyDirectoryFilters(Builder $query, array $filters): void
     {
-        if (($filters['hide_deceased'] ?? false) === true) {
-            $query->where(function (Builder $builder) {
-                $builder
-                    ->where(function (Builder $statusBuilder) {
-                        $statusBuilder->where('people.is_deceased', false)
-                            ->orWhereNull('people.is_deceased');
-                    })
-                    ->whereNull('people.death_date');
-            });
-        }
+        $query
+            ->hideDeceased(($filters['hide_deceased'] ?? false) === true)
+            ->whereHasEmailValue($filters['has_email'] ?? null)
+            ->whereHasPhoneValue($filters['has_phone'] ?? null)
+            ->whereLastContactOlderThanDays(isset($filters['last_contact_older_than_days'])
+                ? (int) $filters['last_contact_older_than_days']
+                : null);
     }
 
     protected function applyMemberSort(Builder $query, string $sort): void

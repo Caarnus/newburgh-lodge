@@ -30,6 +30,9 @@ class IndexMemberDirectoryRequest extends FormRequest
         return [
             'q' => ['nullable', 'string', 'max:120'],
             'status' => ['nullable', Rule::in(MemberStatus::values())],
+            'has_email' => ['nullable', Rule::in(['yes', 'no'])],
+            'has_phone' => ['nullable', Rule::in(['yes', 'no'])],
+            'last_contact_older_than_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
             'hide_deceased' => ['nullable', 'boolean'],
             'sort' => ['nullable', Rule::in([
                 'name',

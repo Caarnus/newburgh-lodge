@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Manage;
 
 use App\Enums\MemberImportBatchStatus;
 use App\Enums\MemberImportRowStatus;
+use App\Helpers\Audit;
 use App\Helpers\People\PeoplePermissions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MemberImport\StoreMemberRosterImportRequest;
@@ -67,11 +68,36 @@ class MemberRosterImportController extends Controller
 
     public function store(StoreMemberRosterImportRequest $request, MemberRosterImportService $service): JsonResponse|RedirectResponse
     {
-        $batch = $service->stageUploadedFile(
-            file: $request->file('file'),
-            uploadedBy: $request->user()?->id,
-            sourceLabel: $request->string('source_label')->toString() ?: null,
-        );
+        Audit::log($request, 'member_import.started', meta: [
+            'original_filename' => $request->file('file')?->getClientOriginalName(),
+            'source_label' => $request->string('source_label')->toString() ?: null,
+        ]);
+
+        try {
+            $batch = $service->stageUploadedFile(
+                file: $request->file('file'),
+                uploadedBy: $request->user()?->id,
+                sourceLabel: $request->string('source_label')->toString() ?: null,
+            );
+        } catch (Throwable $exception) {
+            Audit::log(
+                $request,
+                'member_import.stage_failed',
+                meta: [
+                    'original_filename' => $request->file('file')?->getClientOriginalName(),
+                    'source_label' => $request->string('source_label')->toString() ?: null,
+                ],
+                succeeded: false,
+                errorMessage: $exception->getMessage(),
+            );
+
+            throw $exception;
+        }
+
+        Audit::log($request, 'member_import.staged', $batch, meta: [
+            'summary' => $batch->summary ?? [],
+            'row_count' => $batch->rows()->count(),
+        ]);
 
         if ($request->expectsJson()) {
             return response()->json($batch->load('rows'), 201);
@@ -105,10 +131,31 @@ class MemberRosterImportController extends Controller
     {
         abort_unless($request->user()?->can(PeoplePermissions::IMPORT_MEMBER_ROSTER), 403);
 
-        $batch = $service->applyBatch(
-            batch: $importBatch,
-            includePossibleMatches: $request->boolean('include_possible_matches'),
-        );
+        try {
+            $batch = $service->applyBatch(
+                batch: $importBatch,
+                includePossibleMatches: $request->boolean('include_possible_matches'),
+                actorId: $request->user()?->id,
+            );
+        } catch (Throwable $exception) {
+            Audit::log(
+                $request,
+                'member_import.apply_failed',
+                $importBatch,
+                meta: [
+                    'include_possible_matches' => $request->boolean('include_possible_matches'),
+                ],
+                succeeded: false,
+                errorMessage: $exception->getMessage(),
+            );
+
+            throw $exception;
+        }
+
+        Audit::log($request, 'member_import.applied', $batch, meta: [
+            'include_possible_matches' => $request->boolean('include_possible_matches'),
+            'summary' => $batch->summary ?? [],
+        ]);
 
         if ($request->expectsJson()) {
             return response()->json($batch->load('rows'));

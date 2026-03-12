@@ -34,6 +34,9 @@ const only = [
 
 const sharedData = () => ({
     q: props.filters.q ?? undefined,
+    has_email: props.filters.has_email ?? undefined,
+    has_phone: props.filters.has_phone ?? undefined,
+    last_contact_older_than_days: props.filters.last_contact_older_than_days ?? undefined,
     hide_deceased: props.filters.hide_deceased || undefined,
     per_page: props.filters.per_page ?? undefined,
     page: undefined,

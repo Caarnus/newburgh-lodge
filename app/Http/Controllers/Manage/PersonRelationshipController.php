@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Manage;
 
 use App\Enums\RelationshipType;
+use App\Helpers\Audit;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\People\StorePersonRelationshipRequest;
 use App\Http\Requests\People\UpdatePersonRelationshipRequest;
@@ -22,8 +23,10 @@ class PersonRelationshipController extends Controller
         PersonRelationshipService $relationshipService,
     ): RedirectResponse {
         $relatedPersonCreated = false;
+        $relatedPerson = null;
+        $relationship = null;
 
-        DB::transaction(function () use ($request, $person, $relationshipService, &$relatedPersonCreated) {
+        DB::transaction(function () use ($request, $person, $relationshipService, &$relatedPersonCreated, &$relatedPerson, &$relationship) {
             $relatedPersonId = null;
 
             if ($request->string('related_person_mode')->toString() === 'new') {
@@ -48,6 +51,7 @@ class PersonRelationshipController extends Controller
                 $relatedPersonCreated = true;
             } else {
                 $relatedPersonId = $request->integer('related_person_id');
+                $relatedPerson = Person::query()->find($relatedPersonId);
             }
 
             $relationshipType = RelationshipType::from($request->string('relationship_type')->toString());
@@ -55,7 +59,7 @@ class PersonRelationshipController extends Controller
                 ? RelationshipType::from($request->string('inverse_relationship_type')->toString())
                 : null;
 
-            $relationshipService->createBidirectional(
+            [$relationship] = $relationshipService->createBidirectional(
                 personId: $person->id,
                 relatedPersonId: $relatedPersonId,
                 relationshipType: $relationshipType,
@@ -64,6 +68,27 @@ class PersonRelationshipController extends Controller
                 notes: $request->string('notes')->toString() ?: null,
             );
         });
+
+        Audit::log(
+            $request,
+            'person_relationship.created',
+            $person,
+            changes: [
+                'after' => [
+                    'relationship_id' => $relationship?->id,
+                    'related_person_id' => $relatedPerson?->id,
+                    'relationship_type' => $relationship?->relationship_type?->value,
+                    'inverse_relationship_type' => $relationship?->inverse_relationship_type?->value,
+                    'is_primary' => (bool) $relationship?->is_primary,
+                    'notes' => $relationship?->notes,
+                ],
+            ],
+            meta: [
+                'related_person_created' => $relatedPersonCreated,
+                'from' => $request->string('from')->toString() ?: null,
+            ],
+            secondary: $relatedPerson,
+        );
 
         return $this->redirectToShow(
             person: $person,
@@ -82,17 +107,45 @@ class PersonRelationshipController extends Controller
     ): RedirectResponse {
         abort_unless((int) $relationship->person_id === (int) $person->id, 404);
 
+        $before = [
+            'relationship_type' => $relationship->relationship_type?->value,
+            'inverse_relationship_type' => $relationship->inverse_relationship_type?->value,
+            'is_primary' => (bool) $relationship->is_primary,
+            'notes' => $relationship->notes,
+        ];
+
         $relationshipType = RelationshipType::from($request->string('relationship_type')->toString());
         $inverseRelationshipType = $request->string('inverse_relationship_type')->toString()
             ? RelationshipType::from($request->string('inverse_relationship_type')->toString())
             : null;
 
-        $relationshipService->updateBidirectional(
+        [$updatedRelationship] = $relationshipService->updateBidirectional(
             relationship: $relationship,
             relationshipType: $relationshipType,
             inverseRelationshipType: $inverseRelationshipType,
             isPrimary: $request->boolean('is_primary'),
             notes: $request->string('notes')->toString() ?: null,
+        );
+
+        Audit::log(
+            $request,
+            'person_relationship.updated',
+            $person,
+            changes: [
+                'before' => $before,
+                'after' => [
+                    'relationship_type' => $updatedRelationship?->relationship_type?->value,
+                    'inverse_relationship_type' => $updatedRelationship?->inverse_relationship_type?->value,
+                    'is_primary' => (bool) $updatedRelationship?->is_primary,
+                    'notes' => $updatedRelationship?->notes,
+                ],
+            ],
+            meta: [
+                'relationship_id' => $updatedRelationship?->id ?? $relationship->id,
+                'related_person_id' => $relationship->related_person_id,
+                'from' => $request->string('from')->toString() ?: null,
+            ],
+            secondary: $relationship->relatedPerson,
         );
 
         return $this->redirectToShow(
@@ -107,10 +160,34 @@ class PersonRelationshipController extends Controller
         abort_unless((int) $relationship->person_id === (int) $person->id, 404);
 
         $request->validate([
-            'from' => ['nullable', 'in:members,widows,orphans,relatives'],
+            'from' => ['nullable', 'in:all,members,widows,orphans,relatives,others'],
         ]);
 
+        $before = [
+            'relationship_id' => $relationship->id,
+            'related_person_id' => $relationship->related_person_id,
+            'relationship_type' => $relationship->relationship_type?->value,
+            'inverse_relationship_type' => $relationship->inverse_relationship_type?->value,
+            'is_primary' => (bool) $relationship->is_primary,
+            'notes' => $relationship->notes,
+        ];
+        $relatedPerson = $relationship->relatedPerson;
+
         $relationshipService->deleteBidirectional($relationship);
+
+        Audit::log(
+            $request,
+            'person_relationship.deleted',
+            $person,
+            changes: [
+                'before' => $before,
+                'after' => null,
+            ],
+            meta: [
+                'from' => $request->string('from')->toString() ?: null,
+            ],
+            secondary: $relatedPerson,
+        );
 
         return $this->redirectToShow(
             person: $person,

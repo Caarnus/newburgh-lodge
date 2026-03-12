@@ -7,7 +7,7 @@ export default {
 </script>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
@@ -56,7 +56,17 @@ const routeNameBySection = {
     others: 'manage.member-directory.others.index',
 };
 
+const exportRouteNameBySection = {
+    all: 'manage.member-directory.all.export',
+    members: 'manage.member-directory.members.export',
+    widows: 'manage.member-directory.widows.export',
+    orphans: 'manage.member-directory.orphans.export',
+    relatives: 'manage.member-directory.relatives.export',
+    others: 'manage.member-directory.others.export',
+};
+
 const currentRoute = computed(() => routeNameBySection[props.section] ?? routeNameBySection.all);
+const currentExportRoute = computed(() => exportRouteNameBySection[props.section] ?? null);
 const countLabel = computed(() => ({
     all: 'people',
     members: 'members',
@@ -69,6 +79,7 @@ const countLabel = computed(() => ({
 const showMemberColumns = computed(() => ['all', 'members'].includes(props.section));
 const showCareColumns = computed(() => ['widows', 'orphans'].includes(props.section));
 const showRelativeColumns = computed(() => props.section === 'relatives');
+const isNarrowScreen = ref(false);
 const hideDeceasedStorageKey = 'member-directory.hide-deceased';
 const normalizeHideDeceased = (value) => (
     value === true
@@ -107,7 +118,7 @@ const persistHideDeceased = (value) => {
 };
 
 const pruneFilters = (filters) => Object.fromEntries(
-    Object.entries(filters).filter(([, value]) => value !== null && value !== '')
+    Object.entries(filters).filter(([, value]) => value !== null && value !== '' && value !== undefined)
 );
 
 const visitSection = (nextFilters) => {
@@ -182,7 +193,18 @@ const onQuickLogSaved = () => {
     });
 };
 
+const updateViewportState = () => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    isNarrowScreen.value = window.innerWidth < 768;
+};
+
 onMounted(() => {
+    updateViewportState();
+    window.addEventListener('resize', updateViewportState);
+
     const persisted = readPersistedHideDeceased();
     const current = normalizeHideDeceased(props.filters.hide_deceased);
 
@@ -207,10 +229,18 @@ onMounted(() => {
 
     persistHideDeceased(current);
 });
+
+onBeforeUnmount(() => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.removeEventListener('resize', updateViewportState);
+});
 </script>
 
 <template>
-    <div class="space-y-6 p-6">
+    <div class="space-y-6 p-4 md:p-6">
         <div class="space-y-4">
             <DirectorySectionTabs :active="section" :filters="filters" />
             <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -254,14 +284,14 @@ onMounted(() => {
                 <div class="text-sm text-surface-600 dark:text-surface-300">
                     Showing {{ records.from ?? 0 }}–{{ records.to ?? 0 }} of {{ records.total ?? 0 }} {{ countLabel }}.
                 </div>
-                <Link
-                    v-if="section === 'members' && canExportDirectory"
-                    :href="route('manage.member-directory.members.export', exportFilters)"
+                <a
+                    v-if="canExportDirectory && currentExportRoute"
+                    :href="route(currentExportRoute, exportFilters)"
                     class="inline-flex items-center rounded-lg border border-surface-300 px-3 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
                 >
                     Export
-                </Link>
-                <Button v-else-if="section === 'members'" label="Export" severity="secondary" outlined disabled />
+                </a>
+                <Button v-else label="Export" severity="secondary" outlined disabled />
             </div>
 
             <DataTable
@@ -282,48 +312,81 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column v-if="showMemberColumns" header="Member #" style="min-width: 8rem">
+                <Column
+                    v-if="showMemberColumns && !isNarrowScreen"
+                    header="Member #"
+                    style="min-width: 8rem"
+                >
                     <template #body="{ data }">{{ data.member_profile?.member_number || '—' }}</template>
                 </Column>
 
-                <Column v-if="showMemberColumns" header="Status" style="min-width: 9rem">
+                <Column
+                    v-if="showMemberColumns && !isNarrowScreen"
+                    header="Status"
+                    style="min-width: 9rem"
+                >
                     <template #body="{ data }">{{ data.member_profile?.status || '—' }}</template>
                 </Column>
 
-                <Column v-if="showCareColumns" header="Related Member" style="min-width: 14rem">
+                <Column
+                    v-if="showCareColumns && !isNarrowScreen"
+                    header="Related Member"
+                    style="min-width: 14rem"
+                >
                     <template #body="{ data }">
                         <div>{{ data.related_member?.display_name || '—' }}</div>
                         <div class="mt-1 text-xs text-surface-500">{{ data.related_member?.member_number || 'No member #' }}</div>
                     </template>
                 </Column>
 
-                <Column v-if="showCareColumns" header="Death Date" style="min-width: 10rem">
+                <Column
+                    v-if="showCareColumns && !isNarrowScreen"
+                    header="Death Date"
+                    style="min-width: 10rem"
+                >
                     <template #body="{ data }">{{ formatDate(data.related_member?.death_date) }}</template>
                 </Column>
 
-                <Column v-if="showRelativeColumns" header="Relationship" style="min-width: 11rem">
+                <Column
+                    v-if="showRelativeColumns && !isNarrowScreen"
+                    header="Relationship"
+                    style="min-width: 11rem"
+                >
                     <template #body="{ data }">{{ relationshipLabel(data.relationship?.label) }}</template>
                 </Column>
 
-                <Column v-if="showRelativeColumns" header="Related To" style="min-width: 14rem">
+                <Column
+                    v-if="showRelativeColumns && !isNarrowScreen"
+                    header="Related To"
+                    style="min-width: 14rem"
+                >
                     <template #body="{ data }">
                         <div>{{ data.relationship?.related_person?.display_name || '—' }}</div>
                         <div class="mt-1 text-xs text-surface-500">{{ data.relationship?.related_person?.member_number || 'No member #' }}</div>
                     </template>
                 </Column>
 
-                <Column header="Phone" style="min-width: 10rem">
+                <Column v-if="!isNarrowScreen"
+                    header="Phone"
+                    style="min-width: 10rem"
+                >
                     <template #body="{ data }">{{ data.phone || '—' }}</template>
                 </Column>
 
-                <Column header="Location" style="min-width: 10rem">
+                <Column v-if="!isNarrowScreen"
+                    header="Location"
+                    style="min-width: 10rem"
+                >
                     <template #body="{ data }">
                         <span v-if="data.city || data.state">{{ [data.city, data.state].filter(Boolean).join(', ') }}</span>
                         <span v-else>—</span>
                     </template>
                 </Column>
 
-                <Column header="Last Contact" style="min-width: 11rem">
+                <Column v-if="!isNarrowScreen"
+                    header="Last Contact"
+                    style="min-width: 11rem"
+                >
                     <template #body="{ data }">{{ formatDateTime(data.last_contact_at) }}</template>
                 </Column>
 

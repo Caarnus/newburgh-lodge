@@ -41,6 +41,9 @@ const localFilters = reactive({
     q: props.filters.q ?? null,
     status: props.filters.status ?? null,
     relationship_type: props.filters.relationship_type ?? null,
+    has_email: props.filters.has_email ?? null,
+    has_phone: props.filters.has_phone ?? null,
+    last_contact_older_than_days: props.filters.last_contact_older_than_days ?? null,
     hide_deceased: normalizeHideDeceased(props.filters.hide_deceased),
     sort: props.filters.sort ?? 'name',
     per_page: props.filters.per_page ?? 25,
@@ -52,6 +55,9 @@ watch(
         localFilters.q = filters.q ?? null;
         localFilters.status = filters.status ?? null;
         localFilters.relationship_type = filters.relationship_type ?? null;
+        localFilters.has_email = filters.has_email ?? null;
+        localFilters.has_phone = filters.has_phone ?? null;
+        localFilters.last_contact_older_than_days = filters.last_contact_older_than_days ?? null;
         localFilters.hide_deceased = normalizeHideDeceased(filters.hide_deceased);
         localFilters.sort = filters.sort ?? 'name';
         localFilters.per_page = filters.per_page ?? 25;
@@ -75,6 +81,17 @@ const perPageOptions = [10, 25, 50, 100].map((value) => ({
 
 const showMemberFilters = computed(() => props.section === 'members');
 const showRelationshipFilter = computed(() => props.section === 'relatives');
+const yesNoOptions = [
+    { label: 'Has Value', value: 'yes' },
+    { label: 'No Value', value: 'no' },
+];
+const lastContactOptions = [
+    { label: '30 days', value: 30 },
+    { label: '60 days', value: 60 },
+    { label: '90 days', value: 90 },
+    { label: '180 days', value: 180 },
+    { label: '365 days', value: 365 },
+];
 
 const searchPlaceholder = computed(() => ({
     all: 'Name, email, phone, member number',
@@ -90,6 +107,9 @@ const submit = () => {
         q: localFilters.q,
         status: localFilters.status,
         relationship_type: localFilters.relationship_type,
+        has_email: localFilters.has_email,
+        has_phone: localFilters.has_phone,
+        last_contact_older_than_days: localFilters.last_contact_older_than_days,
         hide_deceased: localFilters.hide_deceased,
         sort: localFilters.sort,
         per_page: localFilters.per_page,
@@ -101,6 +121,9 @@ const reset = () => {
     localFilters.q = null;
     localFilters.status = null;
     localFilters.relationship_type = null;
+    localFilters.has_email = null;
+    localFilters.has_phone = null;
+    localFilters.last_contact_older_than_days = null;
     localFilters.hide_deceased = false;
     localFilters.sort = 'name';
     localFilters.per_page = 25;
@@ -109,6 +132,9 @@ const reset = () => {
         q: null,
         status: null,
         relationship_type: null,
+        has_email: null,
+        has_phone: null,
+        last_contact_older_than_days: null,
         hide_deceased: false,
         sort: 'name',
         per_page: 25,
@@ -119,7 +145,7 @@ const reset = () => {
 
 <template>
     <div class="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm dark:border-surface-800 dark:bg-surface-900">
-        <div class="grid gap-4 lg:grid-cols-6">
+        <div class="grid gap-4 lg:grid-cols-8">
             <div class="lg:col-span-2">
                 <label class="mb-2 block text-sm font-medium text-surface-700 dark:text-surface-200">
                     Search
@@ -159,6 +185,51 @@ const reset = () => {
                     class="w-full"
                     show-clear
                     placeholder="Any relationship"
+                />
+            </div>
+
+            <div>
+                <label class="mb-2 block text-sm font-medium text-surface-700 dark:text-surface-200">
+                    Email
+                </label>
+                <Select
+                    v-model="localFilters.has_email"
+                    :options="yesNoOptions"
+                    option-label="label"
+                    option-value="value"
+                    class="w-full"
+                    show-clear
+                    placeholder="Any"
+                />
+            </div>
+
+            <div>
+                <label class="mb-2 block text-sm font-medium text-surface-700 dark:text-surface-200">
+                    Phone
+                </label>
+                <Select
+                    v-model="localFilters.has_phone"
+                    :options="yesNoOptions"
+                    option-label="label"
+                    option-value="value"
+                    class="w-full"
+                    show-clear
+                    placeholder="Any"
+                />
+            </div>
+
+            <div>
+                <label class="mb-2 block text-sm font-medium text-surface-700 dark:text-surface-200">
+                    Last Contact Older Than
+                </label>
+                <Select
+                    v-model="localFilters.last_contact_older_than_days"
+                    :options="lastContactOptions"
+                    option-label="label"
+                    option-value="value"
+                    class="w-full"
+                    show-clear
+                    placeholder="Any"
                 />
             </div>
 

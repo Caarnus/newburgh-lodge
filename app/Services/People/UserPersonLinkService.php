@@ -3,6 +3,7 @@
 namespace App\Services\People;
 
 use App\Enums\UserPersonLinkAction;
+use App\Helpers\Audit;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\UserPersonLinkAudit;
@@ -37,10 +38,15 @@ class UserPersonLinkService
         ) {
             $user = $user->fresh() ?? $user;
             $person->loadMissing('memberProfile');
+            $memberRoleAssigned = false;
 
             if ((int) $user->person_id === (int) $person->id) {
                 if ($assignMemberRole && $this->qualifiesForMemberRole($person)) {
-                    $this->assignMemberRole($user);
+                    $memberRoleAssigned = $this->assignMemberRole($user);
+
+                    if ($memberRoleAssigned) {
+                        $this->auditMemberRoleAssigned($creatorId, $user, $person, $action->value, $matchStrategy);
+                    }
                 }
                 return $user->fresh() ?? $user;
             }
@@ -54,7 +60,7 @@ class UserPersonLinkService
             ])->save();
 
             if ($assignMemberRole && $this->qualifiesForMemberRole($person)) {
-                $this->assignMemberRole($user);
+                $memberRoleAssigned = $this->assignMemberRole($user);
             }
 
             UserPersonLinkAudit::create([
@@ -66,6 +72,30 @@ class UserPersonLinkService
                 'notes' => $notes,
                 'created_by' => $creatorId,
             ]);
+
+            Audit::logForActor(
+                actorId: $creatorId,
+                action: 'user_person_link.'.$action->value,
+                subject: $user,
+                changes: [
+                    'before' => [
+                        'person_id' => $previousPersonId,
+                    ],
+                    'after' => [
+                        'person_id' => $person->id,
+                    ],
+                ],
+                meta: [
+                    'match_strategy' => $matchStrategy,
+                    'notes' => $notes,
+                    'member_role_assigned' => $memberRoleAssigned,
+                ],
+                secondary: $person,
+            );
+
+            if ($memberRoleAssigned) {
+                $this->auditMemberRoleAssigned($creatorId, $user, $person, $action->value, $matchStrategy);
+            }
 
             return $user->fresh() ?? $user;
         });
@@ -108,6 +138,24 @@ class UserPersonLinkService
                 'created_by' => $creatorId,
             ]);
 
+            Audit::logForActor(
+                actorId: $creatorId,
+                action: 'user_person_link.manual_unlinked',
+                subject: $user,
+                changes: [
+                    'before' => [
+                        'person_id' => $previousPersonId,
+                    ],
+                    'after' => [
+                        'person_id' => null,
+                    ],
+                ],
+                meta: [
+                    'notes' => $notes,
+                    'remove_member_role' => $removeMemberRole,
+                ],
+            );
+
             return $user->fresh() ?? $user;
         });
     }
@@ -119,15 +167,19 @@ class UserPersonLinkService
         return $person->memberProfile !== null;
     }
 
-    protected function assignMemberRole(User $user): void
+    protected function assignMemberRole(User $user): bool
     {
         if (! method_exists($user, 'hasRole') || ! method_exists($user, 'assignRole')) {
-            return;
+            return false;
         }
 
         if (! $user->hasRole($this->memberRole)) {
             $user->assignRole($this->memberRole);
+
+            return true;
         }
+
+        return false;
     }
 
     protected function ensurePersonIsAvailableForUser(User $user, Person $person): void
@@ -140,5 +192,26 @@ class UserPersonLinkService
         if ($linkedUser) {
             throw new RuntimeException("Person #{$person->id} is already linked to user #{$linkedUser->id}.");
         }
+    }
+
+    protected function auditMemberRoleAssigned(
+        ?int $creatorId,
+        User $user,
+        Person $person,
+        string $linkAction,
+        ?string $matchStrategy,
+    ): void {
+        Audit::logForActor(
+            actorId: $creatorId,
+            action: 'user.role_auto_assigned',
+            subject: $user,
+            meta: [
+                'role' => $this->memberRole,
+                'reason' => 'linked_to_member_profile',
+                'link_action' => $linkAction,
+                'match_strategy' => $matchStrategy,
+            ],
+            secondary: $person,
+        );
     }
 }

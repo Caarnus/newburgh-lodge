@@ -4,6 +4,7 @@ namespace App\Services\People\Imports;
 
 use App\Enums\MemberImportBatchStatus;
 use App\Enums\MemberImportRowStatus;
+use App\Helpers\Audit;
 use App\Models\MemberImportBatch;
 use App\Models\MemberImportRow;
 use App\Models\MemberProfile;
@@ -90,9 +91,9 @@ class MemberRosterImportService
     /**
      * @throws Throwable
      */
-    public function applyBatch(MemberImportBatch $batch, bool $includePossibleMatches = false): MemberImportBatch
+    public function applyBatch(MemberImportBatch $batch, bool $includePossibleMatches = false, ?int $actorId = null): MemberImportBatch
     {
-        DB::transaction(function () use ($batch, $includePossibleMatches) {
+        DB::transaction(function () use ($batch, $includePossibleMatches, $actorId) {
             $allowedStatuses = [
                 MemberImportRowStatus::ExactMatch->value,
                 MemberImportRowStatus::NewPerson->value,
@@ -105,7 +106,7 @@ class MemberRosterImportService
             $rows = $batch->rows()->whereIn('status', $allowedStatuses)->get();
 
             foreach ($rows as $row) {
-                $this->applyRow($row);
+                $this->applyRow($row, $actorId);
             }
 
             $batch->update([
@@ -121,10 +122,13 @@ class MemberRosterImportService
     /**
      * @throws Throwable
      */
-    public function applyRow(MemberImportRow $row): MemberImportRow
+    public function applyRow(MemberImportRow $row, ?int $actorId = null): MemberImportRow
     {
-        return DB::transaction(function () use ($row) {
+        return DB::transaction(function () use ($row, $actorId) {
             $data = $row->normalized_payload ?? [];
+            $beforeStatus = $row->status?->value ?? (string) $row->status;
+            $beforeMatchedPersonId = $row->matched_person_id;
+            $beforeMatchedMemberProfileId = $row->matched_member_profile_id;
 
             if (empty($data)) {
                 $row->update([
@@ -136,6 +140,7 @@ class MemberRosterImportService
             }
 
             $person = $row->matchedPerson;
+            $personCreated = false;
 
             if (!$person) {
                 $person = Person::create([
@@ -153,6 +158,7 @@ class MemberRosterImportService
                     'is_deceased' => false,
                     'death_date' => $data['death_date'] ?? null,
                 ]);
+                $personCreated = true;
             } else {
                 $person->fill($this->mergeIntoExistingPerson($person, $data));
                 $person->save();
@@ -180,7 +186,34 @@ class MemberRosterImportService
                 'error_message' => null,
             ]);
 
-            return $row->fresh(['matchedPerson', 'matchedMemberProfile']);
+            $fresh = $row->fresh(['matchedPerson', 'matchedMemberProfile']);
+
+            Audit::logForActor(
+                actorId: $actorId,
+                action: 'member_import.row_applied',
+                subject: $fresh,
+                changes: [
+                    'before' => [
+                        'status' => $beforeStatus,
+                        'matched_person_id' => $beforeMatchedPersonId,
+                        'matched_member_profile_id' => $beforeMatchedMemberProfileId,
+                    ],
+                    'after' => [
+                        'status' => MemberImportRowStatus::Applied->value,
+                        'matched_person_id' => $fresh->matched_person_id,
+                        'matched_member_profile_id' => $fresh->matched_member_profile_id,
+                    ],
+                ],
+                meta: [
+                    'batch_id' => $fresh->member_import_batch_id,
+                    'row_number' => $fresh->row_number,
+                    'match_strategy' => $fresh->match_strategy,
+                    'resolution' => $personCreated ? 'created_person' : 'matched_existing_person',
+                ],
+                secondary: $person,
+            );
+
+            return $fresh;
         });
     }
 
