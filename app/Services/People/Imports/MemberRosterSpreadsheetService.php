@@ -79,16 +79,19 @@ class MemberRosterSpreadsheetService
 
     protected function normalizeRosterRow(array $raw): array
     {
-        $statusSource = $raw['Status']
-            ?? $raw['Member Status']
-            ?? $raw['MemberStatus']
-            ?? null;
+        $statusSource = $this->valueByHeaders($raw, [
+            'Status',
+            'Member Status',
+            'MemberStatus',
+            'Masonic Status',
+        ]);
         $status = $this->normalizeStatus($statusSource);
         $deathDate = $this->normalizeDate(
-            $raw['Date of Death']
-                ?? $raw['Death Date']
-                ?? $raw['DeathDate']
-                ?? null
+            $this->valueByHeaders($raw, [
+                'Date of Death',
+                'Death Date',
+                'DeathDate',
+            ])
         );
 
         return [
@@ -129,6 +132,45 @@ class MemberRosterSpreadsheetService
         ];
     }
 
+    protected function valueByHeaders(array $raw, array $headers): mixed
+    {
+        foreach ($headers as $header) {
+            if (array_key_exists($header, $raw)) {
+                return $raw[$header];
+            }
+        }
+
+        $normalizedRaw = [];
+
+        foreach ($raw as $header => $value) {
+            if (! is_string($header)) {
+                continue;
+            }
+
+            $normalizedRaw[$this->normalizeHeaderLookupKey($header)] = $value;
+        }
+
+        foreach ($headers as $header) {
+            $lookup = $this->normalizeHeaderLookupKey($header);
+
+            if ($lookup !== '' && array_key_exists($lookup, $normalizedRaw)) {
+                return $normalizedRaw[$lookup];
+            }
+        }
+
+        return null;
+    }
+
+    protected function normalizeHeaderLookupKey(string $header): string
+    {
+        $header = preg_replace('/^\xEF\xBB\xBF/', '', $header) ?? $header;
+        $header = trim($header);
+        $header = mb_strtolower($header);
+        $header = preg_replace('/[^a-z0-9]+/i', ' ', $header) ?? $header;
+
+        return trim($header);
+    }
+
     protected function normalizeStatus(mixed $value): ?string
     {
         $status = $this->normalizeString($value);
@@ -137,7 +179,7 @@ class MemberRosterSpreadsheetService
             return null;
         }
 
-        $normalized = strtolower(preg_replace('/[^a-z0-9]+/', ' ', $status) ?? '');
+        $normalized = strtolower(preg_replace('/[^a-z0-9]+/i', ' ', $status) ?? '');
         $normalized = trim($normalized);
 
         if (str_contains($normalized, 'deceased')) {
@@ -167,7 +209,7 @@ class MemberRosterSpreadsheetService
             return false;
         }
 
-        $normalized = strtolower(preg_replace('/[^a-z0-9]+/', ' ', $status) ?? '');
+        $normalized = strtolower(preg_replace('/[^a-z0-9]+/i', ' ', $status) ?? '');
         $normalized = trim($normalized);
 
         return str_contains($normalized, 'deceased');
