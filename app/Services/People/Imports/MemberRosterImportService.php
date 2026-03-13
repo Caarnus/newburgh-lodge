@@ -10,8 +10,10 @@ use App\Models\MemberImportBatch;
 use App\Models\MemberImportRow;
 use App\Models\MemberProfile;
 use App\Models\Person;
+use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -71,9 +73,14 @@ class MemberRosterImportService
                     ]);
                 }
 
+                $batch->refresh()->load('rows');
+                $this->flagDuplicateMemberNumbers($batch, includePossibleMatches: true);
+
                 $batch->update([
                     'status' => MemberImportBatchStatus::Staged,
                     'summary' => $this->buildSummary($batch->fresh('rows')),
+                    'failed_at' => null,
+                    'failure_message' => null,
                 ]);
             });
         } catch (Throwable $exception) {
@@ -94,30 +101,45 @@ class MemberRosterImportService
      */
     public function applyBatch(MemberImportBatch $batch, bool $includePossibleMatches = false, ?int $actorId = null): MemberImportBatch
     {
-        DB::transaction(function () use ($batch, $includePossibleMatches, $actorId) {
-            $allowedStatuses = [
-                MemberImportRowStatus::ExactMatch->value,
-                MemberImportRowStatus::NewPerson->value,
-            ];
+        $batch = $batch->fresh() ?? $batch;
+        $batch->load('rows');
 
-            if ($includePossibleMatches) {
-                $allowedStatuses[] = MemberImportRowStatus::PossibleMatch->value;
-            }
+        $duplicateRowIds = $this->flagDuplicateMemberNumbers($batch, $includePossibleMatches);
 
-            $rows = $batch->rows()->whereIn('status', $allowedStatuses)->get();
+        $rows = $batch->rows()
+            ->whereIn('status', $this->applyCandidateStatuses($includePossibleMatches))
+            ->when(
+                ! empty($duplicateRowIds),
+                fn ($query) => $query->whereNotIn('id', $duplicateRowIds)
+            )
+            ->orderBy('row_number')
+            ->get();
 
-            foreach ($rows as $row) {
+        foreach ($rows as $row) {
+            try {
                 $this->applyRow($row, $actorId);
+            } catch (Throwable $exception) {
+                $this->markRowAsFailed($row, $this->friendlyApplyErrorMessage($exception));
             }
+        }
 
-            $batch->update([
-                'status' => MemberImportBatchStatus::Applied,
-                'applied_at' => now(),
-                'summary' => $this->buildSummary($batch->fresh('rows')),
-            ]);
-        });
+        $refreshedBatch = $batch->fresh('rows');
+        $summary = $this->buildSummary($refreshedBatch);
+        $failedCount = (int) ($summary['failed'] ?? 0);
 
-        return $batch->fresh('rows');
+        $refreshedBatch->update([
+            'status' => $failedCount > 0
+                ? MemberImportBatchStatus::Failed
+                : MemberImportBatchStatus::Applied,
+            'applied_at' => now(),
+            'failed_at' => $failedCount > 0 ? now() : null,
+            'failure_message' => $failedCount > 0
+                ? "{$failedCount} row(s) failed during apply. Review and edit failed rows, then apply again."
+                : null,
+            'summary' => $summary,
+        ]);
+
+        return $refreshedBatch->fresh('rows');
     }
 
     /**
@@ -220,6 +242,44 @@ class MemberRosterImportService
         });
     }
 
+    public function updateReviewedRow(MemberImportRow $row, array $input): MemberImportRow
+    {
+        $row->loadMissing('batch');
+        $current = $row->normalized_payload ?? [];
+
+        $normalized = $this->mergeNormalizedPayloadFromReview($current, $input);
+        $match = $this->determineMatch($normalized);
+
+        $row->update([
+            'normalized_payload' => $normalized,
+            'row_hash' => hash('sha256', json_encode($normalized)),
+            'status' => $match['status'],
+            'match_strategy' => $match['match_strategy'] ?? $match['strategy'] ?? null,
+            'matched_person_id' => $match['matched_person_id'],
+            'matched_member_profile_id' => $match['matched_member_profile_id'],
+            'review_notes' => Arr::exists($input, 'review_notes')
+                ? $this->normalizeString($input['review_notes'] ?? null)
+                : $row->review_notes,
+            'error_message' => null,
+        ]);
+
+        if ($row->batch) {
+            $batch = $row->batch->fresh() ?? $row->batch;
+            $batch->load('rows');
+            $this->flagDuplicateMemberNumbers($batch, includePossibleMatches: true);
+
+            $batch->update([
+                'status' => MemberImportBatchStatus::Staged,
+                'applied_at' => null,
+                'failed_at' => null,
+                'failure_message' => null,
+                'summary' => $this->buildSummary($batch->fresh('rows')),
+            ]);
+        }
+
+        return $row->fresh(['batch', 'matchedPerson.memberProfile', 'matchedMemberProfile']);
+    }
+
     protected function determineMatch(array $data): array
     {
         if (!Arr::get($data, 'first_name') || !Arr::get($data, 'last_name')) {
@@ -308,6 +368,143 @@ class MemberRosterImportService
         ];
     }
 
+    /**
+     * @return array<int, string>
+     */
+    protected function applyCandidateStatuses(bool $includePossibleMatches): array
+    {
+        $statuses = [
+            MemberImportRowStatus::ExactMatch->value,
+            MemberImportRowStatus::NewPerson->value,
+            MemberImportRowStatus::Failed->value,
+        ];
+
+        if ($includePossibleMatches) {
+            $statuses[] = MemberImportRowStatus::PossibleMatch->value;
+        }
+
+        return $statuses;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    protected function flagDuplicateMemberNumbers(MemberImportBatch $batch, bool $includePossibleMatches): array
+    {
+        $rows = $batch->rows;
+        $candidateStatuses = $this->applyCandidateStatuses($includePossibleMatches);
+
+        /** @var Collection<int, Collection<int, MemberImportRow>> $duplicates */
+        $duplicates = $rows
+            ->filter(function (MemberImportRow $row) use ($candidateStatuses) {
+                $status = $row->status?->value ?? (string) $row->status;
+                return in_array($status, $candidateStatuses, true)
+                    && filled($this->normalizeString(data_get($row->normalized_payload, 'member_number')));
+            })
+            ->groupBy(function (MemberImportRow $row) {
+                return Str::lower((string) data_get($row->normalized_payload, 'member_number'));
+            })
+            ->filter(fn (Collection $group) => $group->count() > 1);
+
+        $duplicateRowIds = [];
+
+        foreach ($duplicates as $memberNumber => $group) {
+            $displayMemberNumber = (string) data_get($group->first()?->normalized_payload, 'member_number', $memberNumber);
+            $errorMessage = "Duplicate member ID in this batch: {$displayMemberNumber}. Edit one or more rows before applying.";
+
+            foreach ($group as $row) {
+                $this->markRowAsFailed($row, $errorMessage);
+                $duplicateRowIds[] = $row->id;
+            }
+        }
+
+        return array_values(array_unique($duplicateRowIds));
+    }
+
+    protected function markRowAsFailed(MemberImportRow $row, string $errorMessage): void
+    {
+        $row->update([
+            'status' => MemberImportRowStatus::Failed,
+            'error_message' => $errorMessage,
+        ]);
+    }
+
+    protected function friendlyApplyErrorMessage(Throwable $exception): string
+    {
+        $message = trim((string) $exception->getMessage());
+        $lower = Str::lower($message);
+
+        if (Str::contains($lower, ['member_number', 'member profile', 'duplicate entry', 'unique'])) {
+            return 'Duplicate member ID/member number detected. Update failed rows and apply again.';
+        }
+
+        return Str::limit($message !== '' ? $message : 'Row apply failed for an unknown reason.', 1000);
+    }
+
+    protected function mergeNormalizedPayloadFromReview(array $current, array $input): array
+    {
+        $next = $current;
+
+        foreach ([
+            'member_number',
+            'status',
+            'first_name',
+            'middle_name',
+            'last_name',
+            'suffix',
+            'preferred_name',
+            'address_line_1',
+            'address_line_2',
+            'city',
+            'state',
+            'postal_code',
+            'phone',
+            'email',
+            'spouse_name',
+            'full_name_source',
+        ] as $field) {
+            if (Arr::exists($input, $field)) {
+                $next[$field] = $field === 'email'
+                    ? $this->normalizeEmail($input[$field] ?? null)
+                    : $this->normalizeString($input[$field] ?? null);
+            }
+        }
+
+        foreach ([
+            'birth_date',
+            'ea_date',
+            'fc_date',
+            'mm_date',
+            'honorary_date',
+            'demit_date',
+            'death_date',
+        ] as $field) {
+            if (Arr::exists($input, $field)) {
+                $next[$field] = $this->normalizeDate($input[$field] ?? null);
+            }
+        }
+
+        foreach (['past_master', 'is_deceased'] as $field) {
+            if (Arr::exists($input, $field)) {
+                $next[$field] = $this->normalizeBoolean($input[$field] ?? null);
+            }
+        }
+
+        if (Arr::exists($input, 'status')) {
+            $next['status'] = $this->normalizeStatus($input['status'] ?? null);
+        }
+
+        if (($next['status'] ?? null) === MemberStatus::Deceased->value) {
+            $next['is_deceased'] = true;
+        }
+
+        if (($next['is_deceased'] ?? null) === false && Arr::exists($input, 'is_deceased')) {
+            $next['death_date'] = null;
+        }
+
+        return $next;
+    }
+
     protected function mergeIntoExistingPerson(Person $person, array $data): array
     {
         $merged = [];
@@ -353,5 +550,70 @@ class MemberRosterImportService
     {
         return (bool) Arr::get($data, 'is_deceased', false)
             || Arr::get($data, 'status') === MemberStatus::Deceased->value;
+    }
+
+    protected function normalizeStatus(mixed $value): ?string
+    {
+        $status = $this->normalizeString($value);
+
+        if (! $status) {
+            return null;
+        }
+
+        return in_array($status, MemberStatus::values(), true) ? $status : null;
+    }
+
+    protected function normalizeString(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    protected function normalizeEmail(mixed $value): ?string
+    {
+        $value = $this->normalizeString($value);
+
+        return $value ? Str::lower($value) : null;
+    }
+
+    protected function normalizeDate(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse((string) $value)->toDateString();
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    protected function normalizeBoolean(mixed $value): ?bool
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return ((int) $value) === 1;
+        }
+
+        $normalized = Str::lower(trim((string) $value));
+
+        if (in_array($normalized, ['1', 'true', 'yes', 'y', 'pm', 'past master'], true)) {
+            return true;
+        }
+
+        if (in_array($normalized, ['0', 'false', 'no', 'n'], true)) {
+            return false;
+        }
+
+        return null;
     }
 }

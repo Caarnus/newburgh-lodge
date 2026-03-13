@@ -4,16 +4,20 @@ namespace App\Http\Controllers\Manage;
 
 use App\Enums\MemberImportBatchStatus;
 use App\Enums\MemberImportRowStatus;
+use App\Enums\MemberStatus;
 use App\Helpers\Audit;
 use App\Helpers\People\PeoplePermissions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MemberImport\StoreMemberRosterImportRequest;
+use App\Http\Requests\MemberImport\UpdateMemberImportRowRequest;
 use App\Models\MemberImportBatch;
 use App\Models\MemberImportRow;
 use App\Services\People\Imports\MemberRosterImportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
@@ -23,6 +27,17 @@ class MemberRosterImportController extends Controller
     public function index(Request $request): JsonResponse|Response
     {
         abort_unless($request->user()?->can(PeoplePermissions::IMPORT_MEMBER_ROSTER), 403);
+
+        $rowStatusValues = array_map(
+            fn (MemberImportRowStatus $status) => $status->value,
+            MemberImportRowStatus::cases()
+        );
+        $request->validate([
+            'batch' => ['nullable', 'integer'],
+            'row_status' => ['nullable', Rule::in($rowStatusValues)],
+            'error_only' => ['nullable', 'boolean'],
+            'error_query' => ['nullable', 'string', 'max:200'],
+        ]);
 
         if ($request->expectsJson()) {
             $batches = MemberImportBatch::query()
@@ -36,16 +51,34 @@ class MemberRosterImportController extends Controller
         $selectedBatch = null;
         $selectedRows = collect();
         $selectedBatchId = $request->integer('batch');
+        $rowStatus = $request->string('row_status')->toString() ?: null;
+        $errorOnly = $request->boolean('error_only');
+        $errorQuery = trim($request->string('error_query')->toString());
 
         if ($selectedBatchId > 0) {
             $selectedBatch = MemberImportBatch::query()
                 ->withCount('rows')
                 ->findOrFail($selectedBatchId);
 
-            $selectedRows = MemberImportRow::query()
+            $selectedRowsQuery = MemberImportRow::query()
                 ->with('matchedPerson.memberProfile')
                 ->where('member_import_batch_id', $selectedBatch->id)
-                ->orderBy('row_number')
+                ->orderBy('row_number');
+
+            if ($rowStatus) {
+                $selectedRowsQuery->where('status', $rowStatus);
+            }
+
+            if ($errorOnly) {
+                $selectedRowsQuery->whereNotNull('error_message')
+                    ->where('error_message', '!=', '');
+            }
+
+            if ($errorQuery !== '') {
+                $selectedRowsQuery->whereRaw('LOWER(error_message) like ?', ['%'.Str::lower($errorQuery).'%']);
+            }
+
+            $selectedRows = $selectedRowsQuery
                 ->limit(500)
                 ->get();
         }
@@ -63,6 +96,18 @@ class MemberRosterImportController extends Controller
                 ->map(fn (MemberImportRow $row) => $this->serializeRow($row))
                 ->values(),
             'maxRowsShown' => 500,
+            'memberStatusOptions' => MemberStatus::options(),
+            'rowStatusOptions' => collect(MemberImportRowStatus::cases())
+                ->map(fn (MemberImportRowStatus $status) => [
+                    'value' => $status->value,
+                    'label' => Str::of($status->value)->replace('_', ' ')->title()->toString(),
+                ])
+                ->values(),
+            'rowFilters' => [
+                'row_status' => $rowStatus,
+                'error_only' => $errorOnly,
+                'error_query' => $errorQuery,
+            ],
         ]);
     }
 
@@ -104,7 +149,7 @@ class MemberRosterImportController extends Controller
         }
 
         return redirect()
-            ->route('manage.member-directory.imports.index', ['batch' => $batch->id])
+            ->route('manage.member-directory.imports.index', $this->indexRouteParams($request, $batch->id))
             ->with('success', 'Roster file uploaded and staged for review.');
     }
 
@@ -157,13 +202,68 @@ class MemberRosterImportController extends Controller
             'summary' => $batch->summary ?? [],
         ]);
 
+        $failedCount = (int) (($batch->summary['failed'] ?? 0));
+
         if ($request->expectsJson()) {
             return response()->json($batch->load('rows'));
         }
 
         return redirect()
-            ->route('manage.member-directory.imports.index', ['batch' => $batch->id])
-            ->with('success', 'Import batch applied successfully.');
+            ->route('manage.member-directory.imports.index', $this->indexRouteParams($request, $batch->id))
+            ->with(
+                $failedCount > 0 ? 'warning' : 'success',
+                $failedCount > 0
+                    ? "Batch apply completed with {$failedCount} failed row(s). Fix failed rows and apply again."
+                    : 'Import batch applied successfully.'
+            );
+    }
+
+    public function updateRow(
+        UpdateMemberImportRowRequest $request,
+        MemberImportBatch $importBatch,
+        MemberImportRow $row,
+        MemberRosterImportService $service,
+    ): JsonResponse|RedirectResponse {
+        abort_unless((int) $row->member_import_batch_id === (int) $importBatch->id, 404);
+
+        $updatedRow = $service->updateReviewedRow($row, $request->validated());
+
+        Audit::log($request, 'member_import.row_updated', $importBatch, changes: [
+            'after' => [
+                'row_id' => $updatedRow->id,
+                'row_number' => $updatedRow->row_number,
+                'status' => $updatedRow->status?->value ?? (string) $updatedRow->status,
+                'match_strategy' => $updatedRow->match_strategy,
+                'error_message' => $updatedRow->error_message,
+            ],
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json($this->serializeRow($updatedRow));
+        }
+
+        return redirect()
+            ->route('manage.member-directory.imports.index', $this->indexRouteParams($request, $importBatch->id))
+            ->with('success', "Row {$updatedRow->row_number} updated.");
+    }
+
+    public function destroy(Request $request, MemberImportBatch $importBatch): RedirectResponse
+    {
+        abort_unless($request->user()?->can(PeoplePermissions::IMPORT_MEMBER_ROSTER), 403);
+
+        $batchId = $importBatch->id;
+        $importBatch->delete();
+
+        Audit::log($request, 'member_import.deleted', meta: [
+            'batch_id' => $batchId,
+        ]);
+
+        $selectedBatchId = $request->integer('batch');
+        $nextBatch = $selectedBatchId === $batchId ? null : $selectedBatchId;
+
+        return redirect()
+            ->route('manage.member-directory.imports.index', $this->indexRouteParams($request, $nextBatch))
+            ->with('success', "Batch #{$batchId} deleted.");
     }
 
     protected function serializeBatch(MemberImportBatch $batch): array
@@ -196,6 +296,7 @@ class MemberRosterImportController extends Controller
                 : (string) $row->status,
             'match_strategy' => $row->match_strategy,
             'error_message' => $row->error_message,
+            'review_notes' => $row->review_notes,
             'normalized_payload' => $row->normalized_payload ?? [],
             'matched_person' => $row->matchedPerson ? [
                 'id' => $row->matchedPerson->id,
@@ -203,5 +304,15 @@ class MemberRosterImportController extends Controller
                 'member_number' => $row->matchedPerson->memberProfile?->member_number,
             ] : null,
         ];
+    }
+
+    protected function indexRouteParams(Request $request, ?int $batchId): array
+    {
+        return array_filter([
+            'batch' => $batchId,
+            'row_status' => $request->string('row_status')->toString() ?: null,
+            'error_only' => $request->boolean('error_only') ? 1 : null,
+            'error_query' => $request->string('error_query')->toString() ?: null,
+        ], static fn ($value) => $value !== null && $value !== '');
     }
 }

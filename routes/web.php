@@ -366,6 +366,14 @@ Route::middleware(['auth'])
             ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
             ->name('imports.apply');
 
+        Route::delete('imports/{importBatch}', [MemberRosterImportController::class, 'destroy'])
+            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
+            ->name('imports.destroy');
+
+        Route::patch('imports/{importBatch}/rows/{row}', [MemberRosterImportController::class, 'updateRow'])
+            ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
+            ->name('imports.rows.update');
+
         Route::get('officers', [OfficerAssignmentController::class, 'edit'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
             ->name('officers.edit');

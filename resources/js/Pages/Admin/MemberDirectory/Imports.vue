@@ -14,14 +14,20 @@ import Card from 'primevue/card';
 import Checkbox from 'primevue/checkbox';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
+import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
+import Select from 'primevue/select';
 import Tag from 'primevue/tag';
+import Textarea from 'primevue/textarea';
 
 const props = defineProps({
     batches: { type: Array, default: () => [] },
     selectedBatch: { type: Object, default: null },
     selectedRows: { type: Array, default: () => [] },
     maxRowsShown: { type: Number, default: 500 },
+    memberStatusOptions: { type: Array, default: () => [] },
+    rowStatusOptions: { type: Array, default: () => [] },
+    rowFilters: { type: Object, default: () => ({}) },
 });
 
 const fileInput = ref(null);
@@ -33,8 +39,36 @@ const uploadForm = useForm({
 const applyForm = useForm({
     include_possible_matches: false,
 });
+const editRowDialogVisible = ref(false);
+const editingRow = ref(null);
+const editRowForm = useForm({
+    member_number: '',
+    status: null,
+    first_name: '',
+    middle_name: '',
+    last_name: '',
+    suffix: '',
+    preferred_name: '',
+    email: '',
+    phone: '',
+    birth_date: '',
+    ea_date: '',
+    fc_date: '',
+    mm_date: '',
+    honorary_date: '',
+    demit_date: '',
+    is_deceased: false,
+    death_date: '',
+    past_master: false,
+    review_notes: '',
+});
+const rowFilters = ref({
+    row_status: props.rowFilters?.row_status ?? null,
+    error_only: Boolean(props.rowFilters?.error_only ?? false),
+    error_query: props.rowFilters?.error_query ?? '',
+});
 
-const canApplySelected = computed(() => props.selectedBatch?.status === 'staged');
+const canApplySelected = computed(() => ['staged', 'failed'].includes(props.selectedBatch?.status));
 
 const batchStatusSeverity = (status) => ({
     uploaded: 'info',
@@ -54,8 +88,23 @@ const rowStatusSeverity = (status) => ({
 
 const formatDateTime = (value) => value ? new Date(value).toLocaleString() : '—';
 
+const filterQuery = () => {
+    const errorQuery = (rowFilters.value.error_query || '').trim();
+
+    return {
+        row_status: rowFilters.value.row_status || undefined,
+        error_only: rowFilters.value.error_only ? 1 : undefined,
+        error_query: errorQuery !== '' ? errorQuery : undefined,
+    };
+};
+
+const indexQuery = (batchId = null) => ({
+    batch: batchId ?? undefined,
+    ...filterQuery(),
+});
+
 const selectBatch = (id) => {
-    router.get(route('manage.member-directory.imports.index'), { batch: id }, {
+    router.get(route('manage.member-directory.imports.index'), indexQuery(id), {
         preserveScroll: true,
         preserveState: true,
         replace: true,
@@ -84,9 +133,101 @@ const applySelectedBatch = () => {
         return;
     }
 
-    applyForm.post(route('manage.member-directory.imports.apply', { importBatch: props.selectedBatch.id }), {
+    applyForm.post(route('manage.member-directory.imports.apply', {
+        importBatch: props.selectedBatch.id,
+        ...filterQuery(),
+    }), {
         preserveScroll: true,
     });
+};
+
+const applyRowFilters = () => {
+    if (!props.selectedBatch) {
+        return;
+    }
+
+    router.get(route('manage.member-directory.imports.index'), indexQuery(props.selectedBatch.id), {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
+};
+
+const clearRowFilters = () => {
+    rowFilters.value.row_status = null;
+    rowFilters.value.error_only = false;
+    rowFilters.value.error_query = '';
+    applyRowFilters();
+};
+
+const deleteBatch = (batch) => {
+    if (!batch) {
+        return;
+    }
+
+    if (!window.confirm(`Delete batch #${batch.id}? This cannot be undone.`)) {
+        return;
+    }
+
+    router.delete(route('manage.member-directory.imports.destroy', {
+        importBatch: batch.id,
+        ...indexQuery(props.selectedBatch?.id ?? null),
+    }), {
+        preserveScroll: true,
+    });
+};
+
+const openEditRowDialog = (row) => {
+    editingRow.value = row;
+    editRowForm.reset();
+    editRowForm.clearErrors();
+
+    const payload = row.normalized_payload || {};
+    editRowForm.member_number = payload.member_number || '';
+    editRowForm.status = payload.status || null;
+    editRowForm.first_name = payload.first_name || '';
+    editRowForm.middle_name = payload.middle_name || '';
+    editRowForm.last_name = payload.last_name || '';
+    editRowForm.suffix = payload.suffix || '';
+    editRowForm.preferred_name = payload.preferred_name || '';
+    editRowForm.email = payload.email || '';
+    editRowForm.phone = payload.phone || '';
+    editRowForm.birth_date = payload.birth_date || '';
+    editRowForm.ea_date = payload.ea_date || '';
+    editRowForm.fc_date = payload.fc_date || '';
+    editRowForm.mm_date = payload.mm_date || '';
+    editRowForm.honorary_date = payload.honorary_date || '';
+    editRowForm.demit_date = payload.demit_date || '';
+    editRowForm.is_deceased = Boolean(payload.is_deceased ?? false);
+    editRowForm.death_date = payload.death_date || '';
+    editRowForm.past_master = Boolean(payload.past_master ?? false);
+    editRowForm.review_notes = row.review_notes || '';
+
+    editRowDialogVisible.value = true;
+};
+
+const closeEditRowDialog = () => {
+    editRowDialogVisible.value = false;
+    editingRow.value = null;
+    editRowForm.clearErrors();
+};
+
+const saveRowEdits = () => {
+    if (!props.selectedBatch || !editingRow.value) {
+        return;
+    }
+
+    editRowForm.patch(
+        route('manage.member-directory.imports.rows.update', {
+            importBatch: props.selectedBatch.id,
+            row: editingRow.value.id,
+            ...filterQuery(),
+        }),
+        {
+            preserveScroll: true,
+            onSuccess: () => closeEditRowDialog(),
+        },
+    );
 };
 
 const personLabel = (row) => {
@@ -179,7 +320,10 @@ const incomingName = (row) => {
                     </Column>
                     <Column header="Actions">
                         <template #body="{ data }">
-                            <Button label="Review" size="small" outlined @click="selectBatch(data.id)" />
+                            <div class="flex items-center gap-2">
+                                <Button label="Review" size="small" outlined @click="selectBatch(data.id)" />
+                                <Button label="Delete" size="small" severity="danger" outlined @click="deleteBatch(data)" />
+                            </div>
                         </template>
                     </Column>
                 </DataTable>
@@ -211,12 +355,64 @@ const incomingName = (row) => {
                         <Checkbox v-model="applyForm.include_possible_matches" binary />
                         <span>Include possible matches when applying</span>
                     </label>
-                    <Button
-                        label="Apply Batch"
-                        :loading="applyForm.processing"
-                        :disabled="!canApplySelected || applyForm.processing"
-                        @click="applySelectedBatch"
-                    />
+                    <div class="flex items-center gap-2">
+                        <Button
+                            label="Delete Batch"
+                            severity="danger"
+                            outlined
+                            @click="deleteBatch(selectedBatch)"
+                        />
+                        <Button
+                            label="Apply Batch"
+                            :loading="applyForm.processing"
+                            :disabled="!canApplySelected || applyForm.processing"
+                            @click="applySelectedBatch"
+                        />
+                    </div>
+                </div>
+
+                <div class="mb-4 rounded-lg border border-surface-200 p-3 dark:border-surface-700">
+                    <div class="grid gap-3 md:grid-cols-4">
+                        <div>
+                            <label class="mb-2 block text-sm font-medium">Row Status</label>
+                            <Select
+                                v-model="rowFilters.row_status"
+                                :options="rowStatusOptions"
+                                option-label="label"
+                                option-value="value"
+                                class="w-full"
+                                show-clear
+                                placeholder="All statuses"
+                            />
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="mb-2 block text-sm font-medium">Error Contains</label>
+                            <InputText
+                                v-model="rowFilters.error_query"
+                                class="w-full"
+                                placeholder="Duplicate member ID"
+                                @keyup.enter="applyRowFilters"
+                            />
+                        </div>
+                        <div class="flex items-end">
+                            <label class="inline-flex items-center gap-2 text-sm">
+                                <Checkbox v-model="rowFilters.error_only" binary />
+                                <span>Only rows with error</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center justify-end gap-2">
+                        <Button
+                            label="Clear Filters"
+                            severity="secondary"
+                            outlined
+                            @click="clearRowFilters"
+                        />
+                        <Button
+                            label="Apply Filters"
+                            @click="applyRowFilters"
+                        />
+                    </div>
                 </div>
 
                 <p class="mb-3 text-xs text-surface-500">
@@ -246,8 +442,138 @@ const incomingName = (row) => {
                     <Column header="Error">
                         <template #body="{ data }">{{ data.error_message || '—' }}</template>
                     </Column>
+                    <Column header="Actions">
+                        <template #body="{ data }">
+                            <Button
+                                label="Edit"
+                                size="small"
+                                outlined
+                                @click="openEditRowDialog(data)"
+                            />
+                        </template>
+                    </Column>
                 </DataTable>
             </template>
         </Card>
+
+        <Dialog
+            v-model:visible="editRowDialogVisible"
+            modal
+            header="Edit Staged Import Row"
+            class="w-full sm:w-[56rem]"
+            @hide="closeEditRowDialog"
+        >
+            <div class="space-y-4">
+                <div v-if="editingRow" class="rounded-lg border border-surface-200 bg-surface-50 p-3 text-sm dark:border-surface-700 dark:bg-surface-800">
+                    <div class="font-medium">Row #{{ editingRow.row_number }}</div>
+                    <div class="mt-1 text-surface-600 dark:text-surface-300">
+                        Update normalized data, save, then apply the batch again.
+                    </div>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-3">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Member ID</label>
+                        <InputText v-model="editRowForm.member_number" class="w-full" />
+                        <p v-if="editRowForm.errors.member_number" class="mt-1 text-sm text-red-500">{{ editRowForm.errors.member_number }}</p>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Status</label>
+                        <Select
+                            v-model="editRowForm.status"
+                            :options="memberStatusOptions"
+                            option-label="label"
+                            option-value="value"
+                            class="w-full"
+                            show-clear
+                        />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Birth Date</label>
+                        <InputText v-model="editRowForm.birth_date" type="date" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">First Name</label>
+                        <InputText v-model="editRowForm.first_name" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Middle Name</label>
+                        <InputText v-model="editRowForm.middle_name" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Last Name</label>
+                        <InputText v-model="editRowForm.last_name" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Suffix</label>
+                        <InputText v-model="editRowForm.suffix" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Preferred Name</label>
+                        <InputText v-model="editRowForm.preferred_name" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Email</label>
+                        <InputText v-model="editRowForm.email" type="email" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Phone</label>
+                        <InputText v-model="editRowForm.phone" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">EA Date</label>
+                        <InputText v-model="editRowForm.ea_date" type="date" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">FC Date</label>
+                        <InputText v-model="editRowForm.fc_date" type="date" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">MM Date</label>
+                        <InputText v-model="editRowForm.mm_date" type="date" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Honorary Date</label>
+                        <InputText v-model="editRowForm.honorary_date" type="date" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Demit Date</label>
+                        <InputText v-model="editRowForm.demit_date" type="date" class="w-full" />
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="mb-2 block text-sm font-medium">Review Notes</label>
+                        <Textarea v-model="editRowForm.review_notes" rows="3" class="w-full" />
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-6">
+                    <label class="inline-flex items-center gap-2 text-sm">
+                        <Checkbox v-model="editRowForm.is_deceased" binary />
+                        <span>Marked deceased</span>
+                    </label>
+                    <label class="inline-flex items-center gap-2 text-sm">
+                        <Checkbox v-model="editRowForm.past_master" binary />
+                        <span>Past Master</span>
+                    </label>
+                    <div v-if="editRowForm.is_deceased" class="w-full md:w-64">
+                        <label class="mb-2 block text-sm font-medium">Death Date</label>
+                        <InputText v-model="editRowForm.death_date" type="date" class="w-full" />
+                    </div>
+                </div>
+            </div>
+            <template #footer>
+                <Button
+                    label="Cancel"
+                    severity="secondary"
+                    text
+                    @click="closeEditRowDialog"
+                />
+                <Button
+                    label="Save Row"
+                    :loading="editRowForm.processing"
+                    @click="saveRowEdits"
+                />
+            </template>
+        </Dialog>
     </div>
 </template>
