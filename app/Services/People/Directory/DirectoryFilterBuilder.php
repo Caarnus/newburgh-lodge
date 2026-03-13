@@ -10,7 +10,7 @@ class DirectoryFilterBuilder
     {
         $filters = [
             'q' => $this->stringOrNull($request->input('q')),
-            'status' => $this->stringOrNull($request->input('status')),
+            'status' => $this->statusListOrNull($request->input('status')),
             'relationship_type' => $this->stringOrNull($request->input('relationship_type')),
             'has_email' => $this->stringOrNull($request->input('has_email')),
             'has_phone' => $this->stringOrNull($request->input('has_phone')),
@@ -41,5 +41,25 @@ class DirectoryFilterBuilder
         }
 
         return (int) $value;
+    }
+
+    protected function statusListOrNull(mixed $value): ?array
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_array($value)) {
+            $statuses = array_values(array_filter(
+                array_map(fn ($item) => $this->stringOrNull($item), $value),
+                static fn ($item) => $item !== null
+            ));
+
+            return $statuses === [] ? null : $statuses;
+        }
+
+        $singleStatus = $this->stringOrNull($value);
+
+        return $singleStatus ? [$singleStatus] : null;
     }
 }

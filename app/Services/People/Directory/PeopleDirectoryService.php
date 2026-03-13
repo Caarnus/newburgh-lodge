@@ -191,8 +191,9 @@ class PeopleDirectoryService
         $this->applyCommonSearch($query, $filters['q'] ?? null, includeMemberNumber: true);
         $this->applyDirectoryFilters($query, $filters);
 
-        if (filled($filters['status'] ?? null)) {
-            $query->where('member_profiles.status', $filters['status']);
+        $selectedStatuses = $filters['status'] ?? null;
+        if (is_array($selectedStatuses) && $selectedStatuses !== []) {
+            $query->whereIn('member_profiles.status', $selectedStatuses);
         }
 
         $this->applyMemberSort($query, $filters['sort'] ?? 'name');

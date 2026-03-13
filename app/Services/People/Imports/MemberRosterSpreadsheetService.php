@@ -187,7 +187,7 @@ class MemberRosterSpreadsheetService
         }
 
         return match ($normalized) {
-            'affiliation', 'master mason' => MemberStatus::MasterMason->value,
+            'restored', 'affiliation', 'master mason' => MemberStatus::MasterMason->value,
             'fellow craft', 'fellowcraft' => MemberStatus::Fellowcraft->value,
             'entered apprentice' => MemberStatus::EnteredApprentice->value,
             'petitioner' => MemberStatus::Petitioner->value,

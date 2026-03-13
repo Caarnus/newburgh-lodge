@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, watch } from 'vue';
 import Button from 'primevue/button';
+import MultiSelect from 'primevue/multiselect';
 import Select from 'primevue/select';
 import ToggleSwitch from 'primevue/toggleswitch';
 import InputText from 'primevue/inputtext';
@@ -36,10 +37,21 @@ const normalizeHideDeceased = (value) => (
     || value === 'true'
     || value === 'on'
 );
+const normalizeStatusFilter = (value) => {
+    if (Array.isArray(value)) {
+        return value.filter(Boolean);
+    }
+
+    if (value === null || value === undefined || value === '') {
+        return [];
+    }
+
+    return [value];
+};
 
 const localFilters = reactive({
     q: props.filters.q ?? null,
-    status: props.filters.status ?? null,
+    status: normalizeStatusFilter(props.filters.status),
     relationship_type: props.filters.relationship_type ?? null,
     has_email: props.filters.has_email ?? null,
     has_phone: props.filters.has_phone ?? null,
@@ -53,7 +65,7 @@ watch(
     () => props.filters,
     (filters) => {
         localFilters.q = filters.q ?? null;
-        localFilters.status = filters.status ?? null;
+        localFilters.status = normalizeStatusFilter(filters.status);
         localFilters.relationship_type = filters.relationship_type ?? null;
         localFilters.has_email = filters.has_email ?? null;
         localFilters.has_phone = filters.has_phone ?? null;
@@ -68,7 +80,7 @@ watch(
 watch(
     () => props.section,
     () => {
-        localFilters.status = null;
+        localFilters.status = [];
         localFilters.relationship_type = null;
         localFilters.sort = 'name';
     }
@@ -105,7 +117,7 @@ const searchPlaceholder = computed(() => ({
 const submit = () => {
     emit('apply', {
         q: localFilters.q,
-        status: localFilters.status,
+        status: localFilters.status.length > 0 ? localFilters.status : null,
         relationship_type: localFilters.relationship_type,
         has_email: localFilters.has_email,
         has_phone: localFilters.has_phone,
@@ -119,7 +131,7 @@ const submit = () => {
 
 const reset = () => {
     localFilters.q = null;
-    localFilters.status = null;
+    localFilters.status = [];
     localFilters.relationship_type = null;
     localFilters.has_email = null;
     localFilters.has_phone = null;
@@ -162,14 +174,16 @@ const reset = () => {
                 <label class="mb-2 block text-sm font-medium text-surface-700 dark:text-surface-200">
                     Status
                 </label>
-                <Select
+                <MultiSelect
                     v-model="localFilters.status"
                     :options="statusOptions"
                     option-label="label"
                     option-value="value"
                     class="w-full"
-                    show-clear
-                    placeholder="Any status"
+                    display="chip"
+                    :max-selected-labels="2"
+                    :show-clear="true"
+                    placeholder="Any statuses"
                 />
             </div>
 
