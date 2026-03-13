@@ -73,6 +73,7 @@ class StorePersonRelationshipRequest extends FormRequest
                 ),
             ],
             'inverse_relationship_type' => ['nullable', Rule::in($relationshipTypes)],
+            'anniversary_date' => ['nullable', 'date'],
             'is_primary' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];

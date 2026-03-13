@@ -80,6 +80,7 @@ class MemberRosterSpreadsheetService
     protected function normalizeRosterRow(array $raw): array
     {
         $status = $this->normalizeStatus($raw['Status'] ?? null);
+        $deathDate = $this->normalizeDate($raw['Date of Death'] ?? null);
 
         return [
             'member_number' => $this->normalizeString($raw['Member ID'] ?? null),
@@ -97,6 +98,11 @@ class MemberRosterSpreadsheetService
             'ea_date' => $this->normalizeDate($raw['EA'] ?? null),
             'fc_date' => $this->normalizeDate($raw['FC'] ?? null),
             'mm_date' => $this->normalizeDate($raw['MM'] ?? null),
+            'honorary_date' => $this->normalizeDate(
+                $raw['Honorary Date']
+                    ?? $raw['HonoraryDate']
+                    ?? null
+            ),
             'past_master' => $this->normalizeBoolean(
                 $raw['Past Master']
                     ?? $raw['PastMaster']
@@ -107,7 +113,8 @@ class MemberRosterSpreadsheetService
             'email' => $this->normalizeEmail($raw['Email'] ?? null),
             'spouse_name' => $this->normalizeString($raw['Spouse'] ?? null),
             'full_name_source' => $this->normalizeString($raw['Full Name'] ?? null),
-            'death_date' => $this->normalizeDate($raw['Date of Death'] ?? null),
+            'is_deceased' => $status === MemberStatus::Deceased->value || $deathDate !== null,
+            'death_date' => $deathDate,
         ];
     }
 

@@ -4,6 +4,7 @@ namespace App\Services\People\Imports;
 
 use App\Enums\MemberImportBatchStatus;
 use App\Enums\MemberImportRowStatus;
+use App\Enums\MemberStatus;
 use App\Helpers\Audit;
 use App\Models\MemberImportBatch;
 use App\Models\MemberImportRow;
@@ -155,7 +156,7 @@ class MemberRosterImportService
                     'state' => $data['state'] ?? null,
                     'postal_code' => $data['postal_code'] ?? null,
                     'birth_date' => $data['birth_date'] ?? null,
-                    'is_deceased' => false,
+                    'is_deceased' => (bool) ($data['is_deceased'] ?? false),
                     'death_date' => $data['death_date'] ?? null,
                 ]);
                 $personCreated = true;
@@ -172,6 +173,7 @@ class MemberRosterImportService
                 'ea_date' => $data['ea_date'] ?? null,
                 'fc_date' => $data['fc_date'] ?? null,
                 'mm_date' => $data['mm_date'] ?? null,
+                'honorary_date' => $data['honorary_date'] ?? null,
                 'demit_date' => $data['demit_date'] ?? null,
                 'past_master' => $data['past_master'] ?? null,
                 'roster_import_source' => $row->batch->source_label ?: $row->batch->original_filename,
@@ -330,11 +332,26 @@ class MemberRosterImportService
             }
         }
 
+        if ($this->incomingMarksDeceased($data) && ! $person->is_deceased) {
+            $merged['is_deceased'] = true;
+        }
+
+        $incomingDeathDate = Arr::get($data, 'death_date');
+        if ($incomingDeathDate !== null && blank($person->death_date)) {
+            $merged['death_date'] = $incomingDeathDate;
+        }
+
         return $merged;
     }
 
     protected function filterNulls(array $values): array
     {
         return array_filter($values, static fn ($value) => $value !== null);
+    }
+
+    protected function incomingMarksDeceased(array $data): bool
+    {
+        return (bool) Arr::get($data, 'is_deceased', false)
+            || Arr::get($data, 'status') === MemberStatus::Deceased->value;
     }
 }

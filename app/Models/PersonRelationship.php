@@ -13,6 +13,7 @@ class PersonRelationship extends Model
         'related_person_id',
         'relationship_type',
         'inverse_relationship_type',
+        'anniversary_date',
         'is_primary',
         'notes',
     ];
@@ -20,6 +21,7 @@ class PersonRelationship extends Model
     protected $casts = [
         'relationship_type' => RelationshipType::class,
         'inverse_relationship_type' => RelationshipType::class,
+        'anniversary_date' => 'date',
         'is_primary' => 'boolean',
     ];
 

@@ -18,6 +18,7 @@ class PersonRelationshipService
         int $relatedPersonId,
         RelationshipType $relationshipType,
         ?RelationshipType $inverseRelationshipType = null,
+        mixed $anniversaryDate = null,
         bool $isPrimary = false,
         ?string $notes = null,
     ): array {
@@ -30,9 +31,16 @@ class PersonRelationshipService
             $relatedPersonId,
             $relationshipType,
             $inverseRelationshipType,
+            $anniversaryDate,
             $isPrimary,
             $notes,
         ) {
+            $resolvedAnniversaryDate = $this->anniversaryDateForPair(
+                relationshipType: $relationshipType,
+                inverseRelationshipType: $inverseRelationshipType,
+                anniversaryDate: $anniversaryDate,
+            );
+
             $forward = PersonRelationship::updateOrCreate(
                 [
                     'person_id' => $personId,
@@ -41,6 +49,7 @@ class PersonRelationshipService
                 ],
                 [
                     'inverse_relationship_type' => $inverseRelationshipType,
+                    'anniversary_date' => $resolvedAnniversaryDate,
                     'is_primary' => $isPrimary,
                     'notes' => $notes,
                 ]
@@ -57,6 +66,7 @@ class PersonRelationshipService
                     ],
                     [
                         'inverse_relationship_type' => $relationshipType,
+                        'anniversary_date' => $resolvedAnniversaryDate,
                         'is_primary' => $isPrimary,
                         'notes' => $notes,
                     ]
@@ -90,6 +100,7 @@ class PersonRelationshipService
         PersonRelationship $relationship,
         RelationshipType $relationshipType,
         ?RelationshipType $inverseRelationshipType = null,
+        mixed $anniversaryDate = null,
         bool $isPrimary = false,
         ?string $notes = null,
     ): array {
@@ -101,6 +112,7 @@ class PersonRelationshipService
             $relationship,
             $relationshipType,
             $inverseRelationshipType,
+            $anniversaryDate,
             $isPrimary,
             $notes,
         ) {
@@ -112,9 +124,16 @@ class PersonRelationshipService
                     ->delete();
             }
 
+            $resolvedAnniversaryDate = $this->anniversaryDateForPair(
+                relationshipType: $relationshipType,
+                inverseRelationshipType: $inverseRelationshipType,
+                anniversaryDate: $anniversaryDate,
+            );
+
             $relationship->fill([
                 'relationship_type' => $relationshipType,
                 'inverse_relationship_type' => $inverseRelationshipType,
+                'anniversary_date' => $resolvedAnniversaryDate,
                 'is_primary' => $isPrimary,
                 'notes' => $notes,
             ]);
@@ -131,6 +150,7 @@ class PersonRelationshipService
                     ],
                     [
                         'inverse_relationship_type' => $relationshipType,
+                        'anniversary_date' => $resolvedAnniversaryDate,
                         'is_primary' => $isPrimary,
                         'notes' => $notes,
                     ]
@@ -140,4 +160,16 @@ class PersonRelationshipService
             return [$relationship->fresh(), $reverse];
         });
     }
+
+    protected function anniversaryDateForPair(
+        RelationshipType $relationshipType,
+        ?RelationshipType $inverseRelationshipType,
+        mixed $anniversaryDate,
+    ): mixed {
+        $isSpouseRelationship = $relationshipType === RelationshipType::Spouse
+            || $inverseRelationshipType === RelationshipType::Spouse;
+
+        return $isSpouseRelationship ? $anniversaryDate : null;
+    }
 }
+

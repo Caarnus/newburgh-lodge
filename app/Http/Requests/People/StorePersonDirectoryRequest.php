@@ -59,6 +59,7 @@ class StorePersonDirectoryRequest extends FormRequest
             'ea_date' => ['nullable', 'date'],
             'fc_date' => ['nullable', 'date'],
             'mm_date' => ['nullable', 'date'],
+            'honorary_date' => ['nullable', 'date'],
             'demit_date' => ['nullable', 'date'],
             'past_master' => ['nullable', 'boolean'],
             'can_auto_match_registration' => ['nullable', 'boolean'],
@@ -76,6 +77,7 @@ class StorePersonDirectoryRequest extends FormRequest
                 Rule::requiredIf(fn () => $this->string('record_type')->toString() === 'relative'),
             ],
             'inverse_relationship_type' => ['nullable', Rule::in($relationshipTypes)],
+            'relationship_anniversary_date' => ['nullable', 'date'],
             'relationship_is_primary' => ['nullable', 'boolean'],
             'relationship_notes' => ['nullable', 'string', 'max:1000'],
         ];

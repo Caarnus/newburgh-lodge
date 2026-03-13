@@ -47,6 +47,7 @@ const form = useForm({
     ea_date: '',
     fc_date: '',
     mm_date: '',
+    honorary_date: '',
     demit_date: '',
     past_master: false,
     can_auto_match_registration: true,
@@ -55,6 +56,7 @@ const form = useForm({
     related_person_id: null,
     relationship_type: null,
     inverse_relationship_type: null,
+    relationship_anniversary_date: '',
     relationship_is_primary: false,
     relationship_notes: '',
 });
@@ -65,6 +67,9 @@ const relatedOptions = ref([]);
 
 const showMemberFields = computed(() => form.record_type === 'member');
 const showRelativeFields = computed(() => form.record_type === 'relative');
+const relationshipIncludesSpouse = computed(() => (
+    form.relationship_type === 'spouse' || form.inverse_relationship_type === 'spouse'
+));
 
 const recordTypeOptions = [
     { label: 'Member', value: 'member' },
@@ -245,6 +250,10 @@ const submit = () => {
                         <InputText v-model="form.mm_date" type="date" class="w-full" />
                     </div>
                     <div>
+                        <label class="mb-2 block text-sm font-medium">Honorary Date</label>
+                        <InputText v-model="form.honorary_date" type="date" class="w-full" />
+                    </div>
+                    <div>
                         <label class="mb-2 block text-sm font-medium">Demit Date</label>
                         <InputText v-model="form.demit_date" type="date" class="w-full" />
                     </div>
@@ -336,6 +345,13 @@ const submit = () => {
                         />
                         <p class="mt-1 text-xs text-surface-500">
                             In the same example above, choose Parent here.
+                        </p>
+                    </div>
+                    <div v-if="relationshipIncludesSpouse">
+                        <label class="mb-2 block text-sm font-medium">Anniversary Date</label>
+                        <InputText v-model="form.relationship_anniversary_date" type="date" class="w-full" />
+                        <p v-if="form.errors.relationship_anniversary_date" class="mt-1 text-sm text-red-500">
+                            {{ form.errors.relationship_anniversary_date }}
                         </p>
                     </div>
                     <div>

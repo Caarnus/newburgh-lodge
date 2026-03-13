@@ -44,6 +44,7 @@ class DirectoryPersonPresenter
                 'ea_date' => self::date($person->memberProfile->ea_date),
                 'fc_date' => self::date($person->memberProfile->fc_date),
                 'mm_date' => self::date($person->memberProfile->mm_date),
+                'honorary_date' => self::date($person->memberProfile->honorary_date),
                 'demit_date' => self::date($person->memberProfile->demit_date),
                 'past_master' => (bool) $person->memberProfile->past_master,
                 'roster_import_source' => $person->memberProfile->roster_import_source,
@@ -129,6 +130,7 @@ class DirectoryPersonPresenter
                 'ea_date' => self::date($person->memberProfile->ea_date),
                 'fc_date' => self::date($person->memberProfile->fc_date),
                 'mm_date' => self::date($person->memberProfile->mm_date),
+                'honorary_date' => self::date($person->memberProfile->honorary_date),
                 'demit_date' => self::date($person->memberProfile->demit_date),
                 'past_master' => (bool) $person->memberProfile->past_master,
                 'directory_visible' => (bool) $person->memberProfile->directory_visible,
@@ -190,6 +192,7 @@ class DirectoryPersonPresenter
                 'label' => self::relationshipLabel($relationship->relationship_type?->value),
                 'inverse_type' => $relationship->inverse_relationship_type?->value,
                 'inverse_label' => self::relationshipLabel($relationship->inverse_relationship_type?->value),
+                'anniversary_date' => self::date($relationship->anniversary_date),
                 'is_primary' => (bool) $relationship->is_primary,
                 'notes' => $relationship->notes,
                 'person' => $relationship->relatedPerson ? [
@@ -213,6 +216,7 @@ class DirectoryPersonPresenter
                 'label' => self::relationshipLabel($relationship->relationship_type?->value),
                 'inverse_type' => $relationship->inverse_relationship_type?->value,
                 'inverse_label' => self::relationshipLabel($relationship->inverse_relationship_type?->value),
+                'anniversary_date' => self::date($relationship->anniversary_date),
                 'is_primary' => (bool) $relationship->is_primary,
                 'notes' => $relationship->notes,
                 'person' => $relationship->person ? [

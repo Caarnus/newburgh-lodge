@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Manage;
 
 use App\Enums\RelationshipType;
+use App\Helpers\RoleEnum;
 use App\Helpers\Audit;
 use App\Helpers\People\DirectoryPersonPresenter;
 use App\Helpers\People\PeoplePermissions;
@@ -10,12 +11,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\People\ShowPersonDirectoryRequest;
 use App\Http\Requests\People\StorePersonDirectoryRequest;
 use App\Http\Requests\People\UpdatePersonDirectoryRequest;
+use App\Mail\MemberContactInfoUpdatedMail;
 use App\Models\MemberProfile;
 use App\Models\Person;
+use App\Models\User;
 use App\Services\People\PersonRelationshipService;
 use App\Services\People\Directory\PeopleDirectoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -67,6 +71,7 @@ class PersonDirectoryController extends Controller
                     'ea_date' => $request->date('ea_date'),
                     'fc_date' => $request->date('fc_date'),
                     'mm_date' => $request->date('mm_date'),
+                    'honorary_date' => $request->date('honorary_date'),
                     'demit_date' => $request->date('demit_date'),
                     'past_master' => $request->boolean('past_master'),
                     'can_auto_match_registration' => $request->boolean('can_auto_match_registration', true),
@@ -85,6 +90,7 @@ class PersonDirectoryController extends Controller
                     relatedPersonId: $request->integer('related_person_id'),
                     relationshipType: $relationshipType,
                     inverseRelationshipType: $inverseRelationshipType,
+                    anniversaryDate: $request->date('relationship_anniversary_date'),
                     isPrimary: $request->boolean('relationship_is_primary'),
                     notes: $request->string('relationship_notes')->toString() ?: null,
                 );
@@ -124,6 +130,7 @@ class PersonDirectoryController extends Controller
         $canManageRecords = $request->user()?->can(PeoplePermissions::UPDATE_MEMBER_RECORDS) ?? false;
         $person->loadMissing('memberProfile');
         $before = $this->auditSnapshot($person, $canManageRecords);
+        $beforeContact = $this->contactSnapshot($person);
 
         DB::transaction(function () use ($request, $person, $canManageRecords) {
             $personData = [
@@ -153,6 +160,23 @@ class PersonDirectoryController extends Controller
                         ? $request->date('death_date')
                         : null,
                 ]);
+            } else {
+                $personData = array_merge($personData, [
+                    'first_name' => $request->input('first_name', $person->first_name),
+                    'middle_name' => $request->has('middle_name')
+                        ? ($request->string('middle_name')->toString() ?: null)
+                        : $person->middle_name,
+                    'last_name' => $request->input('last_name', $person->last_name),
+                    'suffix' => $request->has('suffix')
+                        ? ($request->string('suffix')->toString() ?: null)
+                        : $person->suffix,
+                    'display_name_override' => $request->has('display_name_override')
+                        ? ($request->string('display_name_override')->toString() ?: null)
+                        : $person->display_name_override,
+                    'birth_date' => $request->has('birth_date')
+                        ? $request->date('birth_date')
+                        : $person->birth_date,
+                ]);
             }
 
             $person->fill($personData);
@@ -168,6 +192,7 @@ class PersonDirectoryController extends Controller
                 'ea_date' => $request->date('member_profile.ea_date'),
                 'fc_date' => $request->date('member_profile.fc_date'),
                 'mm_date' => $request->date('member_profile.mm_date'),
+                'honorary_date' => $request->date('member_profile.honorary_date'),
                 'demit_date' => $request->date('member_profile.demit_date'),
                 'past_master' => $request->boolean(
                     'member_profile.past_master',
@@ -190,6 +215,7 @@ class PersonDirectoryController extends Controller
                 'ea_date',
                 'fc_date',
                 'mm_date',
+                'honorary_date',
                 'demit_date',
                 'past_master',
             ])->contains(fn (string $key) => filled($memberProfileInput[$key] ?? null));
@@ -209,6 +235,7 @@ class PersonDirectoryController extends Controller
 
         $person->refresh()->load('memberProfile');
         $after = $this->auditSnapshot($person, $canManageRecords);
+        $afterContact = $this->contactSnapshot($person);
 
         if ($before !== $after) {
             Audit::log(
@@ -224,6 +251,13 @@ class PersonDirectoryController extends Controller
                 ],
             );
         }
+
+        $this->sendContactUpdateNotificationIfNeeded(
+            request: $request,
+            person: $person,
+            beforeContact: $beforeContact,
+            afterContact: $afterContact,
+        );
 
         return back()->with('success', $canManageRecords ? 'Person record updated.' : 'Profile updated.');
     }
@@ -243,7 +277,13 @@ class PersonDirectoryController extends Controller
         ];
 
         if (! $canManageRecords) {
-            return $snapshot;
+            return array_merge($snapshot, [
+                'first_name' => $person->first_name,
+                'middle_name' => $person->middle_name,
+                'last_name' => $person->last_name,
+                'suffix' => $person->suffix,
+                'birth_date' => optional($person->birth_date)->toDateString(),
+            ]);
         }
 
         return array_merge($snapshot, [
@@ -261,11 +301,78 @@ class PersonDirectoryController extends Controller
                 'ea_date' => optional($person->memberProfile->ea_date)->toDateString(),
                 'fc_date' => optional($person->memberProfile->fc_date)->toDateString(),
                 'mm_date' => optional($person->memberProfile->mm_date)->toDateString(),
+                'honorary_date' => optional($person->memberProfile->honorary_date)->toDateString(),
                 'demit_date' => optional($person->memberProfile->demit_date)->toDateString(),
                 'past_master' => (bool) $person->memberProfile->past_master,
                 'can_auto_match_registration' => (bool) $person->memberProfile->can_auto_match_registration,
                 'directory_visible' => (bool) $person->memberProfile->directory_visible,
             ] : null,
         ]);
+    }
+
+    protected function contactSnapshot(Person $person): array
+    {
+        return [
+            'email' => $person->email,
+            'phone' => $person->phone,
+            'address_line_1' => $person->address_line_1,
+            'address_line_2' => $person->address_line_2,
+            'city' => $person->city,
+            'state' => $person->state,
+            'postal_code' => $person->postal_code,
+        ];
+    }
+
+    protected function sendContactUpdateNotificationIfNeeded(
+        UpdatePersonDirectoryRequest $request,
+        Person $person,
+        array $beforeContact,
+        array $afterContact,
+    ): void {
+        $actor = $request->user();
+
+        if (! $actor) {
+            return;
+        }
+
+        $adminOrSecretaryRoles = [RoleEnum::ADMIN->value, RoleEnum::SECRETARY->value];
+
+        if ($actor->hasAnyRole($adminOrSecretaryRoles)) {
+            return;
+        }
+
+        $changedFields = collect($afterContact)
+            ->map(fn ($value, $key) => [
+                'field' => $key,
+                'before' => $beforeContact[$key] ?? null,
+                'after' => $value,
+            ])
+            ->filter(fn (array $change) => (string) ($change['before'] ?? '') !== (string) ($change['after'] ?? ''))
+            ->values()
+            ->all();
+
+        if (empty($changedFields)) {
+            return;
+        }
+
+        $recipients = User::query()
+            ->whereHas('roles', fn ($roleQuery) => $roleQuery->whereIn('name', $adminOrSecretaryRoles))
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->get()
+            ->unique('email')
+            ->mapWithKeys(fn (User $user) => [$user->email => $user->name ?? $user->email])
+            ->all();
+
+        if ($recipients === []) {
+            return;
+        }
+
+        Mail::to($recipients)->send(new MemberContactInfoUpdatedMail(
+            person: $person,
+            actor: $actor,
+            changes: $changedFields,
+            profileUrl: route('manage.member-directory.people.show', ['person' => $person->id]),
+        ));
     }
 }

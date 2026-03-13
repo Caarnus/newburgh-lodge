@@ -8,12 +8,22 @@ use App\Models\Person;
 use App\Models\User;
 use App\Models\UserPersonLinkAudit;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 
 class UserPersonLinkService
 {
     protected string $memberRole = 'member';
+
+    /**
+     * @var array<int, string>
+     */
+    protected array $disallowedMemberRoleStatuses = [
+        'expelled',
+        'suspended',
+        'demitted',
+    ];
 
     /**
      * @throws Throwable
@@ -164,7 +174,17 @@ class UserPersonLinkService
     {
         $person->loadMissing('memberProfile');
 
-        return $person->memberProfile !== null;
+        if ($person->memberProfile === null) {
+            return false;
+        }
+
+        $status = Str::lower(trim((string) ($person->memberProfile->status ?? '')));
+
+        if ($status === '') {
+            return true;
+        }
+
+        return ! in_array($status, $this->disallowedMemberRoleStatuses, true);
     }
 
     protected function assignMemberRole(User $user): bool

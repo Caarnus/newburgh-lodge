@@ -58,6 +58,9 @@ const canManageRecords = computed(() => Boolean(page.props?.can?.manage?.people?
 const canManageRelationships = canManageRecords;
 const canLogContacts = computed(() => Boolean(page.props?.can?.manage?.people?.logContacts));
 const canEditContacts = computed(() => Boolean(page.props?.can?.manage?.people?.editContacts));
+const relationshipIncludesSpouse = (relationshipType, inverseRelationshipType) => (
+    relationshipType === 'spouse' || inverseRelationshipType === 'spouse'
+);
 const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDateString() : '—';
 const parseDateTime = (value) => {
     if (!value) {
@@ -119,6 +122,7 @@ const createRelationshipForm = useForm({
     related_person_id: null,
     relationship_type: null,
     inverse_relationship_type: null,
+    anniversary_date: '',
     is_primary: false,
     notes: '',
     new_person_first_name: '',
@@ -137,6 +141,7 @@ const createRelationshipForm = useForm({
 const editRelationshipForm = useForm({
     relationship_type: null,
     inverse_relationship_type: null,
+    anniversary_date: '',
     is_primary: false,
     notes: '',
     from: props.fromSection,
@@ -166,12 +171,23 @@ const editRecordForm = useForm({
         ea_date: '',
         fc_date: '',
         mm_date: '',
+        honorary_date: '',
         demit_date: '',
         past_master: false,
         can_auto_match_registration: true,
         directory_visible: true,
     },
 });
+
+const createRelationshipIncludesSpouse = computed(() => relationshipIncludesSpouse(
+    createRelationshipForm.relationship_type,
+    createRelationshipForm.inverse_relationship_type,
+));
+
+const editRelationshipIncludesSpouse = computed(() => relationshipIncludesSpouse(
+    editRelationshipForm.relationship_type,
+    editRelationshipForm.inverse_relationship_type,
+));
 
 const editContactForm = useForm({
     contacted_at: '',
@@ -205,6 +221,7 @@ const populateEditRecordForm = () => {
         ea_date: props.person.member_profile?.ea_date || '',
         fc_date: props.person.member_profile?.fc_date || '',
         mm_date: props.person.member_profile?.mm_date || '',
+        honorary_date: props.person.member_profile?.honorary_date || '',
         demit_date: props.person.member_profile?.demit_date || '',
         past_master: Boolean(props.person.member_profile?.past_master ?? false),
         can_auto_match_registration: Boolean(props.person.member_profile?.can_auto_match_registration ?? true),
@@ -296,6 +313,7 @@ const openEditRelationshipDialog = (relationship) => {
     editRelationshipForm.clearErrors();
     editRelationshipForm.relationship_type = relationship.type;
     editRelationshipForm.inverse_relationship_type = relationship.inverse_type;
+    editRelationshipForm.anniversary_date = relationship.anniversary_date || '';
     editRelationshipForm.is_primary = Boolean(relationship.is_primary);
     editRelationshipForm.notes = relationship.notes || '';
     editRelationshipForm.from = props.fromSection;
@@ -535,6 +553,10 @@ const submitEditContact = () => {
                             <div>{{ formatDate(person.member_profile.mm_date) }}</div>
                         </div>
                         <div>
+                            <div class="font-medium text-surface-700 dark:text-surface-200">Honorary Date</div>
+                            <div>{{ formatDate(person.member_profile.honorary_date) }}</div>
+                        </div>
+                        <div>
                             <div class="font-medium text-surface-700 dark:text-surface-200">Demit Date</div>
                             <div>{{ formatDate(person.member_profile.demit_date) }}</div>
                         </div>
@@ -550,141 +572,91 @@ const submitEditContact = () => {
             </Card>
         </div>
 
-        <div class="grid gap-6 lg:grid-cols-2">
-            <Card>
-                <template #title>Relationships</template>
-                <template #content>
-                    <div class="hidden md:block">
-                        <DataTable :value="person.relationships" data-key="id" responsive-layout="scroll">
-                            <Column header="This Person -> Related Person">
-                                <template #body="{ data }">{{ data.label || '—' }}</template>
-                            </Column>
-                            <Column header="Person">
-                                <template #body="{ data }">{{ data.person?.display_name || '—' }}</template>
-                            </Column>
-                            <Column header="Member #">
-                                <template #body="{ data }">{{ data.person?.member_number || '—' }}</template>
-                            </Column>
-                            <Column header="Related Person -> This Person">
-                                <template #body="{ data }">{{ data.inverse_label || '—' }}</template>
-                            </Column>
-                            <Column header="Primary">
-                                <template #body="{ data }">{{ data.is_primary ? 'Yes' : 'No' }}</template>
-                            </Column>
-                            <Column header="Notes" style="min-width: 16rem">
-                                <template #body="{ data }">{{ data.notes || '—' }}</template>
-                            </Column>
-                            <Column v-if="canManageRelationships" header="Actions" style="min-width: 11rem">
-                                <template #body="{ data }">
-                                    <div class="flex items-center gap-2">
-                                        <Button
-                                            text
-                                            size="small"
-                                            label="Edit"
-                                            @click="openEditRelationshipDialog(data)"
-                                        />
-                                        <Button
-                                            text
-                                            severity="danger"
-                                            size="small"
-                                            label="Remove"
-                                            @click="deleteRelationship(data)"
-                                        />
-                                    </div>
-                                </template>
-                            </Column>
-                            <template #empty>
-                                <div class="py-2 text-sm text-surface-500">No relationships recorded.</div>
+        <Card>
+            <template #title>Related To This Person</template>
+            <template #content>
+                <div class="hidden md:block">
+                    <DataTable :value="person.inverse_relationships" data-key="id" responsive-layout="scroll">
+                        <Column header="Their Relationship to This Person">
+                            <template #body="{ data }">{{ data.label || '—' }}</template>
+                        </Column>
+                        <Column header="Person">
+                            <template #body="{ data }">{{ data.person?.display_name || '—' }}</template>
+                        </Column>
+                        <Column header="Member #">
+                            <template #body="{ data }">{{ data.person?.member_number || '—' }}</template>
+                        </Column>
+                        <Column header="Anniversary Date">
+                            <template #body="{ data }">{{ formatDate(data.anniversary_date) }}</template>
+                        </Column>
+                        <Column header="Primary">
+                            <template #body="{ data }">{{ data.is_primary ? 'Yes' : 'No' }}</template>
+                        </Column>
+                        <Column header="Notes" style="min-width: 16rem">
+                            <template #body="{ data }">{{ data.notes || '—' }}</template>
+                        </Column>
+                        <Column v-if="canManageRelationships" header="Actions" style="min-width: 11rem">
+                            <template #body="{ data }">
+                                <div class="flex items-center gap-2">
+                                    <Button
+                                        text
+                                        size="small"
+                                        label="Edit"
+                                        @click="openEditRelationshipDialog(data)"
+                                    />
+                                    <Button
+                                        text
+                                        severity="danger"
+                                        size="small"
+                                        label="Remove"
+                                        @click="deleteRelationship(data)"
+                                    />
+                                </div>
                             </template>
-                        </DataTable>
-                    </div>
+                        </Column>
+                        <template #empty>
+                            <div class="py-2 text-sm text-surface-500">No incoming relationships recorded.</div>
+                        </template>
+                    </DataTable>
+                </div>
 
-                    <div class="space-y-3 md:hidden">
-                        <div
-                            v-for="relationship in person.relationships"
-                            :key="relationship.id"
-                            class="rounded-lg border border-surface-200 p-3 text-sm dark:border-surface-700"
-                        >
-                            <div><span class="font-medium">This Person -> Related Person:</span> {{ relationship.label || '—' }}</div>
-                            <div><span class="font-medium">Person:</span> {{ relationship.person?.display_name || '—' }}</div>
-                            <div><span class="font-medium">Member #:</span> {{ relationship.person?.member_number || '—' }}</div>
-                            <div><span class="font-medium">Related Person -> This Person:</span> {{ relationship.inverse_label || '—' }}</div>
-                            <div><span class="font-medium">Primary:</span> {{ relationship.is_primary ? 'Yes' : 'No' }}</div>
-                            <div><span class="font-medium">Notes:</span> {{ relationship.notes || '—' }}</div>
-                            <div v-if="canManageRelationships" class="mt-2 flex items-center gap-2">
-                                <Button
-                                    text
-                                    size="small"
-                                    label="Edit"
-                                    @click="openEditRelationshipDialog(relationship)"
-                                />
-                                <Button
-                                    text
-                                    severity="danger"
-                                    size="small"
-                                    label="Remove"
-                                    @click="deleteRelationship(relationship)"
-                                />
-                            </div>
-                        </div>
-                        <div
-                            v-if="!person.relationships?.length"
-                            class="rounded-lg border border-surface-200 p-3 text-sm text-surface-500 dark:border-surface-700"
-                        >
-                            No relationships recorded.
+                <div class="space-y-3 md:hidden">
+                    <div
+                        v-for="relationship in person.inverse_relationships"
+                        :key="relationship.id"
+                        class="rounded-lg border border-surface-200 p-3 text-sm dark:border-surface-700"
+                    >
+                        <div><span class="font-medium">Their Relationship to This Person:</span> {{ relationship.label || '—' }}</div>
+                        <div><span class="font-medium">Person:</span> {{ relationship.person?.display_name || '—' }}</div>
+                        <div><span class="font-medium">Member #:</span> {{ relationship.person?.member_number || '—' }}</div>
+                        <div><span class="font-medium">Anniversary Date:</span> {{ formatDate(relationship.anniversary_date) }}</div>
+                        <div><span class="font-medium">Primary:</span> {{ relationship.is_primary ? 'Yes' : 'No' }}</div>
+                        <div><span class="font-medium">Notes:</span> {{ relationship.notes || '—' }}</div>
+                        <div v-if="canManageRelationships" class="mt-2 flex items-center gap-2">
+                            <Button
+                                text
+                                size="small"
+                                label="Edit"
+                                @click="openEditRelationshipDialog(relationship)"
+                            />
+                            <Button
+                                text
+                                severity="danger"
+                                size="small"
+                                label="Remove"
+                                @click="deleteRelationship(relationship)"
+                            />
                         </div>
                     </div>
-                </template>
-            </Card>
-
-            <Card>
-                <template #title>Related To This Person</template>
-                <template #content>
-                    <div class="hidden md:block">
-                        <DataTable :value="person.inverse_relationships" data-key="id" responsive-layout="scroll">
-                            <Column header="Their Relationship to This Person">
-                                <template #body="{ data }">{{ data.label || '—' }}</template>
-                            </Column>
-                            <Column header="Person">
-                                <template #body="{ data }">{{ data.person?.display_name || '—' }}</template>
-                            </Column>
-                            <Column header="Member #">
-                                <template #body="{ data }">{{ data.person?.member_number || '—' }}</template>
-                            </Column>
-                            <Column header="Primary">
-                                <template #body="{ data }">{{ data.is_primary ? 'Yes' : 'No' }}</template>
-                            </Column>
-                            <Column header="Notes" style="min-width: 16rem">
-                                <template #body="{ data }">{{ data.notes || '—' }}</template>
-                            </Column>
-                            <template #empty>
-                                <div class="py-2 text-sm text-surface-500">No incoming relationships recorded.</div>
-                            </template>
-                        </DataTable>
+                    <div
+                        v-if="!person.inverse_relationships?.length"
+                        class="rounded-lg border border-surface-200 p-3 text-sm text-surface-500 dark:border-surface-700"
+                    >
+                        No incoming relationships recorded.
                     </div>
-
-                    <div class="space-y-3 md:hidden">
-                        <div
-                            v-for="relationship in person.inverse_relationships"
-                            :key="relationship.id"
-                            class="rounded-lg border border-surface-200 p-3 text-sm dark:border-surface-700"
-                        >
-                            <div><span class="font-medium">Their Relationship to This Person:</span> {{ relationship.label || '—' }}</div>
-                            <div><span class="font-medium">Person:</span> {{ relationship.person?.display_name || '—' }}</div>
-                            <div><span class="font-medium">Member #:</span> {{ relationship.person?.member_number || '—' }}</div>
-                            <div><span class="font-medium">Primary:</span> {{ relationship.is_primary ? 'Yes' : 'No' }}</div>
-                            <div><span class="font-medium">Notes:</span> {{ relationship.notes || '—' }}</div>
-                        </div>
-                        <div
-                            v-if="!person.inverse_relationships?.length"
-                            class="rounded-lg border border-surface-200 p-3 text-sm text-surface-500 dark:border-surface-700"
-                        >
-                            No incoming relationships recorded.
-                        </div>
-                    </div>
-                </template>
-            </Card>
-        </div>
+                </div>
+            </template>
+        </Card>
 
         <Card>
             <template #title>Contact History</template>
@@ -864,6 +836,10 @@ const submitEditContact = () => {
                     <div>
                         <label class="mb-2 block text-sm font-medium">MM Date</label>
                         <InputText v-model="editRecordForm.member_profile.mm_date" type="date" class="w-full" />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium">Honorary Date</label>
+                        <InputText v-model="editRecordForm.member_profile.honorary_date" type="date" class="w-full" />
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">Demit Date</label>
@@ -1056,6 +1032,13 @@ const submitEditContact = () => {
                             In the same example above, choose Parent here.
                         </p>
                     </div>
+                    <div v-if="createRelationshipIncludesSpouse" class="md:col-span-2">
+                        <label class="mb-2 block text-sm font-medium">Anniversary Date</label>
+                        <InputText v-model="createRelationshipForm.anniversary_date" type="date" class="w-full md:w-64" />
+                        <p v-if="createRelationshipForm.errors.anniversary_date" class="mt-1 text-sm text-red-500">
+                            {{ createRelationshipForm.errors.anniversary_date }}
+                        </p>
+                    </div>
                     <div class="md:col-span-2">
                         <label class="mb-2 block text-sm font-medium">Notes</label>
                         <Textarea v-model="createRelationshipForm.notes" rows="3" class="w-full" />
@@ -1132,6 +1115,14 @@ const submitEditContact = () => {
                     </p>
                     <p class="mt-1 text-xs text-surface-500">
                         In the same example above, choose Parent here.
+                    </p>
+                </div>
+
+                <div v-if="editRelationshipIncludesSpouse">
+                    <label class="mb-2 block text-sm font-medium">Anniversary Date</label>
+                    <InputText v-model="editRelationshipForm.anniversary_date" type="date" class="w-full md:w-64" />
+                    <p v-if="editRelationshipForm.errors.anniversary_date" class="mt-1 text-sm text-red-500">
+                        {{ editRelationshipForm.errors.anniversary_date }}
                     </p>
                 </div>
 

@@ -22,7 +22,10 @@ class UpdatePersonRelationshipRequest extends FormRequest
             return false;
         }
 
-        if ((int) $relationship->person_id !== (int) $person->id) {
+        $isAttachedToPerson = (int) $relationship->person_id === (int) $person->id
+            || (int) $relationship->related_person_id === (int) $person->id;
+
+        if (! $isAttachedToPerson) {
             return false;
         }
 
@@ -31,8 +34,6 @@ class UpdatePersonRelationshipRequest extends FormRequest
 
     public function rules(): array
     {
-        /** @var Person|null $person */
-        $person = $this->route('person');
         /** @var PersonRelationship|null $relationship */
         $relationship = $this->route('relationship');
         $relationshipTypes = array_map(
@@ -48,11 +49,12 @@ class UpdatePersonRelationshipRequest extends FormRequest
                 Rule::in($relationshipTypes),
                 Rule::unique('person_relationships', 'relationship_type')
                     ->where(fn ($query) => $query
-                        ->where('person_id', $person?->id)
+                        ->where('person_id', $relationship?->person_id)
                         ->where('related_person_id', $relationship?->related_person_id))
                     ->ignore($relationship?->id),
             ],
             'inverse_relationship_type' => ['nullable', Rule::in($relationshipTypes)],
+            'anniversary_date' => ['nullable', 'date'],
             'is_primary' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];

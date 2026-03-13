@@ -64,6 +64,7 @@ class PersonRelationshipController extends Controller
                 relatedPersonId: $relatedPersonId,
                 relationshipType: $relationshipType,
                 inverseRelationshipType: $inverseRelationshipType,
+                anniversaryDate: $request->date('anniversary_date'),
                 isPrimary: $request->boolean('is_primary'),
                 notes: $request->string('notes')->toString() ?: null,
             );
@@ -79,6 +80,7 @@ class PersonRelationshipController extends Controller
                     'related_person_id' => $relatedPerson?->id,
                     'relationship_type' => $relationship?->relationship_type?->value,
                     'inverse_relationship_type' => $relationship?->inverse_relationship_type?->value,
+                    'anniversary_date' => optional($relationship?->anniversary_date)?->toDateString(),
                     'is_primary' => (bool) $relationship?->is_primary,
                     'notes' => $relationship?->notes,
                 ],
@@ -105,11 +107,12 @@ class PersonRelationshipController extends Controller
         PersonRelationship $relationship,
         PersonRelationshipService $relationshipService,
     ): RedirectResponse {
-        abort_unless((int) $relationship->person_id === (int) $person->id, 404);
+        abort_unless($this->relationshipAttachedToPerson($person, $relationship), 404);
 
         $before = [
             'relationship_type' => $relationship->relationship_type?->value,
             'inverse_relationship_type' => $relationship->inverse_relationship_type?->value,
+            'anniversary_date' => optional($relationship->anniversary_date)->toDateString(),
             'is_primary' => (bool) $relationship->is_primary,
             'notes' => $relationship->notes,
         ];
@@ -123,6 +126,7 @@ class PersonRelationshipController extends Controller
             relationship: $relationship,
             relationshipType: $relationshipType,
             inverseRelationshipType: $inverseRelationshipType,
+            anniversaryDate: $request->date('anniversary_date'),
             isPrimary: $request->boolean('is_primary'),
             notes: $request->string('notes')->toString() ?: null,
         );
@@ -136,6 +140,7 @@ class PersonRelationshipController extends Controller
                 'after' => [
                     'relationship_type' => $updatedRelationship?->relationship_type?->value,
                     'inverse_relationship_type' => $updatedRelationship?->inverse_relationship_type?->value,
+                    'anniversary_date' => optional($updatedRelationship?->anniversary_date)->toDateString(),
                     'is_primary' => (bool) $updatedRelationship?->is_primary,
                     'notes' => $updatedRelationship?->notes,
                 ],
@@ -157,7 +162,7 @@ class PersonRelationshipController extends Controller
 
     public function destroy(Request $request, Person $person, PersonRelationship $relationship, PersonRelationshipService $relationshipService): RedirectResponse
     {
-        abort_unless((int) $relationship->person_id === (int) $person->id, 404);
+        abort_unless($this->relationshipAttachedToPerson($person, $relationship), 404);
 
         $request->validate([
             'from' => ['nullable', 'in:all,members,widows,orphans,relatives,others'],
@@ -168,6 +173,7 @@ class PersonRelationshipController extends Controller
             'related_person_id' => $relationship->related_person_id,
             'relationship_type' => $relationship->relationship_type?->value,
             'inverse_relationship_type' => $relationship->inverse_relationship_type?->value,
+            'anniversary_date' => optional($relationship->anniversary_date)->toDateString(),
             'is_primary' => (bool) $relationship->is_primary,
             'notes' => $relationship->notes,
         ];
@@ -204,5 +210,11 @@ class PersonRelationshipController extends Controller
                 'from' => $from,
             ]))
             ->with('success', $success);
+    }
+
+    protected function relationshipAttachedToPerson(Person $person, PersonRelationship $relationship): bool
+    {
+        return (int) $relationship->person_id === (int) $person->id
+            || (int) $relationship->related_person_id === (int) $person->id;
     }
 }

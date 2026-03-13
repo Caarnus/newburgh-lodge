@@ -65,9 +65,6 @@ class Person extends Model
             $override = trim((string) ($this->display_name_override ?? ''));
 
             if ($override !== '') {
-                if ($this->isPastMaster() && ! preg_match('/,\s*PM$/i', $override)) {
-                    return "{$override}, PM";
-                }
                 return $override;
             }
 

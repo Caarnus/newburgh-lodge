@@ -54,6 +54,7 @@ const form = useForm({
         ea_date: props.person.member_profile?.ea_date ?? '',
         fc_date: props.person.member_profile?.fc_date ?? '',
         mm_date: props.person.member_profile?.mm_date ?? '',
+        honorary_date: props.person.member_profile?.honorary_date ?? '',
         demit_date: props.person.member_profile?.demit_date ?? '',
         past_master: Boolean(props.person.member_profile?.past_master ?? false),
         can_auto_match_registration: Boolean(props.person.member_profile?.can_auto_match_registration ?? true),
@@ -65,7 +66,12 @@ const submit = () => {
     const payload = props.canManageRecords
         ? form.data()
         : {
+            first_name: form.first_name,
+            middle_name: form.middle_name,
+            last_name: form.last_name,
+            suffix: form.suffix,
             preferred_name: form.preferred_name,
+            display_name_override: form.display_name_override,
             email: form.email,
             phone: form.phone,
             address_line_1: form.address_line_1,
@@ -73,6 +79,7 @@ const submit = () => {
             city: form.city,
             state: form.state,
             postal_code: form.postal_code,
+            birth_date: form.birth_date,
         };
 
     form.transform(() => payload).patch(route('manage.member-directory.people.update', { person: props.person.id }), {
@@ -124,27 +131,27 @@ const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDate
         </Card>
 
         <Card>
-            <template #title>Editable Contact Fields</template>
+            <template #title>Editable Profile Fields</template>
             <template #content>
                 <div class="grid gap-4 md:grid-cols-2">
-                    <div v-if="canManageRecords">
+                    <div>
                         <label class="mb-2 block text-sm font-medium">First Name</label>
                         <InputText v-model="form.first_name" class="w-full" />
                         <p v-if="form.errors.first_name" class="mt-1 text-sm text-red-500">{{ form.errors.first_name }}</p>
                     </div>
 
-                    <div v-if="canManageRecords">
+                    <div>
                         <label class="mb-2 block text-sm font-medium">Middle Name</label>
                         <InputText v-model="form.middle_name" class="w-full" />
                     </div>
 
-                    <div v-if="canManageRecords">
+                    <div>
                         <label class="mb-2 block text-sm font-medium">Last Name</label>
                         <InputText v-model="form.last_name" class="w-full" />
                         <p v-if="form.errors.last_name" class="mt-1 text-sm text-red-500">{{ form.errors.last_name }}</p>
                     </div>
 
-                    <div v-if="canManageRecords">
+                    <div>
                         <label class="mb-2 block text-sm font-medium">Suffix</label>
                         <InputText v-model="form.suffix" class="w-full" />
                     </div>
@@ -155,7 +162,7 @@ const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDate
                         <p v-if="form.errors.preferred_name" class="mt-1 text-sm text-red-500">{{ form.errors.preferred_name }}</p>
                     </div>
 
-                    <div v-if="canManageRecords">
+                    <div>
                         <label class="mb-2 block text-sm font-medium">Display Name Override</label>
                         <InputText v-model="form.display_name_override" class="w-full" />
                         <p v-if="form.errors.display_name_override" class="mt-1 text-sm text-red-500">{{ form.errors.display_name_override }}</p>
@@ -173,7 +180,7 @@ const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDate
                         <p v-if="form.errors.phone" class="mt-1 text-sm text-red-500">{{ form.errors.phone }}</p>
                     </div>
 
-                    <div v-if="canManageRecords">
+                    <div>
                         <label class="mb-2 block text-sm font-medium">Birth Date</label>
                         <InputText v-model="form.birth_date" type="date" class="w-full" />
                         <p v-if="form.errors.birth_date" class="mt-1 text-sm text-red-500">{{ form.errors.birth_date }}</p>
@@ -266,6 +273,10 @@ const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDate
                             <div>{{ formatDate(person.member_profile?.mm_date) }}</div>
                         </div>
                         <div>
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Honorary Date</div>
+                            <div>{{ formatDate(person.member_profile?.honorary_date) }}</div>
+                        </div>
+                        <div>
                             <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Demit Date</div>
                             <div>{{ formatDate(person.member_profile?.demit_date) }}</div>
                         </div>
@@ -305,6 +316,10 @@ const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDate
                         <div>
                             <div class="text-sm font-medium text-surface-700 dark:text-surface-200">MM Date</div>
                             <div>{{ formatDate(person.member_profile?.mm_date) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Honorary Date</div>
+                            <div>{{ formatDate(person.member_profile?.honorary_date) }}</div>
                         </div>
                         <div>
                             <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Demit Date</div>
