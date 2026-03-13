@@ -89,6 +89,7 @@ class MemberRosterSpreadsheetService
             'last_name' => $this->normalizeString($raw['Last'] ?? null),
             'suffix' => $this->normalizeString($raw['Suffix'] ?? null),
             'address_line_1' => $this->normalizeString($raw['Address'] ?? null),
+            'address_line_2' => $this->normalizeString($raw['Address Line 2'] ?? null),
             'city' => $this->normalizeString($raw['City'] ?? null),
             'state' => $this->normalizeString($raw['State'] ?? null),
             'postal_code' => $this->normalizeString($raw['ZIP'] ?? null),
@@ -96,10 +97,17 @@ class MemberRosterSpreadsheetService
             'ea_date' => $this->normalizeDate($raw['EA'] ?? null),
             'fc_date' => $this->normalizeDate($raw['FC'] ?? null),
             'mm_date' => $this->normalizeDate($raw['MM'] ?? null),
+            'past_master' => $this->normalizeBoolean(
+                $raw['Past Master']
+                    ?? $raw['PastMaster']
+                    ?? $raw['PM']
+                    ?? null
+            ),
             'phone' => $this->normalizePhone($raw['Phone'] ?? null),
             'email' => $this->normalizeEmail($raw['Email'] ?? null),
             'spouse_name' => $this->normalizeString($raw['Spouse'] ?? null),
             'full_name_source' => $this->normalizeString($raw['Full Name'] ?? null),
+            'death_date' => $this->normalizeDate($raw['Date of Death'] ?? null),
         ];
     }
 
@@ -115,13 +123,16 @@ class MemberRosterSpreadsheetService
         $normalized = trim($normalized);
 
         return match ($normalized) {
-            'master mason' => MemberStatus::MasterMason->value,
+            'affiliation', 'master mason' => MemberStatus::MasterMason->value,
             'fellow craft', 'fellowcraft' => MemberStatus::Fellowcraft->value,
             'entered apprentice' => MemberStatus::EnteredApprentice->value,
-            'candidate' => MemberStatus::Candidate->value,
+            'petitioner' => MemberStatus::Petitioner->value,
             'suspended' => MemberStatus::Suspended->value,
             'lost' => MemberStatus::Lost->value,
+            'expelled' => MemberStatus::Expelled->value,
             'demitted', 'demit' => MemberStatus::Demitted->value,
+            'deceased' => MemberStatus::Deceased->value,
+            'honorary' => MemberStatus::Honorary->value,
             default => null,
         };
     }
@@ -176,5 +187,32 @@ class MemberRosterSpreadsheetService
         } catch (Throwable) {
             return null;
         }
+    }
+
+    protected function normalizeBoolean(mixed $value): ?bool
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return ((int) $value) === 1;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+
+        if (in_array($normalized, ['1', 'true', 'yes', 'y', 'pm', 'past master'], true)) {
+            return true;
+        }
+
+        if (in_array($normalized, ['0', 'false', 'no', 'n'], true)) {
+            return false;
+        }
+
+        return null;
     }
 }

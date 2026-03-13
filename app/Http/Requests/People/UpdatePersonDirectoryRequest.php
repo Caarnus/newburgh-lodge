@@ -52,6 +52,7 @@ class UpdatePersonDirectoryRequest extends FormRequest
                 'middle_name' => ['nullable', 'string', 'max:120'],
                 'last_name' => ['required', 'string', 'max:120'],
                 'suffix' => ['nullable', 'string', 'max:50'],
+                'display_name_override' => ['nullable', 'string', 'max:160'],
                 'birth_date' => ['nullable', 'date'],
                 'notes' => ['nullable', 'string', 'max:4000'],
                 'is_deceased' => ['nullable', 'boolean'],
@@ -74,6 +75,7 @@ class UpdatePersonDirectoryRequest extends FormRequest
                 'member_profile.fc_date' => ['nullable', 'date'],
                 'member_profile.mm_date' => ['nullable', 'date'],
                 'member_profile.demit_date' => ['nullable', 'date'],
+                'member_profile.past_master' => ['nullable', 'boolean'],
                 'member_profile.can_auto_match_registration' => ['nullable', 'boolean'],
                 'member_profile.directory_visible' => ['nullable', 'boolean'],
             ]);
@@ -83,6 +85,7 @@ class UpdatePersonDirectoryRequest extends FormRequest
                 'middle_name' => ['prohibited'],
                 'last_name' => ['prohibited'],
                 'suffix' => ['prohibited'],
+                'display_name_override' => ['prohibited'],
                 'birth_date' => ['prohibited'],
                 'notes' => ['prohibited'],
                 'is_deceased' => ['prohibited'],
@@ -94,6 +97,7 @@ class UpdatePersonDirectoryRequest extends FormRequest
                 'member_profile.fc_date' => ['prohibited'],
                 'member_profile.mm_date' => ['prohibited'],
                 'member_profile.demit_date' => ['prohibited'],
+                'member_profile.past_master' => ['prohibited'],
                 'member_profile.can_auto_match_registration' => ['prohibited'],
                 'member_profile.directory_visible' => ['prohibited'],
             ]);

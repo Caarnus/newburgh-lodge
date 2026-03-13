@@ -19,6 +19,7 @@ class Person extends Model
         'last_name',
         'suffix',
         'preferred_name',
+        'display_name_override',
         'email',
         'phone',
         'address_line_1',
@@ -61,15 +62,39 @@ class Person extends Model
     public function displayName(): Attribute
     {
         return Attribute::get(function (): string {
+            $override = trim((string) ($this->display_name_override ?? ''));
+
+            if ($override !== '') {
+                if ($this->isPastMaster() && ! preg_match('/,\s*PM$/i', $override)) {
+                    return "{$override}, PM";
+                }
+                return $override;
+            }
+
             $first = trim((string) ($this->preferred_name ?: $this->first_name));
             $middle = trim((string) $this->middle_name);
             $last = trim((string) $this->last_name);
             $suffix = trim((string) $this->suffix);
 
-            return collect([$first, $middle, $last, $suffix])
+            $base = collect([$first, $middle, $last, $suffix])
                 ->filter(fn ($value) => $value !== '')
                 ->implode(' ');
+
+            if ($this->isPastMaster() && ! preg_match('/,\s*PM$/i', $base)) {
+                return $base === '' ? 'PM' : "{$base}, PM";
+            }
+
+            return $base;
         });
+    }
+
+    protected function isPastMaster(): bool
+    {
+        if ($this->relationLoaded('memberProfile')) {
+            return (bool) ($this->getRelation('memberProfile')?->past_master ?? false);
+        }
+
+        return (bool) ($this->memberProfile?->past_master ?? false);
     }
 
     public function fullName(): Attribute

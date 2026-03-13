@@ -8,6 +8,7 @@ use App\Http\Controllers\EventSignupUnsubscribeController;
 use App\Http\Controllers\GalleryAdminController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\JeopardyQuestionController;
+use App\Http\Controllers\Manage\OfficerAssignmentController;
 use App\Helpers\People\PeoplePermissions;
 use App\Helpers\RoleEnum;
 use App\Http\Controllers\Manage\AllPeopleDirectoryController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Manage\RelativeDirectoryController;
 use App\Http\Controllers\Manage\UserPersonLinkController;
 use App\Http\Controllers\Manage\WidowDirectoryController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\OfficerController;
 use App\Http\Controllers\OrgEventController;
 use App\Http\Controllers\PastMasterController;
 use App\Http\Controllers\ScholarshipApplicationController;
@@ -45,7 +47,7 @@ Route::get('/', [ContentTileController::class, 'welcome'])->name('welcome');
 Route::get('/dashboard', [ContentTileController::class, 'welcome'])->name('dashboard');
 
 Route::get('/history', fn () => Inertia::render('History'))->name('history');
-Route::get('/officers', fn () => Inertia::render('Officers'))->name('officers');
+Route::get('/officers', [OfficerController::class, 'index'])->name('officers');
 Route::get('/faq', fn () => Inertia::render('Questions'))->name('faq');
 
 Route::get('/contact', [ContactController::class, 'create'])->name('contact');
@@ -363,6 +365,14 @@ Route::middleware(['auth'])
         Route::post('imports/{importBatch}/apply', [MemberRosterImportController::class, 'apply'])
             ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)
             ->name('imports.apply');
+
+        Route::get('officers', [OfficerAssignmentController::class, 'edit'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
+            ->name('officers.edit');
+
+        Route::put('officers', [OfficerAssignmentController::class, 'update'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
+            ->name('officers.update');
 
         Route::get('people/create', [PersonDirectoryController::class, 'create'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)

@@ -29,6 +29,7 @@ const form = useForm({
     last_name: '',
     suffix: '',
     preferred_name: '',
+    display_name_override: '',
     email: '',
     phone: '',
     address_line_1: '',
@@ -47,6 +48,7 @@ const form = useForm({
     fc_date: '',
     mm_date: '',
     demit_date: '',
+    past_master: false,
     can_auto_match_registration: true,
     directory_visible: true,
 
@@ -152,6 +154,11 @@ const submit = () => {
                         <InputText v-model="form.preferred_name" class="w-full" />
                     </div>
                     <div>
+                        <label class="mb-2 block text-sm font-medium">Display Name Override</label>
+                        <InputText v-model="form.display_name_override" class="w-full" />
+                        <p v-if="form.errors.display_name_override" class="mt-1 text-sm text-red-500">{{ form.errors.display_name_override }}</p>
+                    </div>
+                    <div>
                         <label class="mb-2 block text-sm font-medium">Suffix</label>
                         <InputText v-model="form.suffix" class="w-full" />
                     </div>
@@ -240,6 +247,12 @@ const submit = () => {
                     <div>
                         <label class="mb-2 block text-sm font-medium">Demit Date</label>
                         <InputText v-model="form.demit_date" type="date" class="w-full" />
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="inline-flex items-center gap-2 text-sm">
+                            <Checkbox v-model="form.past_master" binary />
+                            <span>Past Master (appends ", PM" to display name when no override is set)</span>
+                        </label>
                     </div>
                     <div class="md:col-span-2 flex flex-wrap items-center gap-6">
                         <label class="inline-flex items-center gap-2 text-sm">

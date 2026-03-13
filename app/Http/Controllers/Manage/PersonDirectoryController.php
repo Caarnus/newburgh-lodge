@@ -43,6 +43,7 @@ class PersonDirectoryController extends Controller
                 'last_name' => $request->string('last_name')->toString(),
                 'suffix' => $request->string('suffix')->toString() ?: null,
                 'preferred_name' => $request->string('preferred_name')->toString() ?: null,
+                'display_name_override' => $request->string('display_name_override')->toString() ?: null,
                 'email' => $request->string('email')->toString()
                     ? Str::lower($request->string('email')->toString())
                     : null,
@@ -67,6 +68,7 @@ class PersonDirectoryController extends Controller
                     'fc_date' => $request->date('fc_date'),
                     'mm_date' => $request->date('mm_date'),
                     'demit_date' => $request->date('demit_date'),
+                    'past_master' => $request->boolean('past_master'),
                     'can_auto_match_registration' => $request->boolean('can_auto_match_registration', true),
                     'directory_visible' => $request->boolean('directory_visible', true),
                 ]);
@@ -143,6 +145,7 @@ class PersonDirectoryController extends Controller
                     'middle_name' => $request->string('middle_name')->toString() ?: null,
                     'last_name' => $request->string('last_name')->toString(),
                     'suffix' => $request->string('suffix')->toString() ?: null,
+                    'display_name_override' => $request->string('display_name_override')->toString() ?: null,
                     'birth_date' => $request->date('birth_date'),
                     'notes' => $request->string('notes')->toString() ?: null,
                     'is_deceased' => $request->boolean('is_deceased'),
@@ -166,6 +169,10 @@ class PersonDirectoryController extends Controller
                 'fc_date' => $request->date('member_profile.fc_date'),
                 'mm_date' => $request->date('member_profile.mm_date'),
                 'demit_date' => $request->date('member_profile.demit_date'),
+                'past_master' => $request->boolean(
+                    'member_profile.past_master',
+                    $person->memberProfile?->past_master ?? false
+                ),
                 'can_auto_match_registration' => $request->boolean(
                     'member_profile.can_auto_match_registration',
                     $person->memberProfile?->can_auto_match_registration ?? true
@@ -184,6 +191,7 @@ class PersonDirectoryController extends Controller
                 'fc_date',
                 'mm_date',
                 'demit_date',
+                'past_master',
             ])->contains(fn (string $key) => filled($memberProfileInput[$key] ?? null));
 
             $shouldSyncMemberProfile = $person->memberProfile !== null
@@ -224,6 +232,7 @@ class PersonDirectoryController extends Controller
     {
         $snapshot = [
             'preferred_name' => $person->preferred_name,
+            'display_name_override' => $person->display_name_override,
             'email' => $person->email,
             'phone' => $person->phone,
             'address_line_1' => $person->address_line_1,
@@ -253,6 +262,7 @@ class PersonDirectoryController extends Controller
                 'fc_date' => optional($person->memberProfile->fc_date)->toDateString(),
                 'mm_date' => optional($person->memberProfile->mm_date)->toDateString(),
                 'demit_date' => optional($person->memberProfile->demit_date)->toDateString(),
+                'past_master' => (bool) $person->memberProfile->past_master,
                 'can_auto_match_registration' => (bool) $person->memberProfile->can_auto_match_registration,
                 'directory_visible' => (bool) $person->memberProfile->directory_visible,
             ] : null,

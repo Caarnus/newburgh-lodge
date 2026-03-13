@@ -30,6 +30,7 @@ class StorePersonDirectoryRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:120'],
             'suffix' => ['nullable', 'string', 'max:50'],
             'preferred_name' => ['nullable', 'string', 'max:120'],
+            'display_name_override' => ['nullable', 'string', 'max:160'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'address_line_1' => ['nullable', 'string', 'max:255'],
@@ -59,6 +60,7 @@ class StorePersonDirectoryRequest extends FormRequest
             'fc_date' => ['nullable', 'date'],
             'mm_date' => ['nullable', 'date'],
             'demit_date' => ['nullable', 'date'],
+            'past_master' => ['nullable', 'boolean'],
             'can_auto_match_registration' => ['nullable', 'boolean'],
             'directory_visible' => ['nullable', 'boolean'],
 

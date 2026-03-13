@@ -7,10 +7,13 @@ enum MemberStatus: string
     case MasterMason = 'Master Mason';
     case Fellowcraft = 'Fellowcraft';
     case EnteredApprentice = 'Entered Apprentice';
-    case Candidate = 'Candidate';
-    case Suspended = 'Suspended';
+    case Petitioner = 'Petitioner';
+    case Honorary = 'Honorary';
     case Lost = 'Lost';
     case Demitted = 'Demitted';
+    case Suspended = 'Suspended';
+    case Expelled = 'Expelled';
+    case Deceased = 'Deceased';
 
     /**
      * @return array<int, string>

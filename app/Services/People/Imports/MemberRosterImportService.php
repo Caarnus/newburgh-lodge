@@ -173,6 +173,7 @@ class MemberRosterImportService
                 'fc_date' => $data['fc_date'] ?? null,
                 'mm_date' => $data['mm_date'] ?? null,
                 'demit_date' => $data['demit_date'] ?? null,
+                'past_master' => $data['past_master'] ?? null,
                 'roster_import_source' => $row->batch->source_label ?: $row->batch->original_filename,
                 'last_imported_at' => now(),
             ]));

@@ -311,6 +311,7 @@ class PeopleDirectoryService
                 ->orWhereRaw('LOWER(people.middle_name) like ?', ["%{$lowerTerm}%"])
                 ->orWhereRaw('LOWER(people.last_name) like ?', ["%{$lowerTerm}%"])
                 ->orWhereRaw('LOWER(people.preferred_name) like ?', ["%{$lowerTerm}%"])
+                ->orWhereRaw('LOWER(people.display_name_override) like ?', ["%{$lowerTerm}%"])
                 ->orWhereRaw('LOWER(people.email) like ?', ["%{$lowerTerm}%"])
                 ->orWhere('people.phone', 'like', "%{$term}%")
                 ->orWhereRaw("LOWER(CONCAT(COALESCE(people.first_name, ''), ' ', COALESCE(people.last_name, ''))) like ?", ["%{$lowerTerm}%"]);

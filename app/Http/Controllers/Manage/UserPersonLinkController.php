@@ -36,6 +36,7 @@ class UserPersonLinkController extends Controller
                 $query->whereRaw('LOWER(first_name) like ?', ["%{$lowerTerm}%"])
                     ->orWhereRaw('LOWER(last_name) like ?', ["%{$lowerTerm}%"])
                     ->orWhereRaw('LOWER(preferred_name) like ?', ["%{$lowerTerm}%"])
+                    ->orWhereRaw('LOWER(display_name_override) like ?', ["%{$lowerTerm}%"])
                     ->orWhereRaw('LOWER(email) like ?', ["%{$lowerTerm}%"])
                     ->orWhere('phone', 'like', "%{$term}%")
                     ->orWhereHas('memberProfile', function ($memberQuery) use ($term) {

@@ -88,6 +88,7 @@ const navMenuItems = ref([
             { label: 'Manage Gallery', url: route('admin.gallery.index'), visible: $page.props.can.manage.gallery },
             { label: 'Scholarship Applications', url: route('manage.scholarships.index'), visible: $page.props.can.manage.scholarships },
             { label: 'Roster Imports', url: route('manage.member-directory.imports.index'), visible: canManagePeople.importRoster },
+            { label: 'Officer Assignments', url: route('manage.member-directory.officers.edit'), visible: canManagePeople.updateRecords },
         ],
     },
     {

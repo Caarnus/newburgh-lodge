@@ -36,6 +36,7 @@ const form = useForm({
     last_name: props.person.last_name ?? '',
     suffix: props.person.suffix ?? '',
     preferred_name: props.person.preferred_name ?? '',
+    display_name_override: props.person.display_name_override ?? '',
     email: props.person.email ?? '',
     phone: props.person.phone ?? '',
     address_line_1: props.person.address_line_1 ?? '',
@@ -54,6 +55,7 @@ const form = useForm({
         fc_date: props.person.member_profile?.fc_date ?? '',
         mm_date: props.person.member_profile?.mm_date ?? '',
         demit_date: props.person.member_profile?.demit_date ?? '',
+        past_master: Boolean(props.person.member_profile?.past_master ?? false),
         can_auto_match_registration: Boolean(props.person.member_profile?.can_auto_match_registration ?? true),
         directory_visible: Boolean(props.person.member_profile?.directory_visible ?? true),
     },
@@ -151,6 +153,12 @@ const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDate
                         <label class="mb-2 block text-sm font-medium">Preferred Name</label>
                         <InputText v-model="form.preferred_name" class="w-full" />
                         <p v-if="form.errors.preferred_name" class="mt-1 text-sm text-red-500">{{ form.errors.preferred_name }}</p>
+                    </div>
+
+                    <div v-if="canManageRecords">
+                        <label class="mb-2 block text-sm font-medium">Display Name Override</label>
+                        <InputText v-model="form.display_name_override" class="w-full" />
+                        <p v-if="form.errors.display_name_override" class="mt-1 text-sm text-red-500">{{ form.errors.display_name_override }}</p>
                     </div>
 
                     <div>
@@ -261,6 +269,10 @@ const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDate
                             <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Demit Date</div>
                             <div>{{ formatDate(person.member_profile?.demit_date) }}</div>
                         </div>
+                        <div>
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Past Master</div>
+                            <div>{{ person.member_profile?.past_master ? 'Yes' : 'No' }}</div>
+                        </div>
                         <div class="md:col-span-2 flex flex-wrap items-center gap-6">
                             <label class="inline-flex items-center gap-2 text-sm">
                                 <Checkbox v-model="form.member_profile.can_auto_match_registration" binary />
@@ -297,6 +309,10 @@ const formatDate = (value) => value ? new Date(`${value}T00:00:00`).toLocaleDate
                         <div>
                             <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Demit Date</div>
                             <div>{{ formatDate(person.member_profile?.demit_date) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Past Master</div>
+                            <div>{{ person.member_profile?.past_master ? 'Yes' : 'No' }}</div>
                         </div>
                         <div>
                             <div class="text-sm font-medium text-surface-700 dark:text-surface-200">Directory Visible</div>

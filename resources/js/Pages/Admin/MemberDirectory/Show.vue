@@ -148,6 +148,7 @@ const editRecordForm = useForm({
     last_name: '',
     suffix: '',
     preferred_name: '',
+    display_name_override: '',
     email: '',
     phone: '',
     address_line_1: '',
@@ -166,6 +167,7 @@ const editRecordForm = useForm({
         fc_date: '',
         mm_date: '',
         demit_date: '',
+        past_master: false,
         can_auto_match_registration: true,
         directory_visible: true,
     },
@@ -184,6 +186,7 @@ const populateEditRecordForm = () => {
     editRecordForm.last_name = props.person.last_name || '';
     editRecordForm.suffix = props.person.suffix || '';
     editRecordForm.preferred_name = props.person.preferred_name || '';
+    editRecordForm.display_name_override = props.person.display_name_override || '';
     editRecordForm.email = props.person.email || '';
     editRecordForm.phone = props.person.phone || '';
     editRecordForm.address_line_1 = props.person.address_line_1 || '';
@@ -203,6 +206,7 @@ const populateEditRecordForm = () => {
         fc_date: props.person.member_profile?.fc_date || '',
         mm_date: props.person.member_profile?.mm_date || '',
         demit_date: props.person.member_profile?.demit_date || '',
+        past_master: Boolean(props.person.member_profile?.past_master ?? false),
         can_auto_match_registration: Boolean(props.person.member_profile?.can_auto_match_registration ?? true),
         directory_visible: Boolean(props.person.member_profile?.directory_visible ?? true),
     };
@@ -494,6 +498,10 @@ const submitEditContact = () => {
                             <div class="font-medium text-surface-700 dark:text-surface-200">Notes</div>
                             <div>{{ person.notes || '—' }}</div>
                         </div>
+                        <div class="md:col-span-2">
+                            <div class="font-medium text-surface-700 dark:text-surface-200">Display Name Override</div>
+                            <div>{{ person.display_name_override || '—' }}</div>
+                        </div>
                     </div>
                 </template>
             </Card>
@@ -529,6 +537,10 @@ const submitEditContact = () => {
                         <div>
                             <div class="font-medium text-surface-700 dark:text-surface-200">Demit Date</div>
                             <div>{{ formatDate(person.member_profile.demit_date) }}</div>
+                        </div>
+                        <div>
+                            <div class="font-medium text-surface-700 dark:text-surface-200">Past Master</div>
+                            <div>{{ person.member_profile.past_master ? 'Yes' : 'No' }}</div>
                         </div>
                     </div>
                     <div v-else class="text-sm text-surface-600 dark:text-surface-300">
@@ -764,6 +776,13 @@ const submitEditContact = () => {
                         <InputText v-model="editRecordForm.preferred_name" class="w-full" />
                     </div>
                     <div>
+                        <label class="mb-2 block text-sm font-medium">Display Name Override</label>
+                        <InputText v-model="editRecordForm.display_name_override" class="w-full" />
+                        <p v-if="editRecordForm.errors.display_name_override" class="mt-1 text-sm text-red-500">
+                            {{ editRecordForm.errors.display_name_override }}
+                        </p>
+                    </div>
+                    <div>
                         <label class="mb-2 block text-sm font-medium">Suffix</label>
                         <InputText v-model="editRecordForm.suffix" class="w-full" />
                     </div>
@@ -849,6 +868,12 @@ const submitEditContact = () => {
                     <div>
                         <label class="mb-2 block text-sm font-medium">Demit Date</label>
                         <InputText v-model="editRecordForm.member_profile.demit_date" type="date" class="w-full" />
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="inline-flex items-center gap-2 text-sm">
+                            <Checkbox v-model="editRecordForm.member_profile.past_master" binary />
+                            <span>Past Master (appends ", PM" to display name when no override is set)</span>
+                        </label>
                     </div>
                     <div class="md:col-span-2 flex flex-wrap items-center gap-6">
                         <label class="inline-flex items-center gap-2 text-sm">
