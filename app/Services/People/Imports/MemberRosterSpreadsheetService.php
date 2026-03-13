@@ -79,8 +79,17 @@ class MemberRosterSpreadsheetService
 
     protected function normalizeRosterRow(array $raw): array
     {
-        $status = $this->normalizeStatus($raw['Status'] ?? null);
-        $deathDate = $this->normalizeDate($raw['Date of Death'] ?? null);
+        $statusSource = $raw['Status']
+            ?? $raw['Member Status']
+            ?? $raw['MemberStatus']
+            ?? null;
+        $status = $this->normalizeStatus($statusSource);
+        $deathDate = $this->normalizeDate(
+            $raw['Date of Death']
+                ?? $raw['Death Date']
+                ?? $raw['DeathDate']
+                ?? null
+        );
 
         return [
             'member_number' => $this->normalizeString($raw['Member ID'] ?? null),
@@ -113,7 +122,9 @@ class MemberRosterSpreadsheetService
             'email' => $this->normalizeEmail($raw['Email'] ?? null),
             'spouse_name' => $this->normalizeString($raw['Spouse'] ?? null),
             'full_name_source' => $this->normalizeString($raw['Full Name'] ?? null),
-            'is_deceased' => $status === MemberStatus::Deceased->value || $deathDate !== null,
+            'is_deceased' => $status === MemberStatus::Deceased->value
+                || $this->statusImpliesDeceased($statusSource)
+                || $deathDate !== null,
             'death_date' => $deathDate,
         ];
     }
@@ -129,6 +140,10 @@ class MemberRosterSpreadsheetService
         $normalized = strtolower(preg_replace('/[^a-z0-9]+/', ' ', $status) ?? '');
         $normalized = trim($normalized);
 
+        if (str_contains($normalized, 'deceased')) {
+            return MemberStatus::Deceased->value;
+        }
+
         return match ($normalized) {
             'affiliation', 'master mason' => MemberStatus::MasterMason->value,
             'fellow craft', 'fellowcraft' => MemberStatus::Fellowcraft->value,
@@ -142,6 +157,20 @@ class MemberRosterSpreadsheetService
             'honorary' => MemberStatus::Honorary->value,
             default => null,
         };
+    }
+
+    protected function statusImpliesDeceased(mixed $value): bool
+    {
+        $status = $this->normalizeString($value);
+
+        if (! $status) {
+            return false;
+        }
+
+        $normalized = strtolower(preg_replace('/[^a-z0-9]+/', ' ', $status) ?? '');
+        $normalized = trim($normalized);
+
+        return str_contains($normalized, 'deceased');
     }
 
     protected function normalizeString(mixed $value): ?string

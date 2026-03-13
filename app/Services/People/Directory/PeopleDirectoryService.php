@@ -324,8 +324,14 @@ class PeopleDirectoryService
 
     protected function applyDirectoryFilters(Builder $query, array $filters): void
     {
+        $hideDeceased = filter_var(
+            $filters['hide_deceased'] ?? false,
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        ) ?? false;
+
         $query
-            ->hideDeceased(($filters['hide_deceased'] ?? false) === true)
+            ->hideDeceased($hideDeceased)
             ->whereHasEmailValue($filters['has_email'] ?? null)
             ->whereHasPhoneValue($filters['has_phone'] ?? null)
             ->whereLastContactOlderThanDays(isset($filters['last_contact_older_than_days'])

@@ -32,12 +32,20 @@ const only = [
     'sortOptions',
 ];
 
+const normalizeHideDeceased = (value) => (
+    value === true
+    || value === 1
+    || value === '1'
+    || value === 'true'
+    || value === 'on'
+);
+
 const sharedData = () => ({
     q: props.filters.q ?? undefined,
     has_email: props.filters.has_email ?? undefined,
     has_phone: props.filters.has_phone ?? undefined,
     last_contact_older_than_days: props.filters.last_contact_older_than_days ?? undefined,
-    hide_deceased: props.filters.hide_deceased || undefined,
+    hide_deceased: normalizeHideDeceased(props.filters.hide_deceased) ? 1 : undefined,
     per_page: props.filters.per_page ?? undefined,
     page: undefined,
 });

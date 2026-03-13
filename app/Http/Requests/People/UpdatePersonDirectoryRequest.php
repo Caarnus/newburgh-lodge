@@ -56,11 +56,7 @@ class UpdatePersonDirectoryRequest extends FormRequest
                 'birth_date' => ['nullable', 'date'],
                 'notes' => ['nullable', 'string', 'max:4000'],
                 'is_deceased' => ['nullable', 'boolean'],
-                'death_date' => [
-                    'nullable',
-                    'date',
-                    Rule::requiredIf(fn () => $this->boolean('is_deceased')),
-                ],
+                'death_date' => ['nullable', 'date'],
 
                 'member_profile.member_number' => [
                     'nullable',

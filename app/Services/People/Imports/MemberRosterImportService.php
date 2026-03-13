@@ -153,6 +153,10 @@ class MemberRosterImportService
             $beforeMatchedPersonId = $row->matched_person_id;
             $beforeMatchedMemberProfileId = $row->matched_member_profile_id;
 
+            if ($this->incomingMarksDeceased($data)) {
+                $data['is_deceased'] = true;
+            }
+
             if (empty($data)) {
                 $row->update([
                     'status' => MemberImportRowStatus::Failed,

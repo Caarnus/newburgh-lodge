@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\MemberStatus;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -133,7 +134,10 @@ class Person extends Model
                     ->where('people.is_deceased', false)
                     ->orWhereNull('people.is_deceased');
             })
-            ->whereNull('people.death_date');
+            ->whereNull('people.death_date')
+            ->whereDoesntHave('memberProfile', function (Builder $profileQuery) {
+                $profileQuery->where('status', MemberStatus::Deceased->value);
+            });
     }
 
     public function scopeWhereHasEmailValue(Builder $query, ?string $hasEmail): Builder
