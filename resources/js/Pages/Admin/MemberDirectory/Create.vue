@@ -260,7 +260,7 @@ const submit = () => {
                     <div class="md:col-span-3">
                         <label class="inline-flex items-center gap-2 text-sm">
                             <Checkbox v-model="form.past_master" binary />
-                            <span>Past Master (appends ", PM" to display name when no override is set)</span>
+                            <span>Past Master (appends ", PM" unless display name already ends with PM)</span>
                         </label>
                     </div>
                     <div class="md:col-span-2 flex flex-wrap items-center gap-6">

@@ -64,25 +64,30 @@ class Person extends Model
         return Attribute::get(function (): string {
             $override = trim((string) ($this->display_name_override ?? ''));
 
-            if ($override !== '') {
-                return $override;
+            $base = $override;
+
+            if ($base === '') {
+                $first = trim((string) ($this->preferred_name ?: $this->first_name));
+                $middle = trim((string) $this->middle_name);
+                $last = trim((string) $this->last_name);
+                $suffix = trim((string) $this->suffix);
+
+                $base = collect([$first, $middle, $last, $suffix])
+                    ->filter(fn ($value) => $value !== '')
+                    ->implode(' ');
             }
 
-            $first = trim((string) ($this->preferred_name ?: $this->first_name));
-            $middle = trim((string) $this->middle_name);
-            $last = trim((string) $this->last_name);
-            $suffix = trim((string) $this->suffix);
-
-            $base = collect([$first, $middle, $last, $suffix])
-                ->filter(fn ($value) => $value !== '')
-                ->implode(' ');
-
-            if ($this->isPastMaster() && ! preg_match('/,\s*PM$/i', $base)) {
+            if ($this->isPastMaster() && ! $this->hasPastMasterSuffix($base)) {
                 return $base === '' ? 'PM' : "{$base}, PM";
             }
 
             return $base;
         });
+    }
+
+    protected function hasPastMasterSuffix(string $value): bool
+    {
+        return (bool) preg_match('/(?:,\s*)?P\.?\s*M\.?$/i', trim($value));
     }
 
     protected function isPastMaster(): bool
