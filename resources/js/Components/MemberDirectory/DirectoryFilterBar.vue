@@ -153,8 +153,8 @@ const reset = () => {
 
 <template>
     <div class="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm dark:border-surface-800 dark:bg-surface-900">
-        <div class="grid gap-4 lg:grid-cols-8">
-            <div class="lg:col-span-2">
+        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8">
+            <div class="md:col-span-2 lg:col-span-3 xl:col-span-2 2xl:col-span-2">
                 <label class="mb-2 block text-sm font-medium text-surface-700 dark:text-surface-200">
                     Search
                 </label>
@@ -178,6 +178,7 @@ const reset = () => {
                     class="w-full"
                     display="chip"
                     :max-selected-labels="2"
+                    selected-items-label="{0} selected"
                     :show-clear="true"
                     placeholder="Any statuses"
                 />
@@ -230,7 +231,7 @@ const reset = () => {
 
             <div>
                 <label class="mb-2 block text-sm font-medium text-surface-700 dark:text-surface-200">
-                    Last Contact Older Than
+                    Last Contact
                 </label>
                 <Select
                     v-model="localFilters.last_contact_older_than_days"
@@ -272,11 +273,9 @@ const reset = () => {
             </div>
         </div>
 
-        <div class="mt-4 flex justify-end">
-            <div class="flex flex-wrap gap-2">
-                <Button label="Reset" severity="secondary" outlined @click="reset" />
-                <Button label="Apply Filters" @click="submit" />
-            </div>
+        <div class="mt-4 flex flex-wrap justify-end gap-2 md:mt-5">
+            <Button label="Reset" severity="secondary" outlined @click="reset" />
+            <Button label="Apply Filters" @click="submit" />
         </div>
     </div>
 </template>
