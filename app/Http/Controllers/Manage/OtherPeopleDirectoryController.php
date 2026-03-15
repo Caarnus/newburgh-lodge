@@ -30,7 +30,8 @@ class OtherPeopleDirectoryController extends Controller
             'description' => 'People who are not currently categorized as members, widows, orphans, or relatives.',
             'filters' => $filters,
             'records' => $records,
-            'statusOptions' => [],
+            'statusOptions' => $directoryService->memberStatusOptions(),
+            'defaultStatusFilters' => $directoryService->defaultMemberStatusFilters(),
             'relationshipTypeOptions' => [],
             'sortOptions' => $directoryService->peopleSortOptions(),
         ]);

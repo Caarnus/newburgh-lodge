@@ -30,7 +30,8 @@ class RelativeDirectoryController extends Controller
             'description' => 'Related people who are not currently surfaced in the widow or orphan derived views.',
             'filters' => $filters,
             'records' => $records,
-            'statusOptions' => [],
+            'statusOptions' => $directoryService->memberStatusOptions(),
+            'defaultStatusFilters' => $directoryService->defaultMemberStatusFilters(),
             'relationshipTypeOptions' => $directoryService->relationshipTypeOptions(),
             'sortOptions' => $directoryService->relativeSortOptions(),
         ]);

@@ -24,6 +24,7 @@ const props = defineProps({
     records: { type: Object, required: true },
     sortOptions: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
+    defaultStatusFilters: { type: Array, default: () => [] },
     relationshipTypeOptions: { type: Array, default: () => [] },
 });
 
@@ -43,6 +44,7 @@ const only = [
     'filters',
     'records',
     'statusOptions',
+    'defaultStatusFilters',
     'relationshipTypeOptions',
     'sortOptions',
 ];
@@ -80,57 +82,13 @@ const showMemberColumns = computed(() => ['all', 'members'].includes(props.secti
 const showCareColumns = computed(() => ['widows', 'orphans'].includes(props.section));
 const showRelativeColumns = computed(() => props.section === 'relatives');
 const isNarrowScreen = ref(false);
-const hideDeceasedStorageKey = 'member-directory.hide-deceased';
-const normalizeHideDeceased = (value) => (
-    value === true
-    || value === 1
-    || value === '1'
-    || value === 'true'
-    || value === 'on'
-);
-const hasHideDeceasedInUrl = computed(() => {
-    const url = String(page.url ?? '');
-    const query = url.split('?')[1] ?? '';
-
-    return new URLSearchParams(query).has('hide_deceased');
-});
-
-const readPersistedHideDeceased = () => {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-
-    const value = window.localStorage.getItem(hideDeceasedStorageKey);
-
-    if (value === null) {
-        return null;
-    }
-
-    return value === 'true';
-};
-
-const persistHideDeceased = (value) => {
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    window.localStorage.setItem(hideDeceasedStorageKey, value ? 'true' : 'false');
-};
 
 const pruneFilters = (filters) => Object.fromEntries(
     Object.entries(filters).filter(([, value]) => value !== null && value !== '' && value !== undefined)
 );
 
 const visitSection = (nextFilters) => {
-    const hideDeceased = normalizeHideDeceased(nextFilters.hide_deceased);
-    const normalizedFilters = {
-        ...nextFilters,
-        hide_deceased: hideDeceased ? 1 : 0,
-    };
-
-    persistHideDeceased(hideDeceased);
-
-    router.get(route(currentRoute.value), pruneFilters(normalizedFilters), {
+    router.get(route(currentRoute.value), pruneFilters(nextFilters), {
         only,
         preserveScroll: true,
         preserveState: true,
@@ -157,6 +115,20 @@ const formatDateTime = (value) => value
     })
     : '—';
 const relationshipLabel = (value) => value || '—';
+
+const personDetailRouteParams = (personId) => pruneFilters({
+    person: personId,
+    from: props.section,
+    q: props.filters.q ?? undefined,
+    status: props.filters.status ?? undefined,
+    relationship_type: props.filters.relationship_type ?? undefined,
+    has_email: props.filters.has_email ?? undefined,
+    has_phone: props.filters.has_phone ?? undefined,
+    last_contact_older_than_days: props.filters.last_contact_older_than_days ?? undefined,
+    sort: props.filters.sort ?? undefined,
+    per_page: props.filters.per_page ?? undefined,
+    page: props.filters.page ?? props.records.current_page ?? undefined,
+});
 
 const exportFilters = computed(() => pruneFilters({
     ...props.filters,
@@ -204,30 +176,6 @@ const updateViewportState = () => {
 onMounted(() => {
     updateViewportState();
     window.addEventListener('resize', updateViewportState);
-
-    const persisted = readPersistedHideDeceased();
-    const current = normalizeHideDeceased(props.filters.hide_deceased);
-
-    if (persisted === null) {
-        persistHideDeceased(current);
-        return;
-    }
-
-    if (hasHideDeceasedInUrl.value) {
-        persistHideDeceased(current);
-        return;
-    }
-
-    if (persisted !== current) {
-        visitSection({
-            ...props.filters,
-            hide_deceased: persisted,
-            page: 1,
-        });
-        return;
-    }
-
-    persistHideDeceased(current);
 });
 
 onBeforeUnmount(() => {
@@ -274,6 +222,7 @@ onBeforeUnmount(() => {
             :filters="filters"
             :sort-options="sortOptions"
             :status-options="statusOptions"
+            :default-status-filters="defaultStatusFilters"
             :relationship-type-options="relationshipTypeOptions"
             @apply="visitSection"
             @reset="visitSection"
@@ -411,7 +360,7 @@ onBeforeUnmount(() => {
                                 icon="pi pi-eye"
                                 aria-label="View details"
                                 v-tooltip.top="'View details'"
-                                @click="router.get(route('manage.member-directory.people.show', { person: data.id, from: section }))"
+                                @click="router.get(route('manage.member-directory.people.show', personDetailRouteParams(data.id)))"
                             />
                         </div>
                     </template>

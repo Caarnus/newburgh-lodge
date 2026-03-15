@@ -14,11 +14,26 @@ class IndexMemberDirectoryRequest extends FormRequest
     {
         $status = $this->input('status');
 
-        if (is_string($status) && trim($status) !== '') {
-            $this->merge([
-                'status' => [trim($status)],
-            ]);
+        if (is_string($status)) {
+            $status = trim($status) !== '' ? [trim($status)] : [];
         }
+
+        if (is_array($status)) {
+            $status = array_values(array_filter(
+                array_map(static fn ($value) => is_string($value) ? trim($value) : null, $status),
+                static fn ($value) => is_string($value) && $value !== ''
+            ));
+        } else {
+            $status = [];
+        }
+
+        if ($status === []) {
+            $status = MemberStatus::defaultDirectoryFilters();
+        }
+
+        $this->merge([
+            'status' => $status,
+        ]);
     }
 
     public function authorize(): bool

@@ -28,24 +28,19 @@ const only = [
     'filters',
     'records',
     'statusOptions',
+    'defaultStatusFilters',
     'relationshipTypeOptions',
     'sortOptions',
 ];
 
-const normalizeHideDeceased = (value) => (
-    value === true
-    || value === 1
-    || value === '1'
-    || value === 'true'
-    || value === 'on'
-);
-
 const sharedData = () => ({
     q: props.filters.q ?? undefined,
+    status: props.filters.status ?? undefined,
+    relationship_type: props.filters.relationship_type ?? undefined,
     has_email: props.filters.has_email ?? undefined,
     has_phone: props.filters.has_phone ?? undefined,
     last_contact_older_than_days: props.filters.last_contact_older_than_days ?? undefined,
-    hide_deceased: normalizeHideDeceased(props.filters.hide_deceased) ? 1 : undefined,
+    sort: props.filters.sort ?? undefined,
     per_page: props.filters.per_page ?? undefined,
     page: undefined,
 });

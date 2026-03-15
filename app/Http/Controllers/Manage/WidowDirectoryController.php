@@ -30,7 +30,8 @@ class WidowDirectoryController extends Controller
             'description' => 'Surviving spouses connected to deceased lodge members through spouse relationships.',
             'filters' => $filters,
             'records' => $records,
-            'statusOptions' => [],
+            'statusOptions' => $directoryService->memberStatusOptions(),
+            'defaultStatusFilters' => $directoryService->defaultMemberStatusFilters(),
             'relationshipTypeOptions' => [],
             'sortOptions' => $directoryService->careSortOptions(),
         ]);

@@ -73,6 +73,7 @@ class UpdatePersonDirectoryRequest extends FormRequest
                 'member_profile.honorary_date' => ['nullable', 'date'],
                 'member_profile.demit_date' => ['nullable', 'date'],
                 'member_profile.past_master' => ['nullable', 'boolean'],
+                'member_profile.past_grand_master' => ['nullable', 'boolean'],
                 'member_profile.can_auto_match_registration' => ['nullable', 'boolean'],
                 'member_profile.directory_visible' => ['nullable', 'boolean'],
             ]);
@@ -96,6 +97,7 @@ class UpdatePersonDirectoryRequest extends FormRequest
                 'member_profile.honorary_date' => ['prohibited'],
                 'member_profile.demit_date' => ['prohibited'],
                 'member_profile.past_master' => ['prohibited'],
+                'member_profile.past_grand_master' => ['prohibited'],
                 'member_profile.can_auto_match_registration' => ['prohibited'],
                 'member_profile.directory_visible' => ['prohibited'],
             ]);

@@ -27,10 +27,11 @@ class MemberDirectoryController extends Controller
         return Inertia::render('Admin/MemberDirectory/Index', [
             'section' => 'members',
             'title' => 'Member Directory',
-            'description' => 'Internal roster view with filters for status and deceased visibility.',
+            'description' => 'Internal roster view with status and contact filters.',
             'filters' => $filters,
             'records' => $records,
             'statusOptions' => $directoryService->memberStatusOptions(),
+            'defaultStatusFilters' => $directoryService->defaultMemberStatusFilters(),
             'relationshipTypeOptions' => [],
             'sortOptions' => $directoryService->memberSortOptions(),
         ]);
@@ -62,6 +63,7 @@ class MemberDirectoryController extends Controller
                 'Member Number',
                 'Status',
                 'Past Master',
+                'Past Grand Master',
                 'Email',
                 'Phone',
                 'Address Line 1',
@@ -98,6 +100,7 @@ class MemberDirectoryController extends Controller
                 $row['member_profile']['member_number'] ?? null,
                 $row['member_profile']['status'] ?? null,
                 isset($row['member_profile']) ? (($row['member_profile']['past_master'] ?? false) ? 'Yes' : 'No') : null,
+                isset($row['member_profile']) ? (($row['member_profile']['past_grand_master'] ?? false) ? 'Yes' : 'No') : null,
                 $row['email'] ?? null,
                 $row['phone'] ?? null,
                 $row['address_line_1'] ?? null,

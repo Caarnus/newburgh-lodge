@@ -30,7 +30,8 @@ class AllPeopleDirectoryController extends Controller
             'description' => 'Complete internal people directory across all classifications.',
             'filters' => $filters,
             'records' => $records,
-            'statusOptions' => [],
+            'statusOptions' => $directoryService->memberStatusOptions(),
+            'defaultStatusFilters' => $directoryService->defaultMemberStatusFilters(),
             'relationshipTypeOptions' => [],
             'sortOptions' => $directoryService->peopleSortOptions(),
         ]);

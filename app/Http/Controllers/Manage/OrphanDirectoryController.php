@@ -30,7 +30,8 @@ class OrphanDirectoryController extends Controller
             'description' => 'Children or dependents connected to deceased lodge members through tracked relationships.',
             'filters' => $filters,
             'records' => $records,
-            'statusOptions' => [],
+            'statusOptions' => $directoryService->memberStatusOptions(),
+            'defaultStatusFilters' => $directoryService->defaultMemberStatusFilters(),
             'relationshipTypeOptions' => [],
             'sortOptions' => $directoryService->careSortOptions(),
         ]);

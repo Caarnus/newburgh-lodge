@@ -3,7 +3,6 @@ import { computed, reactive, watch } from 'vue';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import Select from 'primevue/select';
-import ToggleSwitch from 'primevue/toggleswitch';
 import InputText from 'primevue/inputtext';
 
 const props = defineProps({
@@ -23,6 +22,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    defaultStatusFilters: {
+        type: Array,
+        default: () => [],
+    },
     relationshipTypeOptions: {
         type: Array,
         default: () => [],
@@ -30,13 +33,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['apply', 'reset']);
-const normalizeHideDeceased = (value) => (
-    value === true
-    || value === 1
-    || value === '1'
-    || value === 'true'
-    || value === 'on'
-);
 const normalizeStatusFilter = (value) => {
     if (Array.isArray(value)) {
         return value.filter(Boolean);
@@ -48,15 +44,17 @@ const normalizeStatusFilter = (value) => {
 
     return [value];
 };
+const defaultMemberStatuses = () => normalizeStatusFilter(props.defaultStatusFilters);
 
 const localFilters = reactive({
     q: props.filters.q ?? null,
-    status: normalizeStatusFilter(props.filters.status),
+    status: normalizeStatusFilter(
+        props.filters.status ?? defaultMemberStatuses()
+    ),
     relationship_type: props.filters.relationship_type ?? null,
     has_email: props.filters.has_email ?? null,
     has_phone: props.filters.has_phone ?? null,
     last_contact_older_than_days: props.filters.last_contact_older_than_days ?? null,
-    hide_deceased: normalizeHideDeceased(props.filters.hide_deceased),
     sort: props.filters.sort ?? 'name',
     per_page: props.filters.per_page ?? 25,
 });
@@ -65,12 +63,13 @@ watch(
     () => props.filters,
     (filters) => {
         localFilters.q = filters.q ?? null;
-        localFilters.status = normalizeStatusFilter(filters.status);
+        localFilters.status = normalizeStatusFilter(
+            filters.status ?? defaultMemberStatuses()
+        );
         localFilters.relationship_type = filters.relationship_type ?? null;
         localFilters.has_email = filters.has_email ?? null;
         localFilters.has_phone = filters.has_phone ?? null;
         localFilters.last_contact_older_than_days = filters.last_contact_older_than_days ?? null;
-        localFilters.hide_deceased = normalizeHideDeceased(filters.hide_deceased);
         localFilters.sort = filters.sort ?? 'name';
         localFilters.per_page = filters.per_page ?? 25;
     },
@@ -80,7 +79,7 @@ watch(
 watch(
     () => props.section,
     () => {
-        localFilters.status = [];
+        localFilters.status = defaultMemberStatuses();
         localFilters.relationship_type = null;
         localFilters.sort = 'name';
     }
@@ -91,7 +90,7 @@ const perPageOptions = [10, 25, 50, 100].map((value) => ({
     value,
 }));
 
-const showMemberFilters = computed(() => props.section === 'members');
+const showStatusFilter = computed(() => props.statusOptions.length > 0);
 const showRelationshipFilter = computed(() => props.section === 'relatives');
 const yesNoOptions = [
     { label: 'Has Value', value: 'yes' },
@@ -122,7 +121,6 @@ const submit = () => {
         has_email: localFilters.has_email,
         has_phone: localFilters.has_phone,
         last_contact_older_than_days: localFilters.last_contact_older_than_days,
-        hide_deceased: localFilters.hide_deceased,
         sort: localFilters.sort,
         per_page: localFilters.per_page,
         page: 1,
@@ -131,23 +129,21 @@ const submit = () => {
 
 const reset = () => {
     localFilters.q = null;
-    localFilters.status = [];
+    localFilters.status = defaultMemberStatuses();
     localFilters.relationship_type = null;
     localFilters.has_email = null;
     localFilters.has_phone = null;
     localFilters.last_contact_older_than_days = null;
-    localFilters.hide_deceased = false;
     localFilters.sort = 'name';
     localFilters.per_page = 25;
 
     emit('reset', {
         q: null,
-        status: null,
+        status: localFilters.status.length > 0 ? localFilters.status : null,
         relationship_type: null,
         has_email: null,
         has_phone: null,
         last_contact_older_than_days: null,
-        hide_deceased: false,
         sort: 'name',
         per_page: 25,
         page: 1,
@@ -170,7 +166,7 @@ const reset = () => {
                 />
             </div>
 
-            <div v-if="showMemberFilters">
+            <div v-if="showStatusFilter">
                 <label class="mb-2 block text-sm font-medium text-surface-700 dark:text-surface-200">
                     Status
                 </label>
@@ -276,12 +272,7 @@ const reset = () => {
             </div>
         </div>
 
-        <div class="mt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <label class="flex items-center gap-3 text-sm text-surface-700 dark:text-surface-200">
-                <ToggleSwitch v-model="localFilters.hide_deceased" />
-                <span>Hide deceased</span>
-            </label>
-
+        <div class="mt-4 flex justify-end">
             <div class="flex flex-wrap gap-2">
                 <Button label="Reset" severity="secondary" outlined @click="reset" />
                 <Button label="Apply Filters" @click="submit" />

@@ -39,4 +39,18 @@ enum MemberStatus: string
             self::cases()
         );
     }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function defaultDirectoryFilters(): array
+    {
+        return [
+            self::MasterMason->value,
+            self::Fellowcraft->value,
+            self::EnteredApprentice->value,
+            self::Petitioner->value,
+            self::Honorary->value,
+        ];
+    }
 }

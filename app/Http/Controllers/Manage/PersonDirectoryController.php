@@ -17,6 +17,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Services\People\PersonRelationshipService;
 use App\Services\People\Directory\PeopleDirectoryService;
+use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -57,23 +58,28 @@ class PersonDirectoryController extends Controller
                 'city' => $request->string('city')->toString() ?: null,
                 'state' => $request->string('state')->toString() ?: null,
                 'postal_code' => $request->string('postal_code')->toString() ?: null,
-                'birth_date' => $request->date('birth_date'),
+                'birth_date' => $this->nullableDate($request, 'birth_date'),
                 'notes' => $request->string('notes')->toString() ?: null,
                 'is_deceased' => $request->boolean('is_deceased'),
-                'death_date' => $request->boolean('is_deceased') ? $request->date('death_date') : null,
+                'death_date' => $request->boolean('is_deceased')
+                    ? $this->nullableDate($request, 'death_date')
+                    : null,
             ]);
 
             if ($recordType === 'member') {
+                $isPastGrandMaster = $request->boolean('past_grand_master');
+
                 MemberProfile::query()->create([
                     'person_id' => $person->id,
                     'member_number' => $request->string('member_number')->toString() ?: null,
                     'status' => $request->string('member_status')->toString() ?: null,
-                    'ea_date' => $request->date('ea_date'),
-                    'fc_date' => $request->date('fc_date'),
-                    'mm_date' => $request->date('mm_date'),
-                    'honorary_date' => $request->date('honorary_date'),
-                    'demit_date' => $request->date('demit_date'),
-                    'past_master' => $request->boolean('past_master'),
+                    'ea_date' => $this->nullableDate($request, 'ea_date'),
+                    'fc_date' => $this->nullableDate($request, 'fc_date'),
+                    'mm_date' => $this->nullableDate($request, 'mm_date'),
+                    'honorary_date' => $this->nullableDate($request, 'honorary_date'),
+                    'demit_date' => $this->nullableDate($request, 'demit_date'),
+                    'past_master' => $isPastGrandMaster ? false : $request->boolean('past_master'),
+                    'past_grand_master' => $isPastGrandMaster,
                     'can_auto_match_registration' => $request->boolean('can_auto_match_registration', true),
                     'directory_visible' => $request->boolean('directory_visible', true),
                 ]);
@@ -90,7 +96,7 @@ class PersonDirectoryController extends Controller
                     relatedPersonId: $request->integer('related_person_id'),
                     relationshipType: $relationshipType,
                     inverseRelationshipType: $inverseRelationshipType,
-                    anniversaryDate: $request->date('relationship_anniversary_date'),
+                    anniversaryDate: $this->nullableDate($request, 'relationship_anniversary_date'),
                     isPrimary: $request->boolean('relationship_is_primary'),
                     notes: $request->string('relationship_notes')->toString() ?: null,
                 );
@@ -122,6 +128,7 @@ class PersonDirectoryController extends Controller
             'memberStatusOptions' => $directoryService->memberStatusOptions(),
             'relationshipTypeOptions' => $directoryService->relationshipTypeOptions(),
             'fromSection' => $request->string('from')->toString() ?: null,
+            'fromFilters' => $this->fromFilters($request),
         ]);
     }
 
@@ -153,11 +160,11 @@ class PersonDirectoryController extends Controller
                     'last_name' => $request->string('last_name')->toString(),
                     'suffix' => $request->string('suffix')->toString() ?: null,
                     'display_name_override' => $request->string('display_name_override')->toString() ?: null,
-                    'birth_date' => $request->date('birth_date'),
+                    'birth_date' => $this->nullableDate($request, 'birth_date'),
                     'notes' => $request->string('notes')->toString() ?: null,
                     'is_deceased' => $request->boolean('is_deceased'),
                     'death_date' => $request->boolean('is_deceased')
-                        ? $request->date('death_date')
+                        ? $this->nullableDate($request, 'death_date')
                         : null,
                 ]);
             } else {
@@ -174,7 +181,7 @@ class PersonDirectoryController extends Controller
                         ? ($request->string('display_name_override')->toString() ?: null)
                         : $person->display_name_override,
                     'birth_date' => $request->has('birth_date')
-                        ? $request->date('birth_date')
+                        ? $this->nullableDate($request, 'birth_date')
                         : $person->birth_date,
                 ]);
             }
@@ -186,18 +193,26 @@ class PersonDirectoryController extends Controller
                 return;
             }
 
+            $isPastGrandMaster = $request->boolean(
+                'member_profile.past_grand_master',
+                $person->memberProfile?->past_grand_master ?? false
+            );
+
             $memberProfileData = [
-                'member_number' => $request->input('member_profile.member_number'),
+                'member_number' => $request->has('member_profile.member_number')
+                    ? ($request->string('member_profile.member_number')->toString() ?: null)
+                    : $person->memberProfile?->member_number,
                 'status' => $request->input('member_profile.status'),
-                'ea_date' => $request->date('member_profile.ea_date'),
-                'fc_date' => $request->date('member_profile.fc_date'),
-                'mm_date' => $request->date('member_profile.mm_date'),
-                'honorary_date' => $request->date('member_profile.honorary_date'),
-                'demit_date' => $request->date('member_profile.demit_date'),
-                'past_master' => $request->boolean(
+                'ea_date' => $this->nullableDate($request, 'member_profile.ea_date'),
+                'fc_date' => $this->nullableDate($request, 'member_profile.fc_date'),
+                'mm_date' => $this->nullableDate($request, 'member_profile.mm_date'),
+                'honorary_date' => $this->nullableDate($request, 'member_profile.honorary_date'),
+                'demit_date' => $this->nullableDate($request, 'member_profile.demit_date'),
+                'past_master' => $isPastGrandMaster ? false : $request->boolean(
                     'member_profile.past_master',
                     $person->memberProfile?->past_master ?? false
                 ),
+                'past_grand_master' => $isPastGrandMaster,
                 'can_auto_match_registration' => $request->boolean(
                     'member_profile.can_auto_match_registration',
                     $person->memberProfile?->can_auto_match_registration ?? true
@@ -218,6 +233,7 @@ class PersonDirectoryController extends Controller
                 'honorary_date',
                 'demit_date',
                 'past_master',
+                'past_grand_master',
             ])->contains(fn (string $key) => filled($memberProfileInput[$key] ?? null));
 
             $shouldSyncMemberProfile = $person->memberProfile !== null
@@ -304,10 +320,49 @@ class PersonDirectoryController extends Controller
                 'honorary_date' => optional($person->memberProfile->honorary_date)->toDateString(),
                 'demit_date' => optional($person->memberProfile->demit_date)->toDateString(),
                 'past_master' => (bool) $person->memberProfile->past_master,
+                'past_grand_master' => (bool) $person->memberProfile->past_grand_master,
                 'can_auto_match_registration' => (bool) $person->memberProfile->can_auto_match_registration,
                 'directory_visible' => (bool) $person->memberProfile->directory_visible,
             ] : null,
         ]);
+    }
+
+    protected function nullableDate(Request $request, string $key): ?\Illuminate\Support\Carbon
+    {
+        return $request->filled($key) ? $request->date($key) : null;
+    }
+
+    protected function fromFilters(ShowPersonDirectoryRequest $request): array
+    {
+        $status = $request->input('status');
+        $normalizedStatus = null;
+
+        if (is_string($status) && trim($status) !== '') {
+            $normalizedStatus = [trim($status)];
+        } elseif (is_array($status)) {
+            $normalizedStatus = array_values(array_filter(
+                array_map(
+                    static fn ($value) => is_string($value) ? trim($value) : null,
+                    $status
+                ),
+                static fn ($value) => is_string($value) && $value !== ''
+            ));
+            $normalizedStatus = $normalizedStatus === [] ? null : $normalizedStatus;
+        }
+
+        return array_filter([
+            'q' => $request->string('q')->toString() ?: null,
+            'status' => $normalizedStatus,
+            'relationship_type' => $request->string('relationship_type')->toString() ?: null,
+            'has_email' => $request->string('has_email')->toString() ?: null,
+            'has_phone' => $request->string('has_phone')->toString() ?: null,
+            'last_contact_older_than_days' => $request->filled('last_contact_older_than_days')
+                ? $request->integer('last_contact_older_than_days')
+                : null,
+            'sort' => $request->string('sort')->toString() ?: null,
+            'per_page' => $request->filled('per_page') ? $request->integer('per_page') : null,
+            'page' => $request->filled('page') ? $request->integer('page') : null,
+        ], fn ($value) => $value !== null && $value !== '' && $value !== []);
     }
 
     protected function contactSnapshot(Person $person): array

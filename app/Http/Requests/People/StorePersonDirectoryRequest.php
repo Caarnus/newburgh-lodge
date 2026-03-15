@@ -48,7 +48,17 @@ class StorePersonDirectoryRequest extends FormRequest
                 'string',
                 'max:120',
                 Rule::unique('member_profiles', 'member_number'),
-                Rule::requiredIf(fn () => $this->string('record_type')->toString() === 'member'),
+                Rule::requiredIf(function () {
+                    if ($this->string('record_type')->toString() !== 'member') {
+                        return false;
+                    }
+
+                    return ! in_array(
+                        $this->string('member_status')->toString(),
+                        [MemberStatus::Petitioner->value, MemberStatus::Honorary->value],
+                        true,
+                    );
+                }),
             ],
             'member_status' => ['nullable', Rule::in(MemberStatus::values())],
             'member_type' => ['prohibited'],
@@ -58,6 +68,7 @@ class StorePersonDirectoryRequest extends FormRequest
             'honorary_date' => ['nullable', 'date'],
             'demit_date' => ['nullable', 'date'],
             'past_master' => ['nullable', 'boolean'],
+            'past_grand_master' => ['nullable', 'boolean'],
             'can_auto_match_registration' => ['nullable', 'boolean'],
             'directory_visible' => ['nullable', 'boolean'],
 

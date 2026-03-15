@@ -50,6 +50,7 @@ const form = useForm({
     honorary_date: '',
     demit_date: '',
     past_master: false,
+    past_grand_master: false,
     can_auto_match_registration: true,
     directory_visible: true,
 
@@ -104,6 +105,17 @@ const searchRelatedPeople = async () => {
 
 const submit = () => {
     form.post(route('manage.member-directory.people.store'));
+};
+
+const clearDateField = (field) => {
+    form[field] = '';
+};
+
+const onPastGrandMasterChange = (value) => {
+    form.past_grand_master = Boolean(value);
+    if (form.past_grand_master) {
+        form.past_master = false;
+    }
 };
 </script>
 
@@ -169,7 +181,16 @@ const submit = () => {
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">Birth Date</label>
-                        <InputText v-model="form.birth_date" type="date" class="w-full" />
+                        <div class="flex items-center gap-2">
+                            <InputText v-model="form.birth_date" type="date" class="w-full" />
+                            <Button
+                                type="button"
+                                label="Clear"
+                                text
+                                size="small"
+                                @click="clearDateField('birth_date')"
+                            />
+                        </div>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">Email</label>
@@ -210,7 +231,16 @@ const submit = () => {
                         </label>
                         <div v-if="form.is_deceased" class="w-full md:w-64">
                             <label class="mb-2 block text-sm font-medium">Death Date</label>
-                            <InputText v-model="form.death_date" type="date" class="w-full" />
+                            <div class="flex items-center gap-2">
+                                <InputText v-model="form.death_date" type="date" class="w-full" />
+                                <Button
+                                    type="button"
+                                    label="Clear"
+                                    text
+                                    size="small"
+                                    @click="clearDateField('death_date')"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -239,27 +269,52 @@ const submit = () => {
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">EA Date</label>
-                        <InputText v-model="form.ea_date" type="date" class="w-full" />
+                        <div class="flex items-center gap-2">
+                            <InputText v-model="form.ea_date" type="date" class="w-full" />
+                            <Button type="button" label="Clear" text size="small" @click="clearDateField('ea_date')" />
+                        </div>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">FC Date</label>
-                        <InputText v-model="form.fc_date" type="date" class="w-full" />
+                        <div class="flex items-center gap-2">
+                            <InputText v-model="form.fc_date" type="date" class="w-full" />
+                            <Button type="button" label="Clear" text size="small" @click="clearDateField('fc_date')" />
+                        </div>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">MM Date</label>
-                        <InputText v-model="form.mm_date" type="date" class="w-full" />
+                        <div class="flex items-center gap-2">
+                            <InputText v-model="form.mm_date" type="date" class="w-full" />
+                            <Button type="button" label="Clear" text size="small" @click="clearDateField('mm_date')" />
+                        </div>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">Honorary Date</label>
-                        <InputText v-model="form.honorary_date" type="date" class="w-full" />
+                        <div class="flex items-center gap-2">
+                            <InputText v-model="form.honorary_date" type="date" class="w-full" />
+                            <Button type="button" label="Clear" text size="small" @click="clearDateField('honorary_date')" />
+                        </div>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">Demit Date</label>
-                        <InputText v-model="form.demit_date" type="date" class="w-full" />
+                        <div class="flex items-center gap-2">
+                            <InputText v-model="form.demit_date" type="date" class="w-full" />
+                            <Button type="button" label="Clear" text size="small" @click="clearDateField('demit_date')" />
+                        </div>
                     </div>
                     <div class="md:col-span-3">
                         <label class="inline-flex items-center gap-2 text-sm">
-                            <Checkbox v-model="form.past_master" binary />
+                            <Checkbox
+                                :model-value="form.past_grand_master"
+                                binary
+                                @update:modelValue="onPastGrandMasterChange"
+                            />
+                            <span>Past Grand Master (appends ", PGM" unless display name already ends with ", PGM")</span>
+                        </label>
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="inline-flex items-center gap-2 text-sm">
+                            <Checkbox v-model="form.past_master" binary :disabled="form.past_grand_master" />
                             <span>Past Master (appends ", PM" unless display name already ends with PM)</span>
                         </label>
                     </div>

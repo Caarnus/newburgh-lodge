@@ -78,6 +78,10 @@ class Person extends Model
                     ->implode(' ');
             }
 
+            if ($this->isPastGrandMaster() && ! $this->hasPastGrandMasterSuffix($base)) {
+                return $base === '' ? 'PGM' : "{$base}, PGM";
+            }
+
             if ($this->isPastMaster() && ! $this->hasPastMasterSuffix($base)) {
                 return $base === '' ? 'PM' : "{$base}, PM";
             }
@@ -86,9 +90,23 @@ class Person extends Model
         });
     }
 
+    protected function hasPastGrandMasterSuffix(string $value): bool
+    {
+        return (bool) preg_match('/,\s*P\.?\s*G\.?\s*M\.?$/i', trim($value));
+    }
+
     protected function hasPastMasterSuffix(string $value): bool
     {
         return (bool) preg_match('/(?:,\s*)?P\.?\s*M\.?$/i', trim($value));
+    }
+
+    protected function isPastGrandMaster(): bool
+    {
+        if ($this->relationLoaded('memberProfile')) {
+            return (bool) ($this->getRelation('memberProfile')?->past_grand_master ?? false);
+        }
+
+        return (bool) ($this->memberProfile?->past_grand_master ?? false);
     }
 
     protected function isPastMaster(): bool

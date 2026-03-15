@@ -26,6 +26,7 @@ const props = defineProps({
     memberStatusOptions: { type: Array, default: () => [] },
     relationshipTypeOptions: { type: Array, default: () => [] },
     fromSection: { type: String, default: null },
+    fromFilters: { type: Object, default: () => ({}) },
 });
 
 const page = usePage();
@@ -46,6 +47,9 @@ const backLabel = computed(() => ({
     relatives: 'Back to Relatives',
     others: 'Back to Others',
 }[props.fromSection] ?? 'Back to Directory'));
+const backRouteParams = computed(() => ({
+    ...(props.fromFilters ?? {}),
+}));
 
 const classifications = computed(() => [
     props.person.classifications?.is_member ? 'Member' : null,
@@ -174,6 +178,7 @@ const editRecordForm = useForm({
         honorary_date: '',
         demit_date: '',
         past_master: false,
+        past_grand_master: false,
         can_auto_match_registration: true,
         directory_visible: true,
     },
@@ -224,9 +229,25 @@ const populateEditRecordForm = () => {
         honorary_date: props.person.member_profile?.honorary_date || '',
         demit_date: props.person.member_profile?.demit_date || '',
         past_master: Boolean(props.person.member_profile?.past_master ?? false),
+        past_grand_master: Boolean(props.person.member_profile?.past_grand_master ?? false),
         can_auto_match_registration: Boolean(props.person.member_profile?.can_auto_match_registration ?? true),
         directory_visible: Boolean(props.person.member_profile?.directory_visible ?? true),
     };
+};
+
+const clearEditDateField = (field) => {
+    editRecordForm[field] = '';
+};
+
+const clearEditMemberDateField = (field) => {
+    editRecordForm.member_profile[field] = '';
+};
+
+const onEditPastGrandMasterChange = (value) => {
+    editRecordForm.member_profile.past_grand_master = Boolean(value);
+    if (editRecordForm.member_profile.past_grand_master) {
+        editRecordForm.member_profile.past_master = false;
+    }
 };
 
 const resetCreateRelationshipForm = () => {
@@ -444,7 +465,7 @@ const submitEditContact = () => {
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
                 <div class="text-sm text-surface-500 dark:text-surface-400">
-                    <Link :href="route(backRoute)" class="hover:underline">{{ backLabel }}</Link>
+                    <Link :href="route(backRoute, backRouteParams)" class="hover:underline">{{ backLabel }}</Link>
                 </div>
                 <h1 class="mt-2 text-3xl font-semibold text-surface-900 dark:text-surface-0">{{ person.display_name }}</h1>
                 <div class="mt-3 flex flex-wrap gap-2">
@@ -453,7 +474,7 @@ const submitEditContact = () => {
                 </div>
             </div>
             <Link
-                :href="route(backRoute)"
+                :href="route(backRoute, backRouteParams)"
                 class="hidden md:inline-flex items-center rounded-lg border border-surface-300 px-4 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
             >
                 {{ backLabel }}
@@ -563,6 +584,10 @@ const submitEditContact = () => {
                         <div>
                             <div class="font-medium text-surface-700 dark:text-surface-200">Past Master</div>
                             <div>{{ person.member_profile.past_master ? 'Yes' : 'No' }}</div>
+                        </div>
+                        <div>
+                            <div class="font-medium text-surface-700 dark:text-surface-200">Past Grand Master</div>
+                            <div>{{ person.member_profile.past_grand_master ? 'Yes' : 'No' }}</div>
                         </div>
                     </div>
                     <div v-else class="text-sm text-surface-600 dark:text-surface-300">
@@ -760,7 +785,16 @@ const submitEditContact = () => {
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">Birth Date</label>
-                        <InputText v-model="editRecordForm.birth_date" type="date" class="w-full" />
+                        <div class="flex items-center gap-2">
+                            <InputText v-model="editRecordForm.birth_date" type="date" class="w-full" />
+                            <Button
+                                type="button"
+                                label="Clear"
+                                text
+                                size="small"
+                                @click="clearEditDateField('birth_date')"
+                            />
+                        </div>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">Email</label>
@@ -801,7 +835,16 @@ const submitEditContact = () => {
                         </label>
                         <div v-if="editRecordForm.is_deceased" class="w-full md:w-64">
                             <label class="mb-2 block text-sm font-medium">Death Date</label>
-                            <InputText v-model="editRecordForm.death_date" type="date" class="w-full" />
+                            <div class="flex items-center gap-2">
+                                <InputText v-model="editRecordForm.death_date" type="date" class="w-full" />
+                                <Button
+                                    type="button"
+                                    label="Clear"
+                                    text
+                                    size="small"
+                                    @click="clearEditDateField('death_date')"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -827,27 +870,86 @@ const submitEditContact = () => {
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">EA Date</label>
-                        <InputText v-model="editRecordForm.member_profile.ea_date" type="date" class="w-full" />
+                        <div class="flex items-center gap-2">
+                            <InputText v-model="editRecordForm.member_profile.ea_date" type="date" class="w-full" />
+                            <Button
+                                type="button"
+                                label="Clear"
+                                text
+                                size="small"
+                                @click="clearEditMemberDateField('ea_date')"
+                            />
+                        </div>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">FC Date</label>
-                        <InputText v-model="editRecordForm.member_profile.fc_date" type="date" class="w-full" />
+                        <div class="flex items-center gap-2">
+                            <InputText v-model="editRecordForm.member_profile.fc_date" type="date" class="w-full" />
+                            <Button
+                                type="button"
+                                label="Clear"
+                                text
+                                size="small"
+                                @click="clearEditMemberDateField('fc_date')"
+                            />
+                        </div>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">MM Date</label>
-                        <InputText v-model="editRecordForm.member_profile.mm_date" type="date" class="w-full" />
+                        <div class="flex items-center gap-2">
+                            <InputText v-model="editRecordForm.member_profile.mm_date" type="date" class="w-full" />
+                            <Button
+                                type="button"
+                                label="Clear"
+                                text
+                                size="small"
+                                @click="clearEditMemberDateField('mm_date')"
+                            />
+                        </div>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">Honorary Date</label>
-                        <InputText v-model="editRecordForm.member_profile.honorary_date" type="date" class="w-full" />
+                        <div class="flex items-center gap-2">
+                            <InputText v-model="editRecordForm.member_profile.honorary_date" type="date" class="w-full" />
+                            <Button
+                                type="button"
+                                label="Clear"
+                                text
+                                size="small"
+                                @click="clearEditMemberDateField('honorary_date')"
+                            />
+                        </div>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium">Demit Date</label>
-                        <InputText v-model="editRecordForm.member_profile.demit_date" type="date" class="w-full" />
+                        <div class="flex items-center gap-2">
+                            <InputText v-model="editRecordForm.member_profile.demit_date" type="date" class="w-full" />
+                            <Button
+                                type="button"
+                                label="Clear"
+                                text
+                                size="small"
+                                @click="clearEditMemberDateField('demit_date')"
+                            />
+                        </div>
                     </div>
                     <div class="md:col-span-3">
                         <label class="inline-flex items-center gap-2 text-sm">
-                            <Checkbox v-model="editRecordForm.member_profile.past_master" binary />
+                            <Checkbox
+                                :model-value="editRecordForm.member_profile.past_grand_master"
+                                binary
+                                @update:modelValue="onEditPastGrandMasterChange"
+                            />
+                            <span>Past Grand Master (appends ", PGM" unless display name already ends with ", PGM")</span>
+                        </label>
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="inline-flex items-center gap-2 text-sm">
+                            <Checkbox
+                                v-model="editRecordForm.member_profile.past_master"
+                                binary
+                                :disabled="editRecordForm.member_profile.past_grand_master"
+                            />
                             <span>Past Master (appends ", PM" unless display name already ends with PM)</span>
                         </label>
                     </div>

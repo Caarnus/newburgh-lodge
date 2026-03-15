@@ -43,4 +43,31 @@ class PersonDisplayNameTest extends TestCase
 
         $this->assertSame('Brother John Doe, PM', $person->display_name);
     }
+
+    public function test_past_grand_master_suffix_is_added_when_missing(): void
+    {
+        $person = new Person([
+            'first_name' => 'John',
+            'last_name' => 'Doe',
+            'display_name_override' => 'Brother John Doe',
+        ]);
+        $person->setRelation('memberProfile', new MemberProfile([
+            'past_master' => true,
+            'past_grand_master' => true,
+        ]));
+
+        $this->assertSame('Brother John Doe, PGM', $person->display_name);
+    }
+
+    public function test_existing_pgm_suffix_on_override_is_not_duplicated(): void
+    {
+        $person = new Person([
+            'first_name' => 'John',
+            'last_name' => 'Doe',
+            'display_name_override' => 'Brother John Doe, PGM',
+        ]);
+        $person->setRelation('memberProfile', new MemberProfile(['past_grand_master' => true]));
+
+        $this->assertSame('Brother John Doe, PGM', $person->display_name);
+    }
 }

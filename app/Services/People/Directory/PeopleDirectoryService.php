@@ -115,6 +115,11 @@ class PeopleDirectoryService
         return MemberStatus::options();
     }
 
+    public function defaultMemberStatusFilters(): array
+    {
+        return MemberStatus::defaultDirectoryFilters();
+    }
+
     public function relationshipTypeOptions(): array
     {
         return collect(RelationshipType::cases())
@@ -190,11 +195,8 @@ class PeopleDirectoryService
 
         $this->applyCommonSearch($query, $filters['q'] ?? null, includeMemberNumber: true);
         $this->applyDirectoryFilters($query, $filters);
-
-        $selectedStatuses = $filters['status'] ?? null;
-        if (is_array($selectedStatuses) && $selectedStatuses !== []) {
-            $query->whereIn('member_profiles.status', $selectedStatuses);
-        }
+        $query->whereIn('member_profiles.status', $this->selectedStatuses($filters));
+        $this->applyDeceasedVisibility($query, $filters);
 
         $this->applyMemberSort($query, $filters['sort'] ?? 'name');
 
@@ -260,6 +262,11 @@ class PeopleDirectoryService
 
         $this->applyCommonSearch($query, $filters['q'] ?? null);
         $this->applyDirectoryFilters($query, $filters);
+        $this->applyDeceasedVisibility($query, $filters);
+        $this->applyRelativeVisibilityForHiddenStatuses(
+            $query,
+            $this->deselectedRelativeStatuses($filters),
+        );
         $this->applyRelativeSort($query, $filters['sort'] ?? 'name');
 
         return $query;
@@ -277,6 +284,7 @@ class PeopleDirectoryService
 
         $this->applyCommonSearch($query, $filters['q'] ?? null);
         $this->applyDirectoryFilters($query, $filters);
+        $this->applyDeceasedVisibility($query, $filters);
         $this->applyPersonSort($query, $filters['sort'] ?? 'name');
 
         return $query;
@@ -292,6 +300,7 @@ class PeopleDirectoryService
 
         $this->applyCommonSearch($query, $filters['q'] ?? null, includeMemberNumber: true);
         $this->applyDirectoryFilters($query, $filters);
+        $this->applyAllPeopleStatusVisibility($query, $filters);
         $this->applyPersonSort($query, $filters['sort'] ?? 'name');
 
         return $query;
@@ -325,19 +334,211 @@ class PeopleDirectoryService
 
     protected function applyDirectoryFilters(Builder $query, array $filters): void
     {
-        $hideDeceased = filter_var(
-            $filters['hide_deceased'] ?? false,
-            FILTER_VALIDATE_BOOLEAN,
-            FILTER_NULL_ON_FAILURE
-        ) ?? false;
-
         $query
-            ->hideDeceased($hideDeceased)
             ->whereHasEmailValue($filters['has_email'] ?? null)
             ->whereHasPhoneValue($filters['has_phone'] ?? null)
             ->whereLastContactOlderThanDays(isset($filters['last_contact_older_than_days'])
                 ? (int) $filters['last_contact_older_than_days']
                 : null);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function selectedStatuses(array $filters): array
+    {
+        $statuses = $filters['status'] ?? null;
+
+        if (! is_array($statuses) || $statuses === []) {
+            return MemberStatus::defaultDirectoryFilters();
+        }
+
+        return array_values(array_filter(
+            array_map(static fn ($status) => is_string($status) ? trim($status) : null, $statuses),
+            static fn ($status) => is_string($status) && $status !== ''
+        ));
+    }
+
+    protected function includesStatus(array $filters, MemberStatus $status): bool
+    {
+        return in_array($status->value, $this->selectedStatuses($filters), true);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function deselectedRelativeStatuses(array $filters): array
+    {
+        $selectedStatuses = $this->selectedStatuses($filters);
+        $relativeStatuses = [
+            MemberStatus::Lost->value,
+            MemberStatus::Demitted->value,
+            MemberStatus::Suspended->value,
+            MemberStatus::Expelled->value,
+        ];
+
+        return array_values(array_filter(
+            $relativeStatuses,
+            static fn (string $status) => ! in_array($status, $selectedStatuses, true)
+        ));
+    }
+
+    protected function applyDeceasedVisibility(Builder $query, array $filters): void
+    {
+        if ($this->includesStatus($filters, MemberStatus::Deceased)) {
+            return;
+        }
+
+        $query->where($this->notMarkedDeceasedConstraint());
+    }
+
+    protected function applyAllPeopleStatusVisibility(Builder $query, array $filters): void
+    {
+        $selectedStatuses = $this->selectedStatuses($filters);
+
+        $query->where(function (Builder $memberVisibilityQuery) use ($selectedStatuses) {
+            $memberVisibilityQuery
+                ->whereNull('member_profiles.id')
+                ->orWhereIn('member_profiles.status', $selectedStatuses);
+        });
+
+        if (! $this->includesStatus($filters, MemberStatus::Deceased)) {
+            $query->where(function (Builder $deceasedVisibilityQuery) {
+                $deceasedVisibilityQuery
+                    ->where($this->notMarkedDeceasedConstraint())
+                    ->orWhere($this->widowConstraint())
+                    ->orWhere($this->orphanConstraint());
+            });
+        }
+
+        $hiddenRelativeStatuses = $this->deselectedRelativeStatuses($filters);
+
+        if ($hiddenRelativeStatuses === []) {
+            return;
+        }
+
+        $query->where(function (Builder $allPeopleVisibilityQuery) use ($hiddenRelativeStatuses) {
+            $allPeopleVisibilityQuery
+                ->whereNot($this->relativePersonConstraint())
+                ->orWhere(function (Builder $relativeVisibilityQuery) use ($hiddenRelativeStatuses) {
+                    $relativeVisibilityQuery->where($this->relativePersonConstraint());
+                    $this->applyRelativeVisibilityForHiddenStatuses($relativeVisibilityQuery, $hiddenRelativeStatuses);
+                });
+        });
+    }
+
+    protected function applyRelativeVisibilityForHiddenStatuses(Builder $query, array $hiddenStatuses): void
+    {
+        if ($hiddenStatuses === []) {
+            return;
+        }
+
+        $query->where(function (Builder $relativeVisibilityQuery) use ($hiddenStatuses) {
+            $relativeVisibilityQuery
+                ->where(function (Builder $noHiddenMemberQuery) use ($hiddenStatuses) {
+                    $noHiddenMemberQuery
+                        ->whereDoesntHave('relationships', function (Builder $relationshipQuery) use ($hiddenStatuses) {
+                            $this->applyHiddenStatusMemberRelationshipFilter($relationshipQuery, 'relatedPerson', $hiddenStatuses);
+                        })
+                        ->whereDoesntHave('relatedTo', function (Builder $relationshipQuery) use ($hiddenStatuses) {
+                            $this->applyHiddenStatusMemberRelationshipFilter($relationshipQuery, 'person', $hiddenStatuses);
+                        });
+                })
+                ->orWhere(function (Builder $hasVisibleMemberQuery) use ($hiddenStatuses) {
+                    $hasVisibleMemberQuery
+                        ->whereHas('relationships', function (Builder $relationshipQuery) use ($hiddenStatuses) {
+                            $this->applyVisibleMemberRelationshipFilter($relationshipQuery, 'relatedPerson', $hiddenStatuses);
+                        })
+                        ->orWhereHas('relatedTo', function (Builder $relationshipQuery) use ($hiddenStatuses) {
+                            $this->applyVisibleMemberRelationshipFilter($relationshipQuery, 'person', $hiddenStatuses);
+                        });
+                });
+        });
+    }
+
+    protected function applyHiddenStatusMemberRelationshipFilter(
+        Builder $relationshipQuery,
+        string $personRelation,
+        array $hiddenStatuses,
+    ): void {
+        $relationshipQuery->whereHas($personRelation, function (Builder $memberQuery) use ($hiddenStatuses) {
+            $memberQuery
+                ->whereHas('memberProfile', function (Builder $profileQuery) use ($hiddenStatuses) {
+                    $profileQuery->whereIn('status', $hiddenStatuses);
+                })
+                ->where(function (Builder $aliveQuery) {
+                    $aliveQuery
+                        ->where('is_deceased', false)
+                        ->orWhereNull('is_deceased');
+                })
+                ->whereNull('death_date')
+                ->whereDoesntHave('memberProfile', function (Builder $profileQuery) {
+                    $profileQuery->where('status', MemberStatus::Deceased->value);
+                });
+        });
+    }
+
+    protected function applyVisibleMemberRelationshipFilter(
+        Builder $relationshipQuery,
+        string $personRelation,
+        array $hiddenStatuses,
+    ): void {
+        $relationshipQuery->whereHas($personRelation, function (Builder $memberQuery) use ($hiddenStatuses) {
+            $memberQuery
+                ->whereHas('memberProfile')
+                ->where(function (Builder $visibilityQuery) use ($hiddenStatuses) {
+                    $visibilityQuery
+                        ->where(function (Builder $statusVisibilityQuery) use ($hiddenStatuses) {
+                            $statusVisibilityQuery->whereHas('memberProfile', function (Builder $profileQuery) use ($hiddenStatuses) {
+                                $profileQuery->where(function (Builder $memberStatusQuery) use ($hiddenStatuses) {
+                                    $memberStatusQuery
+                                        ->whereNull('status')
+                                        ->orWhereNotIn('status', $hiddenStatuses);
+                                });
+                            });
+                        })
+                        ->orWhere(function (Builder $deceasedVisibilityQuery) {
+                            $deceasedVisibilityQuery
+                                ->where(function (Builder $deceasedFlagQuery) {
+                                    $deceasedFlagQuery
+                                        ->where('is_deceased', true)
+                                        ->orWhereNotNull('death_date');
+                                })
+                                ->orWhereHas('memberProfile', function (Builder $profileQuery) {
+                                    $profileQuery->where('status', MemberStatus::Deceased->value);
+                                });
+                        });
+                });
+        });
+    }
+
+    protected function relativePersonConstraint(): \Closure
+    {
+        return function (Builder $query) {
+            $query
+                ->whereDoesntHave('memberProfile')
+                ->where(function (Builder $relationshipQuery) {
+                    $relationshipQuery
+                        ->whereHas('relationships')
+                        ->orWhereHas('relatedTo');
+                });
+        };
+    }
+
+    protected function notMarkedDeceasedConstraint(): \Closure
+    {
+        return function (Builder $query) {
+            $query
+                ->where(function (Builder $deceasedFlagQuery) {
+                    $deceasedFlagQuery
+                        ->where('people.is_deceased', false)
+                        ->orWhereNull('people.is_deceased');
+                })
+                ->whereNull('people.death_date')
+                ->whereDoesntHave('memberProfile', function (Builder $profileQuery) {
+                    $profileQuery->where('status', MemberStatus::Deceased->value);
+                });
+        };
     }
 
     protected function applyMemberSort(Builder $query, string $sort): void
