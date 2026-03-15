@@ -6,7 +6,7 @@ set -Eeuo pipefail
 #
 # Optional environment overrides:
 #   APP_DIR=/var/www/newburgh-lodge
-#   WEB_USER=www-data
+#   WEB_USER=deploy
 #   WEB_GROUP=www-data
 #   PHP_BIN=php
 #   COMPOSER_BIN=composer
@@ -16,7 +16,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="${APP_DIR:-$SCRIPT_DIR}"
 BRANCH="${1:-${DEPLOY_BRANCH:-main}}"
-WEB_USER="${WEB_USER:-www-data}"
+WEB_USER="${WEB_USER:-deploy}"
 WEB_GROUP="${WEB_GROUP:-www-data}"
 PHP_BIN="${PHP_BIN:-php}"
 COMPOSER_BIN="${COMPOSER_BIN:-composer}"
