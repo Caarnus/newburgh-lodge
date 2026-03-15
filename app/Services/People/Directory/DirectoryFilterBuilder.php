@@ -15,7 +15,6 @@ class DirectoryFilterBuilder
             'has_email' => $this->stringOrNull($request->input('has_email')),
             'has_phone' => $this->stringOrNull($request->input('has_phone')),
             'last_contact_older_than_days' => $this->integerOrNull($request->input('last_contact_older_than_days')),
-            'hide_deceased' => $request->boolean('hide_deceased'),
             'sort' => $this->stringOrNull($request->input('sort')) ?: $defaultSort,
         ];
 
