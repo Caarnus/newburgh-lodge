@@ -5,6 +5,8 @@ use App\Http\Controllers\ContentTileController;
 use App\Http\Controllers\EventSignupController;
 use App\Http\Controllers\EventSignupManageController;
 use App\Http\Controllers\EventSignupUnsubscribeController;
+use App\Http\Controllers\FundraiserAdminController;
+use App\Http\Controllers\FundraiserController;
 use App\Http\Controllers\GalleryAdminController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\JeopardyQuestionController;
@@ -92,6 +94,13 @@ Route::prefix('gallery')
     ->group(function () {
         Route::get('/', [GalleryController::class, 'index'])->name('index');
         Route::get('/{album:slug}', [GalleryController::class, 'show'])->name('show');
+    });
+
+Route::prefix('fundraisers')
+    ->name('fundraisers.')
+    ->group(function () {
+        Route::get('/', [FundraiserController::class, 'index'])->name('index');
+        Route::get('/{fundraiser}', [FundraiserController::class, 'show'])->name('show');
     });
 
 /*
@@ -260,6 +269,18 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])
         Route::delete('/tiles/{tile}', [ContentTileController::class, 'destroy'])->name('destroy');
         Route::post('/reorder', [ContentTileController::class, 'reorder'])->name('reorder');
         Route::post('/upload', [ContentTileController::class, 'upload'])->name('upload');
+    });
+
+Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])
+    ->prefix('admin/fundraisers')
+    ->name('admin.fundraisers.')
+    ->group(function () {
+        Route::get('/', [FundraiserAdminController::class, 'index'])->name('index');
+        Route::get('/create', [FundraiserAdminController::class, 'create'])->name('create');
+        Route::post('/', [FundraiserAdminController::class, 'store'])->name('store');
+        Route::get('/{fundraiser:id}/edit', [FundraiserAdminController::class, 'edit'])->name('edit');
+        Route::put('/{fundraiser:id}', [FundraiserAdminController::class, 'update'])->name('update');
+        Route::get('/{fundraiser:id}/qr.png', [FundraiserAdminController::class, 'downloadQrPng'])->name('qr.download');
     });
 
 /*

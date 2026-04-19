@@ -32,6 +32,7 @@ const navMenuItems = ref([
         items: [
             { label: $page.props.site.newsletterLabel, url: route('newsletters.index'), visible: isAuthenticated },
             { label: 'Upcoming Events', url: route('events.index') },
+            { label: 'Fundraisers', url: route('fundraisers.index') },
             { label: 'Photo Gallery', url: route('gallery.index') },
         ],
     },
@@ -80,6 +81,7 @@ const navMenuItems = ref([
             { label: 'Users', url: route('admin.users.index') },
             { label: 'Jeopardy', url: route('jeopardy.index'), visible: $page.props.can.manage.content },
             { label: 'Manage Content', url: route('admin.content.index'), visible: $page.props.can.manage.content },
+            { label: 'Manage Fundraisers', url: route('admin.fundraisers.index'), visible: $page.props.can.manage.content },
             { label: 'Manage Gallery', url: route('admin.gallery.index'), visible: $page.props.can.manage.gallery },
             { label: 'Scholarship Applications', url: route('manage.scholarships.index'), visible: $page.props.can.manage.scholarships },
             { label: 'Roster Imports', url: route('manage.member-directory.imports.index'), visible: canManagePeople.importRoster },
