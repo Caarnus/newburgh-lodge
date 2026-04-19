@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Fundraiser;
+use App\Models\FundraiserCategory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -18,6 +19,7 @@ class FundraiserFactory extends Factory
 
         return [
             'title' => $title,
+            'category_id' => FundraiserCategory::factory(),
             'slug' => Str::slug($title) . '-' . $this->faker->unique()->numerify('####'),
             'short_description' => $this->faker->sentence(16),
             'description' => $this->faker->paragraphs(3, true),
@@ -51,4 +53,3 @@ class FundraiserFactory extends Factory
         ]);
     }
 }
-

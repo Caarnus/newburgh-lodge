@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Fundraiser extends Model
 {
@@ -12,6 +13,7 @@ class Fundraiser extends Model
 
     protected $fillable = [
         'title',
+        'category_id',
         'slug',
         'short_description',
         'description',
@@ -26,6 +28,7 @@ class Fundraiser extends Model
     protected $casts = [
         'goal_amount' => 'decimal:2',
         'raised_amount' => 'decimal:2',
+        'category_id' => 'integer',
         'is_active' => 'boolean',
         'starts_at' => 'datetime',
         'ends_at' => 'datetime',
@@ -35,6 +38,11 @@ class Fundraiser extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(FundraiserCategory::class, 'category_id');
     }
 
     public function scopeActive(Builder $query): Builder
@@ -82,4 +90,3 @@ class Fundraiser extends Model
         return round($percent, 1);
     }
 }
-

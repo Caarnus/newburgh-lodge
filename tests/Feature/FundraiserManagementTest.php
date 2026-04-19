@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Fundraiser;
+use App\Models\FundraiserCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
@@ -18,9 +19,11 @@ class FundraiserManagementTest extends TestCase
 
         $user = User::factory()->create();
         $user->givePermissionTo('manage-content');
+        $category = FundraiserCategory::query()->first() ?? FundraiserCategory::factory()->create();
 
         $response = $this->actingAs($user)->post(route('admin.fundraisers.store'), [
             'title' => 'Roof Repair Campaign',
+            'category_id' => $category->id,
             'slug' => '',
             'short_description' => 'Raise funds for roof repair.',
             'description' => 'Longer detail text for the campaign.',
@@ -33,6 +36,7 @@ class FundraiserManagementTest extends TestCase
 
         $this->assertDatabaseHas('fundraisers', [
             'title' => 'Roof Repair Campaign',
+            'category_id' => $category->id,
             'slug' => 'roof-repair-campaign',
             'goal_amount' => 15000.00,
             'raised_amount' => 3200.00,

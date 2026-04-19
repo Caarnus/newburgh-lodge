@@ -282,6 +282,9 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])
         Route::put('/{fundraiser:id}', [FundraiserAdminController::class, 'update'])->name('update');
         Route::post('/{fundraiser:id}/raise', [FundraiserAdminController::class, 'addRaisedAmount'])->name('raise');
         Route::get('/{fundraiser:id}/qr.png', [FundraiserAdminController::class, 'downloadQrPng'])->name('qr.download');
+        Route::post('/categories', [FundraiserAdminController::class, 'storeCategory'])->name('categories.store');
+        Route::put('/categories/{fundraiserCategory:id}', [FundraiserAdminController::class, 'updateCategory'])->name('categories.update');
+        Route::delete('/categories/{fundraiserCategory:id}', [FundraiserAdminController::class, 'destroyCategory'])->name('categories.destroy');
     });
 
 /*

@@ -9,11 +9,14 @@ import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
+import Message from 'primevue/message'
 
 type FundraiserRow = {
     id: number
     title: string
     slug: string
+    category: { id: number; name: string } | null
     is_active: boolean
     goal_amount: number
     raised_amount: number
@@ -23,8 +26,16 @@ type FundraiserRow = {
     qr_download_url: string
 }
 
+type CategoryRow = {
+    id: number
+    name: string
+    slug: string
+    fundraisers_count: number
+}
+
 const props = defineProps<{
     fundraisers: FundraiserRow[]
+    categories: CategoryRow[]
 }>()
 
 const currency = computed(() =>
@@ -36,6 +47,19 @@ const selectedFundraiser = ref<FundraiserRow | null>(null)
 const addRaisedForm = useForm({
     amount: null as number | null,
 })
+
+const createCategoryVisible = ref(false)
+const createCategoryForm = useForm({
+    name: '',
+})
+
+const editCategoryVisible = ref(false)
+const selectedCategory = ref<CategoryRow | null>(null)
+const editCategoryForm = useForm({
+    name: '',
+})
+
+const deleteCategoryForm = useForm({})
 
 function openAddRaised(fundraiser: FundraiserRow) {
     selectedFundraiser.value = fundraiser
@@ -54,6 +78,47 @@ function submitAddRaised() {
         },
     })
 }
+
+function openCreateCategory() {
+    createCategoryForm.name = ''
+    createCategoryForm.clearErrors()
+    createCategoryVisible.value = true
+}
+
+function submitCreateCategory() {
+    createCategoryForm.post(route('admin.fundraisers.categories.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            createCategoryVisible.value = false
+        },
+    })
+}
+
+function openEditCategory(category: CategoryRow) {
+    selectedCategory.value = category
+    editCategoryForm.name = category.name
+    editCategoryForm.clearErrors()
+    editCategoryVisible.value = true
+}
+
+function submitEditCategory() {
+    if (!selectedCategory.value) return
+
+    editCategoryForm.put(route('admin.fundraisers.categories.update', selectedCategory.value.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            editCategoryVisible.value = false
+        },
+    })
+}
+
+function deleteCategory(category: CategoryRow) {
+    if (!confirm(`Delete category "${category.name}"?`)) return
+
+    deleteCategoryForm.delete(route('admin.fundraisers.categories.destroy', category.id), {
+        preserveScroll: true,
+    })
+}
 </script>
 
 <template>
@@ -69,7 +134,7 @@ function submitAddRaised() {
             </div>
         </template>
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
             <Card class="shadow-sm border border-surface-200 dark:border-surface-700">
                 <template #content>
                     <DataTable :value="props.fundraisers" paginator :rows="12" dataKey="id" striped-rows>
@@ -77,6 +142,12 @@ function submitAddRaised() {
                             <template #body="{ data }">
                                 <div class="font-medium">{{ data.title }}</div>
                                 <div class="text-xs text-surface-500 dark:text-surface-400">{{ data.slug }}</div>
+                            </template>
+                        </Column>
+
+                        <Column header="Category">
+                            <template #body="{ data }">
+                                <span class="text-sm">{{ data.category?.name ?? 'Uncategorized' }}</span>
                             </template>
                         </Column>
 
@@ -121,6 +192,49 @@ function submitAddRaised() {
                     </DataTable>
                 </template>
             </Card>
+
+            <Card class="shadow-sm border border-surface-200 dark:border-surface-700">
+                <template #title>
+                    <div class="flex items-center justify-between">
+                        <span>Fundraiser Categories</span>
+                        <Button icon="pi pi-plus" label="Add Category" size="small" @click="openCreateCategory" />
+                    </div>
+                </template>
+
+                <template #content>
+                    <Message v-if="deleteCategoryForm.errors.delete_category" severity="error" class="mb-4">
+                        {{ deleteCategoryForm.errors.delete_category }}
+                    </Message>
+
+                    <DataTable :value="props.categories" dataKey="id" striped-rows>
+                        <Column field="name" header="Name" />
+                        <Column field="slug" header="Slug" />
+                        <Column field="fundraisers_count" header="Fundraisers" />
+                        <Column header="Actions" style="width: 210px;">
+                            <template #body="{ data }">
+                                <div class="flex gap-2">
+                                    <Button
+                                        label="Edit"
+                                        size="small"
+                                        icon="pi pi-pencil"
+                                        severity="secondary"
+                                        outlined
+                                        @click="openEditCategory(data)"
+                                    />
+                                    <Button
+                                        label="Delete"
+                                        size="small"
+                                        icon="pi pi-trash"
+                                        severity="danger"
+                                        text
+                                        @click="deleteCategory(data)"
+                                    />
+                                </div>
+                            </template>
+                        </Column>
+                    </DataTable>
+                </template>
+            </Card>
         </div>
 
         <Dialog
@@ -157,6 +271,58 @@ function submitAddRaised() {
                         icon="pi pi-check"
                         :loading="addRaisedForm.processing"
                         @click="submitAddRaised"
+                    />
+                </div>
+            </div>
+        </Dialog>
+
+        <Dialog
+            v-model:visible="createCategoryVisible"
+            modal
+            :draggable="false"
+            :style="{ width: 'min(92vw, 30rem)' }"
+            header="Add Category"
+        >
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Name</label>
+                    <InputText v-model="createCategoryForm.name" class="w-full mt-1" />
+                    <p v-if="createCategoryForm.errors.name" class="mt-1 text-sm text-red-500">{{ createCategoryForm.errors.name }}</p>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <Button label="Cancel" severity="secondary" text @click="createCategoryVisible = false" />
+                    <Button
+                        label="Create"
+                        icon="pi pi-check"
+                        :loading="createCategoryForm.processing"
+                        @click="submitCreateCategory"
+                    />
+                </div>
+            </div>
+        </Dialog>
+
+        <Dialog
+            v-model:visible="editCategoryVisible"
+            modal
+            :draggable="false"
+            :style="{ width: 'min(92vw, 30rem)' }"
+            header="Edit Category"
+        >
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Name</label>
+                    <InputText v-model="editCategoryForm.name" class="w-full mt-1" />
+                    <p v-if="editCategoryForm.errors.name" class="mt-1 text-sm text-red-500">{{ editCategoryForm.errors.name }}</p>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <Button label="Cancel" severity="secondary" text @click="editCategoryVisible = false" />
+                    <Button
+                        label="Save"
+                        icon="pi pi-save"
+                        :loading="editCategoryForm.processing"
+                        @click="submitEditCategory"
                     />
                 </div>
             </div>

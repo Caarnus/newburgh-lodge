@@ -12,6 +12,7 @@ import ToggleSwitch from 'primevue/toggleswitch'
 import Message from 'primevue/message'
 import Editor from 'primevue/editor'
 import FileUpload from 'primevue/fileupload'
+import Select from 'primevue/select'
 
 type ExistingImage = {
     path: string
@@ -21,6 +22,7 @@ type ExistingImage = {
 type FundraiserDto = {
     id: number
     title: string
+    category_id: number | null
     slug: string
     short_description: string | null
     description: string | null
@@ -32,6 +34,12 @@ type FundraiserDto = {
     images: ExistingImage[]
 }
 
+type FundraiserCategory = {
+    id: number
+    name: string
+    slug: string
+}
+
 type SelectedImagePreview = {
     name: string
     url: string
@@ -39,6 +47,7 @@ type SelectedImagePreview = {
 
 const props = defineProps<{
     fundraiser: FundraiserDto | null
+    categories: FundraiserCategory[]
     qr_download_url: string | null
     public_url: string | null
 }>()
@@ -61,9 +70,11 @@ function toDateValue(iso: string | null): string {
 
 const startsAtDate = ref(toDateValue(props.fundraiser?.starts_at ?? null))
 const endsAtDate = ref(toDateValue(props.fundraiser?.ends_at ?? null))
+const fallbackCategoryId = props.categories[0]?.id ?? null
 
 const form = useForm({
     title: props.fundraiser?.title ?? '',
+    category_id: props.fundraiser?.category_id ?? fallbackCategoryId,
     slug: props.fundraiser?.slug ?? '',
     short_description: props.fundraiser?.short_description ?? '',
     description: props.fundraiser?.description ?? '',
@@ -136,6 +147,7 @@ function onToggleRemove(path: string, event: Event) {
 function submit() {
     form.starts_at = startsAtDate.value || null
     form.ends_at = endsAtDate.value || null
+    form.category_id = form.category_id ? Number(form.category_id) : null
     form.goal_amount = Number(form.goal_amount ?? 0)
     form.raised_amount = Number(form.raised_amount ?? 0)
 
@@ -211,6 +223,19 @@ onUnmounted(() => {
                                 <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Title</label>
                                 <InputText v-model="form.title" class="w-full mt-1" :invalid="!!form.errors.title" />
                                 <p v-if="form.errors.title" class="mt-1 text-sm text-red-500">{{ form.errors.title }}</p>
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Category</label>
+                                <Select
+                                    v-model="form.category_id"
+                                    :options="props.categories"
+                                    optionLabel="name"
+                                    optionValue="id"
+                                    placeholder="Select a category"
+                                    class="w-full mt-1"
+                                />
+                                <p v-if="form.errors.category_id" class="mt-1 text-sm text-red-500">{{ form.errors.category_id }}</p>
                             </div>
 
                             <div class="sm:col-span-2">
@@ -373,4 +398,3 @@ onUnmounted(() => {
     min-height: 14rem;
 }
 </style>
-

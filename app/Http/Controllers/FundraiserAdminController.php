@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Fundraiser;
+use App\Models\FundraiserCategory;
 use BaconQrCode\Renderer\GDLibRenderer;
 use BaconQrCode\Writer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
@@ -17,6 +19,7 @@ class FundraiserAdminController extends Controller
     public function index(): InertiaResponse
     {
         $fundraisers = Fundraiser::query()
+            ->with('category:id,name')
             ->orderByDesc('is_active')
             ->orderByDesc('updated_at')
             ->get()
@@ -24,6 +27,10 @@ class FundraiserAdminController extends Controller
                 'id' => $fundraiser->id,
                 'title' => $fundraiser->title,
                 'slug' => $fundraiser->slug,
+                'category' => $fundraiser->category ? [
+                    'id' => $fundraiser->category->id,
+                    'name' => $fundraiser->category->name,
+                ] : null,
                 'is_active' => (bool) $fundraiser->is_active,
                 'goal_amount' => (float) $fundraiser->goal_amount,
                 'raised_amount' => (float) $fundraiser->raised_amount,
@@ -36,6 +43,7 @@ class FundraiserAdminController extends Controller
 
         return Inertia::render('Fundraisers/Index', [
             'fundraisers' => $fundraisers,
+            'categories' => $this->categoriesPayload(withCounts: true),
         ]);
     }
 
@@ -45,6 +53,7 @@ class FundraiserAdminController extends Controller
             'fundraiser' => null,
             'qr_download_url' => null,
             'public_url' => null,
+            'categories' => $this->categoriesPayload(),
         ]);
     }
 
@@ -54,6 +63,7 @@ class FundraiserAdminController extends Controller
 
         $fundraiser = Fundraiser::create([
             'title' => $data['title'],
+            'category_id' => $data['category_id'],
             'slug' => $data['slug'],
             'short_description' => $data['short_description'] ?? null,
             'description' => $data['description'] ?? null,
@@ -78,6 +88,7 @@ class FundraiserAdminController extends Controller
             'fundraiser' => $this->toUpsertPayload($fundraiser),
             'qr_download_url' => route('admin.fundraisers.qr.download', $fundraiser->id),
             'public_url' => route('fundraisers.show', $fundraiser->slug),
+            'categories' => $this->categoriesPayload(),
         ]);
     }
 
@@ -87,6 +98,7 @@ class FundraiserAdminController extends Controller
 
         $fundraiser->fill([
             'title' => $data['title'],
+            'category_id' => $data['category_id'],
             'slug' => $data['slug'],
             'short_description' => $data['short_description'] ?? null,
             'description' => $data['description'] ?? null,
@@ -118,6 +130,53 @@ class FundraiserAdminController extends Controller
         return back()->with('success', 'Raised amount updated.');
     }
 
+    public function storeCategory(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+        ]);
+
+        FundraiserCategory::create([
+            'name' => $data['name'],
+            'slug' => $this->ensureUniqueCategorySlug($data['name']),
+        ]);
+
+        return back()->with('success', 'Category created.');
+    }
+
+    public function updateCategory(Request $request, FundraiserCategory $fundraiserCategory)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+        ]);
+
+        $fundraiserCategory->update([
+            'name' => $data['name'],
+            'slug' => $this->ensureUniqueCategorySlug($data['name'], $fundraiserCategory->id),
+        ]);
+
+        return back()->with('success', 'Category updated.');
+    }
+
+    public function destroyCategory(FundraiserCategory $fundraiserCategory)
+    {
+        if (FundraiserCategory::query()->count() <= 1) {
+            throw ValidationException::withMessages([
+                'delete_category' => 'At least one fundraiser category is required.',
+            ]);
+        }
+
+        if ($fundraiserCategory->fundraisers()->exists()) {
+            throw ValidationException::withMessages([
+                'delete_category' => 'Cannot delete a category that is assigned to one or more fundraisers.',
+            ]);
+        }
+
+        $fundraiserCategory->delete();
+
+        return back()->with('success', 'Category deleted.');
+    }
+
     public function downloadQrPng(Fundraiser $fundraiser): Response
     {
         try {
@@ -141,6 +200,7 @@ class FundraiserAdminController extends Controller
     {
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
+            'category_id' => ['required', 'integer', 'exists:fundraiser_categories,id'],
             'slug' => ['nullable', 'string', 'max:120', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
             'short_description' => ['nullable', 'string', 'max:300'],
             'description' => ['nullable', 'string'],
@@ -189,6 +249,29 @@ class FundraiserAdminController extends Controller
         return $candidate;
     }
 
+    private function ensureUniqueCategorySlug(string $value, ?int $ignoreId = null): string
+    {
+        $base = Str::slug($value);
+        if ($base === '') {
+            $base = 'fundraiser-category';
+        }
+
+        $candidate = $base;
+        $suffix = 2;
+
+        while (
+            FundraiserCategory::query()
+                ->where('slug', $candidate)
+                ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+                ->exists()
+        ) {
+            $candidate = "{$base}-{$suffix}";
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
     private function syncImages(Request $request, Fundraiser $fundraiser, array $removePaths): void
     {
         $paths = collect($fundraiser->image_paths ?? []);
@@ -220,6 +303,7 @@ class FundraiserAdminController extends Controller
         return [
             'id' => $fundraiser->id,
             'title' => $fundraiser->title,
+            'category_id' => $fundraiser->category_id,
             'slug' => $fundraiser->slug,
             'short_description' => $fundraiser->short_description,
             'description' => $fundraiser->description,
@@ -235,5 +319,20 @@ class FundraiserAdminController extends Controller
                 ])
                 ->values(),
         ];
+    }
+
+    private function categoriesPayload(bool $withCounts = false)
+    {
+        return FundraiserCategory::query()
+            ->when($withCounts, fn ($query) => $query->withCount('fundraisers'))
+            ->orderBy('name')
+            ->get()
+            ->map(fn (FundraiserCategory $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'fundraisers_count' => $withCounts ? (int) ($category->fundraisers_count ?? 0) : null,
+            ])
+            ->values();
     }
 }
