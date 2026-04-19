@@ -51,6 +51,7 @@ const navMenuItems = ref([
         ],
     },
     { label: 'Scholarship', url: route('scholarship.intro') },
+    { label: 'Merchandise', url: route('merchandise.index') },
     { label: 'Contact Us', url: route('contact') },
     {
         label: 'Links',
@@ -80,6 +81,8 @@ const navMenuItems = ref([
             { label: 'Users', url: route('admin.users.index') },
             { label: 'Jeopardy', url: route('jeopardy.index'), visible: $page.props.can.manage.content },
             { label: 'Manage Content', url: route('admin.content.index'), visible: $page.props.can.manage.content },
+            { label: 'Merchandise Catalog', url: route('admin.merchandise.index'), visible: $page.props.can.manage.content },
+            { label: 'Merchandise Orders', url: route('admin.merchandise.orders.index'), visible: $page.props.can.manage.content },
             { label: 'Manage Gallery', url: route('admin.gallery.index'), visible: $page.props.can.manage.gallery },
             { label: 'Scholarship Applications', url: route('manage.scholarships.index'), visible: $page.props.can.manage.scholarships },
             { label: 'Roster Imports', url: route('manage.member-directory.imports.index'), visible: canManagePeople.importRoster },
