@@ -52,6 +52,7 @@ const navMenuItems = ref([
         ],
     },
     { label: 'Scholarship', url: route('scholarship.intro') },
+    { label: 'Merchandise', url: route('merchandise.index') },
     { label: 'Contact Us', url: route('contact') },
     {
         label: 'Links',
