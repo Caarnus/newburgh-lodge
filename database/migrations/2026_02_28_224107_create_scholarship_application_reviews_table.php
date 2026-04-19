@@ -15,7 +15,7 @@ return new class extends Migration {
             $table->text('notes')->nullable();
             $table->timestamps();
 
-            $table->unique('scholarship_application_id', 'user_id');
+            $table->unique(['scholarship_application_id', 'user_id'], 'sch_review_unique');
         });
     }
 
