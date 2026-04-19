@@ -125,10 +125,13 @@ const normalizeItemPayload = () => {
 };
 
 const submitItem = () => {
-    itemForm.transform(() => normalizeItemPayload());
-
     if (editingItemId.value) {
-        itemForm.put(route("admin.merchandise.items.update", editingItemId.value), {
+        itemForm.transform(() => ({
+            ...normalizeItemPayload(),
+            _method: "put",
+        }));
+
+        itemForm.post(route("admin.merchandise.items.update", editingItemId.value), {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -140,6 +143,8 @@ const submitItem = () => {
 
         return;
     }
+
+    itemForm.transform(() => normalizeItemPayload());
 
     itemForm.post(route("admin.merchandise.items.store"), {
         forceFormData: true,
