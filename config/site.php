@@ -6,6 +6,8 @@ return [
     'org_name' => env('ORG_NAME', 'Organization Name'),
     'contact_form_to' => env('CONTACT_FORM_TO', 'organization@example.com'),
     'contact_form_name' => env('CONTACT_FORM_NAME', 'Organization Contact'),
+    'merchandise_order_to' => env('MERCHANDISE_ORDER_TO', env('CONTACT_FORM_TO', 'organization@example.com')),
+    'merchandise_order_name' => env('MERCHANDISE_ORDER_NAME', 'Lodge Merchandise Orders'),
     'admin_email' => env('ADMIN_EMAIL'),
     'admin_name' => env('ADMIN_NAME', 'Administrator'),
     'admin_password' => env('ADMIN_PASSWORD'),

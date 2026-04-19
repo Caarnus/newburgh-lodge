@@ -25,6 +25,9 @@ use App\Http\Controllers\Manage\PersonRelationshipController;
 use App\Http\Controllers\Manage\RelativeDirectoryController;
 use App\Http\Controllers\Manage\UserPersonLinkController;
 use App\Http\Controllers\Manage\WidowDirectoryController;
+use App\Http\Controllers\MerchandiseController;
+use App\Http\Controllers\MerchandiseAdminController;
+use App\Http\Controllers\MerchandiseOrderAdminController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\OfficerController;
 use App\Http\Controllers\OrgEventController;
@@ -55,6 +58,13 @@ Route::get('/faq', fn () => Inertia::render('Questions'))->name('faq');
 Route::get('/contact', [ContactController::class, 'create'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])
     ->name('contact.submit')
+    ->middleware('throttle:10,1');
+
+Route::get('/merchandise', [MerchandiseController::class, 'index'])->name('merchandise.index');
+Route::get('/merchandise/checkout', [MerchandiseController::class, 'checkout'])
+    ->name('merchandise.checkout');
+Route::post('/merchandise/checkout', [MerchandiseController::class, 'submitCheckout'])
+    ->name('merchandise.checkout.submit')
     ->middleware('throttle:10,1');
 
 Route::get('/past-masters', [PastMasterController::class, 'index'])->name('past-masters.index');
@@ -269,6 +279,21 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])
         Route::delete('/tiles/{tile}', [ContentTileController::class, 'destroy'])->name('destroy');
         Route::post('/reorder', [ContentTileController::class, 'reorder'])->name('reorder');
         Route::post('/upload', [ContentTileController::class, 'upload'])->name('upload');
+    });
+
+Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])
+    ->prefix('admin/merchandise')
+    ->name('admin.merchandise.')
+    ->group(function () {
+        Route::get('/', [MerchandiseAdminController::class, 'index'])->name('index');
+        Route::post('/items', [MerchandiseAdminController::class, 'store'])->name('items.store');
+        Route::put('/items/{item}', [MerchandiseAdminController::class, 'update'])->name('items.update');
+        Route::delete('/items/{item}', [MerchandiseAdminController::class, 'destroy'])->name('items.destroy');
+        Route::patch('/settings', [MerchandiseAdminController::class, 'updateSettings'])->name('settings.update');
+
+        Route::get('/orders', [MerchandiseOrderAdminController::class, 'index'])->name('orders.index');
+        Route::patch('/orders/{order}/status', [MerchandiseOrderAdminController::class, 'updateStatus'])
+            ->name('orders.update-status');
     });
 
 Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])
