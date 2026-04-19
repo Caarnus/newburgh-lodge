@@ -65,17 +65,11 @@ const navMenuItems = ref([
         ],
     },
     {
-        label: 'Admin',
-        visible: $page.props.can.admin.users,
-        items: [
-            { label: 'Users', url: route('admin.users.index') },
-        ],
-    },
-    {
         label: 'Manage',
         visible: $page.props.can.manage.content
             || $page.props.can.manage.gallery
             || $page.props.can.manage.scholarships
+            || $page.props.can.admin.users
             || canManagePeople.updateRecords
             || canManagePeople.importRoster
             || canManagePeople.mergeRecords
@@ -83,6 +77,7 @@ const navMenuItems = ref([
             || canManagePeople.editContacts
             || canManagePeople.exportDirectory,
         items: [
+            { label: 'Users', url: route('admin.users.index') },
             { label: 'Jeopardy', url: route('jeopardy.index'), visible: $page.props.can.manage.content },
             { label: 'Manage Content', url: route('admin.content.index'), visible: $page.props.can.manage.content },
             { label: 'Manage Gallery', url: route('admin.gallery.index'), visible: $page.props.can.manage.gallery },
