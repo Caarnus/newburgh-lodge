@@ -39,6 +39,16 @@ const updateStatus = (order) => {
     );
 };
 
+const deleteOrder = (order) => {
+    if (!confirm(`Delete order #${order.id}? This will restore limited stock quantities.`)) {
+        return;
+    }
+
+    router.delete(route("admin.merchandise.orders.destroy", order.id), {
+        preserveScroll: true,
+    });
+};
+
 const statusSeverity = (status) => {
     if (status === "submitted") return "secondary";
     if (status === "confirmed") return "info";
@@ -129,6 +139,12 @@ const statusSeverity = (status) => {
                         class="w-full md:w-72"
                     />
                     <Button label="Update Status" @click="updateStatus(order)" />
+                    <Button
+                        label="Delete Order"
+                        severity="danger"
+                        outlined
+                        @click="deleteOrder(order)"
+                    />
                 </div>
             </div>
 
@@ -138,4 +154,3 @@ const statusSeverity = (status) => {
         </div>
     </AppLayout>
 </template>
-

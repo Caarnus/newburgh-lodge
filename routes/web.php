@@ -294,6 +294,8 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])
         Route::get('/orders', [MerchandiseOrderAdminController::class, 'index'])->name('orders.index');
         Route::patch('/orders/{order}/status', [MerchandiseOrderAdminController::class, 'updateStatus'])
             ->name('orders.update-status');
+        Route::delete('/orders/{order}', [MerchandiseOrderAdminController::class, 'destroy'])
+            ->name('orders.destroy');
     });
 
 Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])

@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Enums\MerchandiseItemAvailability;
 use App\Enums\MerchandiseOrderStatus;
+use App\Models\MerchandiseItem;
 use App\Models\MerchandiseOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -74,5 +76,47 @@ class MerchandiseOrderAdminController extends Controller
 
         return back()->with('success', "Order #{$order->id} status updated.");
     }
-}
 
+    public function destroy(MerchandiseOrder $order): RedirectResponse
+    {
+        $orderId = $order->id;
+
+        DB::transaction(function () use ($orderId): void {
+            /** @var MerchandiseOrder|null $existingOrder */
+            $existingOrder = MerchandiseOrder::query()
+                ->with('items')
+                ->lockForUpdate()
+                ->find($orderId);
+
+            if (!$existingOrder) {
+                return;
+            }
+
+            foreach ($existingOrder->items as $orderItem) {
+                if (!$orderItem->merchandise_item_id) {
+                    continue;
+                }
+
+                /** @var MerchandiseItem|null $item */
+                $item = MerchandiseItem::query()
+                    ->lockForUpdate()
+                    ->find($orderItem->merchandise_item_id);
+
+                if (!$item) {
+                    continue;
+                }
+
+                if (!$item->is_limited_edition || is_null($item->stock_remaining)) {
+                    continue;
+                }
+
+                $item->stock_remaining = (int) $item->stock_remaining + (int) $orderItem->quantity;
+                $item->save();
+            }
+
+            $existingOrder->delete();
+        });
+
+        return back()->with('success', "Order #{$orderId} deleted.");
+    }
+}

@@ -164,6 +164,42 @@ class MerchandiseTest extends TestCase
         $this->assertSame(MerchandiseOrderStatus::Confirmed->value, $order->status);
     }
 
+    public function test_admin_can_delete_order_and_restore_limited_stock(): void
+    {
+        $this->withoutMiddleware(Authenticate::class);
+        $this->withoutMiddleware(EnsureEmailIsVerified::class);
+        $this->withoutMiddleware(Authorize::class);
+
+        [, $coin] = $this->seedCatalog();
+        $coin->stock_remaining = 3;
+        $coin->save();
+
+        $order = MerchandiseOrder::query()->create([
+            'order_type' => MerchandiseItemAvailability::OnHand->value,
+            'status' => MerchandiseOrderStatus::Submitted->value,
+            'customer_email' => 'buyer@example.com',
+            'submitted_at' => now(),
+            'status_updated_at' => now(),
+        ]);
+
+        $order->items()->create([
+            'merchandise_item_id' => $coin->id,
+            'item_name' => $coin->name,
+            'unit_price_cents' => $coin->price_cents,
+            'quantity' => 2,
+            'size' => null,
+        ]);
+
+        $response = $this->delete(route('admin.merchandise.orders.destroy', $order));
+
+        $response->assertSessionHasNoErrors();
+        $response->assertSessionHas('success');
+        $this->assertDatabaseMissing('merchandise_orders', ['id' => $order->id]);
+
+        $coin->refresh();
+        $this->assertSame(5, $coin->stock_remaining);
+    }
+
     /**
      * @return array{0: MerchandiseItem, 1: MerchandiseItem, 2: MerchandiseItem}
      */
