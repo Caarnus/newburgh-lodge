@@ -18,11 +18,10 @@ class MerchandisePreorderInterestMail extends Mailable
 
     public function build(): self
     {
-        $itemName = $this->order->items->first()?->item_name ?? 'Unknown Item';
         $senderLabel = $this->order->customer_name ?: $this->order->customer_email;
 
         return $this
-            ->subject("Pre-order Interest: {$itemName} ({$senderLabel})")
+            ->subject("Merchandise Pre-order Interest: {$senderLabel}")
             ->replyTo($this->order->customer_email, $this->order->customer_name)
             ->view('emails.merchandise-preorder-interest')
             ->with(['order' => $this->order]);

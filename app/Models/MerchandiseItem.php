@@ -12,6 +12,7 @@ class MerchandiseItem extends Model
     protected $fillable = [
         'name',
         'description',
+        'image_path',
         'availability',
         'price_cents',
         'requires_size',
@@ -52,4 +53,3 @@ class MerchandiseItem extends Model
         return $query->where('availability', MerchandiseItemAvailability::Preorder->value);
     }
 }
-

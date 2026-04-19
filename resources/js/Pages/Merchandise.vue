@@ -1,46 +1,39 @@
 <script setup>
 import AppLayout from "@/Layouts/AppLayout.vue";
-import { computed, reactive, watch } from "vue";
-import { useForm, usePage } from "@inertiajs/vue3";
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { Link, usePage } from "@inertiajs/vue3";
+import { useMerchandiseCart } from "@/Composables/useMerchandiseCart";
 
-import InputText from "primevue/inputtext";
 import InputNumber from "primevue/inputnumber";
-import Textarea from "primevue/textarea";
-import Button from "primevue/button";
 import Select from "primevue/select";
+import Button from "primevue/button";
+import Tag from "primevue/tag";
+import Dialog from "primevue/dialog";
 
 const page = usePage();
-const prefillEmail = String(page.props.prefillEmail ?? page.props.auth?.user?.email ?? "");
-
-const flashSuccess = computed(() => page.props.flash?.success);
-
-const availableItems = computed(() => page.props.availableItems ?? []);
-const preorderItems = computed(() => page.props.preorderItems ?? []);
+const items = computed(() => page.props.items ?? []);
 
 const addSelections = reactive({});
 const addQuantities = reactive({});
 const addErrors = reactive({});
 
-const orderForm = useForm({
-    name: "",
-    email: prefillEmail,
-    phone: "",
-    notes: "",
-    items: [],
-});
+const lightboxVisible = ref(false);
+const activePhotoItem = ref(null);
 
-const preorderForm = useForm({
-    item_id: "",
-    name: "",
-    email: prefillEmail,
-    quantity: 1,
-    notes: "",
-});
+const { cartItems, hydrate, syncWithCatalogItems, addFromCatalog } = useMerchandiseCart();
+
+const cartItemCount = computed(() =>
+    cartItems.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+);
+
+const cartTotalCents = computed(() =>
+    cartItems.value.reduce((sum, item) => sum + Number(item.price_cents || 0) * Number(item.quantity || 0), 0)
+);
 
 watch(
-    availableItems,
-    (items) => {
-        for (const item of items) {
+    items,
+    (rows) => {
+        for (const item of rows) {
             if (typeof addQuantities[item.id] === "undefined") {
                 addQuantities[item.id] = 1;
             }
@@ -49,35 +42,16 @@ watch(
                 addSelections[item.id] = "";
             }
         }
+
+        syncWithCatalogItems(rows);
     },
-    { immediate: true }
+    { immediate: true, deep: true }
 );
 
-watch(
-    preorderItems,
-    (items) => {
-        if (!preorderForm.item_id && items.length > 0) {
-            preorderForm.item_id = items[0].id;
-        }
-    },
-    { immediate: true }
-);
-
-const hasCartItems = computed(() => orderForm.items.length > 0);
-
-const cartItemCount = computed(() =>
-    orderForm.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
-);
-
-const cartTotalCents = computed(() =>
-    orderForm.items.reduce((sum, item) => sum + Number(item.price_cents || 0) * Number(item.quantity || 0), 0)
-);
-
-const cartErrors = computed(() =>
-    Object.entries(orderForm.errors)
-        .filter(([key]) => key.startsWith("items"))
-        .map(([, value]) => value)
-);
+onMounted(() => {
+    hydrate();
+    syncWithCatalogItems(items.value);
+});
 
 const formatCurrency = (cents) =>
     new Intl.NumberFormat("en-US", {
@@ -94,77 +68,41 @@ const normalizeQuantity = (value) => {
     return Math.min(99, Math.floor(parsed));
 };
 
+const isSoldOut = (item) =>
+    item.availability === "on_hand" && item.stock_remaining !== null && Number(item.stock_remaining) <= 0;
+
+const openLightbox = (item) => {
+    if (!item?.image_url) {
+        return;
+    }
+
+    activePhotoItem.value = item;
+    lightboxVisible.value = true;
+};
+
 const addItemToCart = (item) => {
     delete addErrors[item.id];
-    orderForm.clearErrors();
+
+    if (isSoldOut(item)) {
+        addErrors[item.id] = `${item.name} is currently sold out.`;
+        return;
+    }
 
     const quantity = normalizeQuantity(addQuantities[item.id]);
-    const size = (addSelections[item.id] ?? "").trim();
+    const size = String(addSelections[item.id] ?? "").trim();
 
     if (item.requires_size && !size) {
         addErrors[item.id] = `Choose a size for ${item.name}.`;
         return;
     }
 
-    const existing = orderForm.items.find((entry) => entry.id === item.id && (entry.size ?? "") === size);
-
-    if (existing) {
-        existing.quantity = Math.min(99, normalizeQuantity(existing.quantity) + quantity);
+    const added = addFromCatalog(item, quantity, size || null);
+    if (!added) {
+        addErrors[item.id] = `${item.name} is currently unavailable.`;
         return;
     }
 
-    orderForm.items.push({
-        id: item.id,
-        name: item.name,
-        quantity,
-        size: size || null,
-        size_options: item.size_options ?? [],
-        price_cents: item.price_cents ?? 0,
-        price_display: item.price_display ?? formatCurrency(item.price_cents ?? 0),
-        requires_size: item.requires_size ?? false,
-    });
-};
-
-const removeFromCart = (index) => {
-    orderForm.items.splice(index, 1);
-};
-
-const submitOrder = () => {
-    if (!hasCartItems.value) {
-        orderForm.setError("items", "Add at least one item to your cart before submitting.");
-        return;
-    }
-
-    orderForm.transform((data) => ({
-        ...data,
-        items: data.items.map((item) => ({
-            id: item.id,
-            quantity: normalizeQuantity(item.quantity),
-            size: item.size ?? "",
-        })),
-    }));
-
-    orderForm.post(route("merchandise.order"), {
-        preserveScroll: true,
-        onSuccess: () => {
-            orderForm.clearErrors();
-            orderForm.reset("notes");
-            orderForm.items = [];
-        },
-        onFinish: () => {
-            orderForm.transform((data) => data);
-        },
-    });
-};
-
-const submitPreorder = () => {
-    preorderForm.post(route("merchandise.preorder"), {
-        preserveScroll: true,
-        onSuccess: () => {
-            preorderForm.reset("quantity", "notes");
-            preorderForm.quantity = 1;
-        },
-    });
+    addQuantities[item.id] = 1;
 };
 </script>
 
@@ -178,45 +116,70 @@ const submitPreorder = () => {
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                <div
-                    v-if="flashSuccess"
-                    class="p-3 rounded-md border border-green-200 bg-green-50 text-green-900 dark:border-green-900/40 dark:bg-green-950/30 dark:text-green-100"
-                >
-                    {{ flashSuccess }}
-                </div>
-
                 <div class="bg-surface-0 shadow-xl sm:rounded-lg p-6 dark:bg-surface-900 dark:text-surface-100">
                     <h3 class="text-lg font-semibold">How Orders Work</h3>
                     <p class="mt-2 text-sm opacity-90">
-                        This page collects order interest only. No payment information is accepted on the website.
-                        We will follow up directly to coordinate fulfillment.
+                        Add items to your cart and continue to checkout. No payment information is accepted on the website.
+                        We will follow up directly to confirm and coordinate fulfillment.
                     </p>
-                    <p v-if="prefillEmail" class="mt-1 text-sm opacity-80">
-                        Your email was pre-filled from your account and can be edited before submitting.
-                    </p>
+
+                    <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <p class="text-sm opacity-90">
+                            Cart: {{ cartItemCount }} item(s)
+                            <span v-if="cartItemCount > 0"> | Estimated total: {{ formatCurrency(cartTotalCents) }}</span>
+                        </p>
+                        <Link :href="route('merchandise.checkout')">
+                            <Button :label="cartItemCount > 0 ? 'Go to Checkout' : 'Checkout'" />
+                        </Link>
+                    </div>
                 </div>
 
                 <div class="bg-surface-0 shadow-xl sm:rounded-lg p-6 dark:bg-surface-900 dark:text-surface-100">
-                    <h3 class="text-lg font-semibold">Available Merchandise</h3>
-                    <p class="mt-2 text-sm opacity-90">Add currently available items to your cart and submit an order request.</p>
+                    <h3 class="text-lg font-semibold">Shop Merchandise</h3>
+                    <p class="mt-2 text-sm opacity-90">
+                        On-hand and pre-order items are all submitted from one checkout form.
+                    </p>
 
-                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <div
-                            v-for="item in availableItems"
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-fr">
+                        <article
+                            v-for="item in items"
                             :key="item.id"
-                            class="rounded-lg border border-surface-200 dark:border-surface-700 p-4 bg-surface-50 dark:bg-surface-800"
+                            class="h-full rounded-lg border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-800 p-4 flex flex-col"
                         >
-                            <div class="flex items-start justify-between gap-3">
+                            <button
+                                type="button"
+                                class="w-full h-48 rounded-md overflow-hidden border border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-700"
+                                @click="openLightbox(item)"
+                            >
+                                <img
+                                    v-if="item.image_url"
+                                    :src="item.image_url"
+                                    :alt="`${item.name} photo`"
+                                    class="h-full w-full object-cover"
+                                />
+                                <div v-else class="h-full w-full flex items-center justify-center text-sm opacity-70">
+                                    No photo available
+                                </div>
+                            </button>
+
+                            <div class="mt-3 flex items-start justify-between gap-3">
                                 <h4 class="font-semibold">{{ item.name }}</h4>
                                 <span class="font-semibold">{{ item.price_display }}</span>
                             </div>
-                            <p class="text-sm mt-2 opacity-90">{{ item.description }}</p>
+
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <Tag :value="item.availability_label" :severity="item.availability === 'preorder' ? 'info' : 'success'" />
+                                <Tag v-if="item.is_limited_edition" value="Limited Edition" severity="warning" />
+                            </div>
+
+                            <p class="text-sm mt-2 opacity-90 min-h-12">{{ item.description }}</p>
 
                             <p
-                                v-if="item.is_limited_edition && item.stock_remaining !== null"
-                                class="text-xs mt-2 font-medium text-amber-700 dark:text-amber-300"
+                                v-if="item.availability === 'on_hand' && item.stock_remaining !== null"
+                                class="text-xs mt-2 font-medium"
+                                :class="isSoldOut(item) ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'"
                             >
-                                Limited edition: {{ item.stock_remaining }} remaining
+                                {{ isSoldOut(item) ? 'Sold out' : `Stock remaining: ${item.stock_remaining}` }}
                             </p>
 
                             <div class="mt-4 space-y-2">
@@ -250,188 +213,34 @@ const submitPreorder = () => {
 
                             <Button
                                 class="mt-4 w-full"
-                                label="Add to cart"
+                                :label="item.availability === 'preorder' ? 'Add pre-order item' : 'Add to cart'"
                                 @click="addItemToCart(item)"
                                 type="button"
+                                :disabled="isSoldOut(item)"
                             />
-                        </div>
+                        </article>
                     </div>
-                </div>
-
-                <div class="bg-surface-0 shadow-xl sm:rounded-lg p-6 dark:bg-surface-900 dark:text-surface-100">
-                    <h3 class="text-lg font-semibold">Order Request Cart</h3>
-                    <p class="mt-2 text-sm opacity-90">Items: {{ cartItemCount }} | Estimated total: {{ formatCurrency(cartTotalCents) }}</p>
-
-                    <div v-if="!hasCartItems" class="mt-4 rounded border border-dashed border-surface-300 dark:border-surface-600 p-4 text-sm opacity-90">
-                        Your cart is empty.
-                    </div>
-
-                    <div v-else class="mt-4 space-y-3">
-                        <div
-                            v-for="(item, index) in orderForm.items"
-                            :key="`${item.id}-${index}`"
-                            class="rounded border border-surface-200 dark:border-surface-700 p-4 bg-surface-50 dark:bg-surface-800"
-                        >
-                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                                <div>
-                                    <div class="font-medium">{{ item.name }}</div>
-                                    <div class="text-sm opacity-80">{{ item.price_display }} each</div>
-                                </div>
-                                <div class="font-medium">{{ formatCurrency(item.price_cents * item.quantity) }}</div>
-                            </div>
-
-                            <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <label class="text-sm font-medium">Quantity</label>
-                                    <InputNumber
-                                        v-model="item.quantity"
-                                        :min="1"
-                                        :max="99"
-                                        :minFractionDigits="0"
-                                        :maxFractionDigits="0"
-                                        showButtons
-                                        class="w-full mt-1"
-                                    />
-                                </div>
-
-                                <div v-if="item.requires_size">
-                                    <label class="text-sm font-medium">Size</label>
-                                    <Select
-                                        v-model="item.size"
-                                        :options="item.size_options"
-                                        placeholder="Select size"
-                                        class="w-full mt-1"
-                                    />
-                                </div>
-
-                                <div class="flex items-end">
-                                    <Button
-                                        label="Remove"
-                                        severity="danger"
-                                        outlined
-                                        class="w-full md:w-auto"
-                                        type="button"
-                                        @click="removeFromCart(index)"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div v-if="orderForm.errors.items" class="mt-3 text-red-600 dark:text-red-400 text-sm">
-                        {{ orderForm.errors.items }}
-                    </div>
-
-                    <div v-if="cartErrors.length > 0" class="mt-3 text-red-600 dark:text-red-400 text-sm space-y-1">
-                        <div v-for="(error, index) in cartErrors" :key="`cart-error-${index}`">{{ error }}</div>
-                    </div>
-
-                    <form class="mt-6 space-y-4" @submit.prevent="submitOrder">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="flex flex-col">
-                                <label for="order_name" class="font-medium">Name</label>
-                                <InputText id="order_name" v-model="orderForm.name" class="mt-1 w-full" autocomplete="name" />
-                                <small v-if="orderForm.errors.name" class="mt-1 text-red-600 dark:text-red-400">{{ orderForm.errors.name }}</small>
-                            </div>
-                            <div class="flex flex-col">
-                                <label for="order_email" class="font-medium">Email *</label>
-                                <InputText id="order_email" v-model="orderForm.email" type="email" class="mt-1 w-full" autocomplete="email" required />
-                                <small v-if="orderForm.errors.email" class="mt-1 text-red-600 dark:text-red-400">{{ orderForm.errors.email }}</small>
-                            </div>
-                            <div class="flex flex-col">
-                                <label for="order_phone" class="font-medium">Phone</label>
-                                <InputText id="order_phone" v-model="orderForm.phone" class="mt-1 w-full" autocomplete="tel" />
-                                <small v-if="orderForm.errors.phone" class="mt-1 text-red-600 dark:text-red-400">{{ orderForm.errors.phone }}</small>
-                            </div>
-                            <div class="flex flex-col">
-                                <label for="order_notes" class="font-medium">Notes</label>
-                                <Textarea id="order_notes" v-model="orderForm.notes" rows="3" autoResize class="mt-1 w-full" />
-                                <small v-if="orderForm.errors.notes" class="mt-1 text-red-600 dark:text-red-400">{{ orderForm.errors.notes }}</small>
-                            </div>
-                        </div>
-
-                        <Button
-                            type="submit"
-                            label="Submit order request"
-                            class="w-full md:w-auto"
-                            :loading="orderForm.processing"
-                        />
-                    </form>
-                </div>
-
-                <div class="bg-surface-0 shadow-xl sm:rounded-lg p-6 dark:bg-surface-900 dark:text-surface-100">
-                    <h3 class="text-lg font-semibold">Pre-order Interest</h3>
-                    <p class="mt-2 text-sm opacity-90">Tell us what you would buy so we can plan future runs.</p>
-
-                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div
-                            v-for="item in preorderItems"
-                            :key="`preorder-${item.id}`"
-                            class="rounded border border-surface-200 dark:border-surface-700 p-4 bg-surface-50 dark:bg-surface-800"
-                        >
-                            <div class="flex items-start justify-between gap-3">
-                                <h4 class="font-semibold">{{ item.name }}</h4>
-                                <span class="font-semibold">{{ item.price_display }}</span>
-                            </div>
-                            <p class="text-sm mt-2 opacity-90">{{ item.description }}</p>
-                        </div>
-                    </div>
-
-                    <form class="mt-6 space-y-4" @submit.prevent="submitPreorder">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="flex flex-col">
-                                <label for="preorder_item" class="font-medium">Pre-order Item *</label>
-                                <Select
-                                    id="preorder_item"
-                                    v-model="preorderForm.item_id"
-                                    :options="preorderItems"
-                                    optionLabel="name"
-                                    optionValue="id"
-                                    placeholder="Select an item"
-                                    class="mt-1 w-full"
-                                />
-                                <small v-if="preorderForm.errors.item_id" class="mt-1 text-red-600 dark:text-red-400">{{ preorderForm.errors.item_id }}</small>
-                            </div>
-                            <div class="flex flex-col">
-                                <label for="preorder_qty" class="font-medium">Quantity Interested *</label>
-                                <InputNumber
-                                    id="preorder_qty"
-                                    v-model="preorderForm.quantity"
-                                    :min="1"
-                                    :max="99"
-                                    :minFractionDigits="0"
-                                    :maxFractionDigits="0"
-                                    showButtons
-                                    class="mt-1 w-full"
-                                />
-                                <small v-if="preorderForm.errors.quantity" class="mt-1 text-red-600 dark:text-red-400">{{ preorderForm.errors.quantity }}</small>
-                            </div>
-                            <div class="flex flex-col">
-                                <label for="preorder_name" class="font-medium">Name</label>
-                                <InputText id="preorder_name" v-model="preorderForm.name" class="mt-1 w-full" autocomplete="name" />
-                                <small v-if="preorderForm.errors.name" class="mt-1 text-red-600 dark:text-red-400">{{ preorderForm.errors.name }}</small>
-                            </div>
-                            <div class="flex flex-col">
-                                <label for="preorder_email" class="font-medium">Email *</label>
-                                <InputText id="preorder_email" v-model="preorderForm.email" type="email" class="mt-1 w-full" autocomplete="email" required />
-                                <small v-if="preorderForm.errors.email" class="mt-1 text-red-600 dark:text-red-400">{{ preorderForm.errors.email }}</small>
-                            </div>
-                            <div class="flex flex-col md:col-span-2">
-                                <label for="preorder_notes" class="font-medium">Notes</label>
-                                <Textarea id="preorder_notes" v-model="preorderForm.notes" rows="3" autoResize class="mt-1 w-full" />
-                                <small v-if="preorderForm.errors.notes" class="mt-1 text-red-600 dark:text-red-400">{{ preorderForm.errors.notes }}</small>
-                            </div>
-                        </div>
-
-                        <Button
-                            type="submit"
-                            label="Submit pre-order interest"
-                            class="w-full md:w-auto"
-                            :loading="preorderForm.processing"
-                        />
-                    </form>
                 </div>
             </div>
         </div>
+
+        <Dialog
+            v-model:visible="lightboxVisible"
+            modal
+            :header="activePhotoItem?.name || 'Item Photo'"
+            class="w-full sm:w-[48rem]"
+        >
+            <div v-if="activePhotoItem?.image_url" class="space-y-3">
+                <img
+                    :src="activePhotoItem.image_url"
+                    :alt="`${activePhotoItem.name} photo`"
+                    class="w-full rounded-lg"
+                />
+                <p class="text-sm opacity-90">{{ activePhotoItem.description }}</p>
+                <div class="flex justify-end">
+                    <Button label="Close" severity="secondary" @click="lightboxVisible = false" />
+                </div>
+            </div>
+        </Dialog>
     </AppLayout>
 </template>

@@ -39,6 +39,7 @@ const settingsForm = useForm({
 
 const dialogVisible = ref(false);
 const editingItemId = ref(null);
+const currentItemImageUrl = ref(null);
 const sizeOptionsText = ref("");
 const priceDollars = ref(0);
 
@@ -53,10 +54,13 @@ const itemForm = useForm({
     stock_remaining: null,
     is_active: true,
     sort_order: 0,
+    image: null,
+    remove_image: false,
 });
 
 const resetItemForm = () => {
     editingItemId.value = null;
+    currentItemImageUrl.value = null;
     sizeOptionsText.value = "";
     priceDollars.value = 0;
     itemForm.reset();
@@ -66,6 +70,8 @@ const resetItemForm = () => {
     itemForm.is_limited_edition = false;
     itemForm.is_active = true;
     itemForm.sort_order = 0;
+    itemForm.image = null;
+    itemForm.remove_image = false;
 };
 
 const openCreateDialog = () => {
@@ -75,6 +81,7 @@ const openCreateDialog = () => {
 
 const openEditDialog = (item) => {
     editingItemId.value = item.id;
+    currentItemImageUrl.value = item.image_url ?? null;
     itemForm.name = item.name ?? "";
     itemForm.description = item.description ?? "";
     itemForm.availability = item.availability ?? "on_hand";
@@ -83,10 +90,20 @@ const openEditDialog = (item) => {
     itemForm.stock_remaining = item.stock_remaining;
     itemForm.is_active = !!item.is_active;
     itemForm.sort_order = Number(item.sort_order ?? 0);
+    itemForm.image = null;
+    itemForm.remove_image = false;
     priceDollars.value = Number(item.price_cents ?? 0) / 100;
     sizeOptionsText.value = Array.isArray(item.size_options) ? item.size_options.join(", ") : "";
     itemForm.clearErrors();
     dialogVisible.value = true;
+};
+
+const onItemImageSelected = (event) => {
+    const input = event.target;
+    itemForm.image = input?.files?.[0] ?? null;
+    if (itemForm.image) {
+        itemForm.remove_image = false;
+    }
 };
 
 const normalizeItemPayload = () => {
@@ -103,6 +120,7 @@ const normalizeItemPayload = () => {
         stock_remaining: itemForm.stock_remaining === "" || itemForm.stock_remaining === null
             ? null
             : Number(itemForm.stock_remaining),
+        remove_image: Boolean(itemForm.remove_image && !itemForm.image),
     };
 };
 
@@ -111,6 +129,7 @@ const submitItem = () => {
 
     if (editingItemId.value) {
         itemForm.put(route("admin.merchandise.items.update", editingItemId.value), {
+            forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
                 dialogVisible.value = false;
@@ -123,6 +142,7 @@ const submitItem = () => {
     }
 
     itemForm.post(route("admin.merchandise.items.store"), {
+        forceFormData: true,
         preserveScroll: true,
         onSuccess: () => {
             dialogVisible.value = false;
@@ -201,6 +221,17 @@ const saveSettings = () => {
                 </div>
 
                 <DataTable class="mt-4" :value="items" stripedRows paginator :rows="15" responsive-layout="scroll">
+                    <Column header="Image">
+                        <template #body="{ data }">
+                            <img
+                                v-if="data.image_url"
+                                :src="data.image_url"
+                                :alt="`${data.name} image`"
+                                class="h-10 w-10 rounded object-cover border border-surface-200 dark:border-surface-700"
+                            />
+                            <span v-else>—</span>
+                        </template>
+                    </Column>
                     <Column field="name" header="Name" />
                     <Column field="availability_label" header="Type" />
                     <Column field="price_display" header="Price" />
@@ -265,6 +296,27 @@ const saveSettings = () => {
                         <small v-if="itemForm.errors.description" class="mt-1 text-red-600 dark:text-red-400">{{ itemForm.errors.description }}</small>
                     </div>
 
+                    <div class="flex flex-col md:col-span-2">
+                        <label class="font-medium">Item Photo</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            class="mt-1"
+                            @change="onItemImageSelected"
+                        />
+                        <small v-if="itemForm.errors.image" class="mt-1 text-red-600 dark:text-red-400">{{ itemForm.errors.image }}</small>
+                        <div v-if="currentItemImageUrl && !itemForm.remove_image && !itemForm.image" class="mt-2">
+                            <img :src="currentItemImageUrl" alt="Current item image" class="h-20 w-20 rounded object-cover border border-surface-200 dark:border-surface-700" />
+                        </div>
+                        <div v-if="itemForm.image" class="mt-1 text-xs opacity-80">
+                            Selected file: {{ itemForm.image.name }}
+                        </div>
+                        <div v-if="currentItemImageUrl" class="mt-2 flex items-center gap-2">
+                            <Checkbox v-model="itemForm.remove_image" inputId="item_remove_image" binary :disabled="!!itemForm.image" />
+                            <label for="item_remove_image">Remove current photo</label>
+                        </div>
+                    </div>
+
                     <div class="flex flex-col">
                         <label class="font-medium">Price</label>
                         <InputNumber
@@ -326,4 +378,3 @@ const saveSettings = () => {
         </Dialog>
     </AppLayout>
 </template>
-

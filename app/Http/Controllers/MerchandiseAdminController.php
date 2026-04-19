@@ -7,6 +7,8 @@ use App\Models\MerchandiseItem;
 use App\Models\MerchandiseSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,7 +38,11 @@ class MerchandiseAdminController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $this->validateItem($request);
+        [$data, $uploadedImage] = $this->validateItem($request);
+
+        if ($uploadedImage) {
+            $data['image_path'] = $this->storeImage($uploadedImage);
+        }
 
         MerchandiseItem::query()->create($data);
 
@@ -45,7 +51,18 @@ class MerchandiseAdminController extends Controller
 
     public function update(Request $request, MerchandiseItem $item): RedirectResponse
     {
-        $data = $this->validateItem($request);
+        [$data, $uploadedImage, $removeImage] = $this->validateItem($request);
+
+        if ($uploadedImage) {
+            if ($item->image_path) {
+                Storage::disk('public')->delete($item->image_path);
+            }
+
+            $data['image_path'] = $this->storeImage($uploadedImage);
+        } elseif ($removeImage && $item->image_path) {
+            Storage::disk('public')->delete($item->image_path);
+            $data['image_path'] = null;
+        }
 
         $item->update($data);
 
@@ -56,6 +73,10 @@ class MerchandiseAdminController extends Controller
     {
         if ($item->orderItems()->exists()) {
             return back()->with('success', 'Item is used in existing orders and cannot be deleted. Mark it inactive instead.');
+        }
+
+        if ($item->image_path) {
+            Storage::disk('public')->delete($item->image_path);
         }
 
         $item->delete();
@@ -78,7 +99,7 @@ class MerchandiseAdminController extends Controller
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{0: array<string, mixed>, 1: UploadedFile|null, 2: bool}
      */
     protected function validateItem(Request $request): array
     {
@@ -94,7 +115,13 @@ class MerchandiseAdminController extends Controller
             'stock_remaining' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'remove_image' => ['sometimes', 'boolean'],
         ]);
+
+        /** @var UploadedFile|null $uploadedImage */
+        $uploadedImage = $request->file('image');
+        $removeImage = (bool) ($data['remove_image'] ?? false);
 
         $data['requires_size'] = (bool) ($data['requires_size'] ?? false);
         $data['is_limited_edition'] = (bool) ($data['is_limited_edition'] ?? false);
@@ -119,7 +146,14 @@ class MerchandiseAdminController extends Controller
             $data['stock_remaining'] = null;
         }
 
-        return $data;
+        unset($data['image'], $data['remove_image']);
+
+        return [$data, $uploadedImage, $removeImage];
+    }
+
+    protected function storeImage(UploadedFile $image): string
+    {
+        return $image->storePublicly('merchandise/items', ['disk' => 'public']);
     }
 
     protected function presentItem(MerchandiseItem $item): array
@@ -128,6 +162,7 @@ class MerchandiseAdminController extends Controller
             'id' => $item->id,
             'name' => $item->name,
             'description' => $item->description,
+            'image_url' => $item->image_path ? Storage::disk('public')->url($item->image_path) : null,
             'availability' => $item->availability,
             'availability_label' => MerchandiseItemAvailability::label($item->availability),
             'price_cents' => $item->price_cents,
@@ -142,4 +177,3 @@ class MerchandiseAdminController extends Controller
         ];
     }
 }
-

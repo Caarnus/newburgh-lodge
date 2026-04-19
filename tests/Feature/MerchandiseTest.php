@@ -10,12 +10,12 @@ use App\Models\MerchandiseItem;
 use App\Models\MerchandiseOrder;
 use App\Models\MerchandiseSetting;
 use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Auth\Middleware\Authorize;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
-use Illuminate\Auth\Middleware\Authorize;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -47,6 +47,7 @@ class MerchandiseTest extends TestCase
                 'database/migrations/2026_04_19_110100_create_merchandise_settings_table.php',
                 'database/migrations/2026_04_19_110200_create_merchandise_orders_table.php',
                 'database/migrations/2026_04_19_110300_create_merchandise_order_items_table.php',
+                'database/migrations/2026_04_19_120000_add_image_path_to_merchandise_items_table.php',
             ],
             '--force' => true,
         ]);
@@ -60,94 +61,79 @@ class MerchandiseTest extends TestCase
         ]);
     }
 
-    public function test_merchandise_page_can_be_rendered(): void
+    public function test_merchandise_and_checkout_pages_can_be_rendered(): void
     {
         $this->seedCatalog();
 
-        $response = $this->get(route('merchandise.index'));
-
-        $response->assertOk();
+        $this->get(route('merchandise.index'))->assertOk();
+        $this->get(route('merchandise.checkout'))->assertOk();
     }
 
-    public function test_on_hand_order_creates_database_records_and_sends_email(): void
+    public function test_checkout_submission_with_mixed_item_types_creates_orders_and_sends_both_email_types(): void
     {
         Mail::fake();
-        [$polo, $coin] = $this->seedCatalog();
+        [$polo, $coin, $koozie] = $this->seedCatalog();
 
-        $response = $this->post(route('merchandise.order'), [
+        $response = $this->post(route('merchandise.checkout.submit'), [
             'name' => 'John Doe',
             'email' => 'john@example.com',
             'phone' => '(812) 555-0100',
             'notes' => 'Please contact me in the afternoon.',
             'items' => [
                 ['id' => $polo->id, 'quantity' => 2, 'size' => 'M'],
-                ['id' => $coin->id, 'quantity' => 1],
+                ['id' => $coin->id, 'quantity' => 1, 'size' => ''],
+                ['id' => $koozie->id, 'quantity' => 3, 'size' => ''],
             ],
         ]);
 
         $response->assertSessionHasNoErrors();
         $response->assertSessionHas('success');
 
-        $order = MerchandiseOrder::query()->with('items')->firstOrFail();
+        $orders = MerchandiseOrder::query()->with('items')->orderBy('id')->get();
+        $this->assertCount(2, $orders);
 
-        $this->assertSame(MerchandiseItemAvailability::OnHand->value, $order->order_type);
-        $this->assertSame(MerchandiseOrderStatus::Submitted->value, $order->status);
-        $this->assertSame('john@example.com', $order->customer_email);
-        $this->assertCount(2, $order->items);
+        $onHandOrder = $orders->firstWhere('order_type', MerchandiseItemAvailability::OnHand->value);
+        $preorderOrder = $orders->firstWhere('order_type', MerchandiseItemAvailability::Preorder->value);
+
+        $this->assertNotNull($onHandOrder);
+        $this->assertNotNull($preorderOrder);
+        $this->assertSame(MerchandiseOrderStatus::Submitted->value, $onHandOrder->status);
+        $this->assertSame(MerchandiseOrderStatus::Submitted->value, $preorderOrder->status);
+        $this->assertCount(2, $onHandOrder->items);
+        $this->assertCount(1, $preorderOrder->items);
+        $this->assertSame(3, (int) $preorderOrder->items->first()->quantity);
 
         $coin->refresh();
         $this->assertSame(4, $coin->stock_remaining);
 
         Mail::assertSent(MerchandiseOrderRequestMail::class, function (MerchandiseOrderRequestMail $mail): bool {
             return $mail->order->customer_email === 'john@example.com'
+                && $mail->order->order_type === MerchandiseItemAvailability::OnHand->value
                 && $mail->order->items->count() === 2;
+        });
+
+        Mail::assertSent(MerchandisePreorderInterestMail::class, function (MerchandisePreorderInterestMail $mail): bool {
+            return $mail->order->customer_email === 'john@example.com'
+                && $mail->order->order_type === MerchandiseItemAvailability::Preorder->value
+                && $mail->order->items->sum('quantity') === 3;
         });
     }
 
-    public function test_order_requires_size_for_sized_item(): void
+    public function test_checkout_requires_size_for_sized_item(): void
     {
         Mail::fake();
         [$polo] = $this->seedCatalog();
 
-        $response = $this->from(route('merchandise.index'))->post(route('merchandise.order'), [
+        $response = $this->from(route('merchandise.checkout'))->post(route('merchandise.checkout.submit'), [
             'email' => 'john@example.com',
             'items' => [
                 ['id' => $polo->id, 'quantity' => 1],
             ],
         ]);
 
-        $response->assertRedirect(route('merchandise.index'));
+        $response->assertRedirect(route('merchandise.checkout'));
         $response->assertSessionHasErrors('items.0.size');
         Mail::assertNothingSent();
-    }
-
-    public function test_preorder_submission_records_order_and_sends_email(): void
-    {
-        Mail::fake();
-        [, , $koozie] = $this->seedCatalog();
-
-        $response = $this->post(route('merchandise.preorder'), [
-            'item_id' => $koozie->id,
-            'quantity' => 3,
-            'name' => 'Jane Doe',
-            'email' => 'jane@example.com',
-            'notes' => 'Interested if navy blue is available.',
-        ]);
-
-        $response->assertSessionHasNoErrors();
-        $response->assertSessionHas('success');
-
-        $order = MerchandiseOrder::query()->with('items')->firstOrFail();
-        $this->assertNull($order->user_id);
-        $this->assertSame(MerchandiseItemAvailability::Preorder->value, $order->order_type);
-        $this->assertSame(MerchandiseOrderStatus::Submitted->value, $order->status);
-        $this->assertCount(1, $order->items);
-        $this->assertSame(3, $order->items->first()->quantity);
-
-        Mail::assertSent(MerchandisePreorderInterestMail::class, function (MerchandisePreorderInterestMail $mail): bool {
-            return $mail->order->customer_email === 'jane@example.com'
-                && $mail->order->items->first()?->quantity === 3;
-        });
     }
 
     public function test_admin_can_update_order_status(): void

@@ -59,11 +59,10 @@ Route::post('/contact', [ContactController::class, 'store'])
     ->middleware('throttle:10,1');
 
 Route::get('/merchandise', [MerchandiseController::class, 'index'])->name('merchandise.index');
-Route::post('/merchandise/order', [MerchandiseController::class, 'submitOrder'])
-    ->name('merchandise.order')
-    ->middleware('throttle:10,1');
-Route::post('/merchandise/preorder', [MerchandiseController::class, 'submitPreorder'])
-    ->name('merchandise.preorder')
+Route::get('/merchandise/checkout', [MerchandiseController::class, 'checkout'])
+    ->name('merchandise.checkout');
+Route::post('/merchandise/checkout', [MerchandiseController::class, 'submitCheckout'])
+    ->name('merchandise.checkout.submit')
     ->middleware('throttle:10,1');
 
 Route::get('/past-masters', [PastMasterController::class, 'index'])->name('past-masters.index');

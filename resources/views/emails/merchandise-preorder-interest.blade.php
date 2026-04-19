@@ -3,10 +3,6 @@
 <body>
     <h2>Merchandise Pre-order Interest</h2>
 
-    @php
-        $lineItem = $order->items->first();
-    @endphp
-
     <p><strong>Order #:</strong> {{ $order->id }}</p>
     <p><strong>Status:</strong> {{ \App\Enums\MerchandiseOrderStatus::label($order->status) }}</p>
     <p><strong>Submitted:</strong> {{ $order->submitted_at?->toDateTimeString() }}</p>
@@ -16,9 +12,16 @@
 
     <hr>
 
-    <p><strong>Item:</strong> {{ $lineItem?->item_name ?: '(unknown)' }}</p>
-    <p><strong>Interested Quantity:</strong> {{ $lineItem?->quantity ?: 0 }}</p>
-    <p><strong>Displayed Price:</strong> ${{ number_format(($lineItem?->unit_price_cents ?: 0) / 100, 2) }}</p>
+    <h3>Requested Pre-order Items</h3>
+    <ul>
+        @foreach($order->items as $item)
+            <li>
+                <strong>{{ $item->item_name }}</strong> -
+                Qty: {{ $item->quantity }}
+                - Displayed Price: ${{ number_format($item->unit_price_cents / 100, 2) }}
+            </li>
+        @endforeach
+    </ul>
 
     @if(!empty($order->notes))
         <p><strong>Additional Notes:</strong></p>
