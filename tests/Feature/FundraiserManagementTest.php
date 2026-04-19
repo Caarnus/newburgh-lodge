@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Fundraiser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
@@ -38,5 +39,27 @@ class FundraiserManagementTest extends TestCase
             'is_active' => true,
         ]);
     }
-}
 
+    public function test_manager_can_quickly_add_to_raised_total(): void
+    {
+        Permission::findOrCreate('manage-content', 'web');
+
+        $user = User::factory()->create();
+        $user->givePermissionTo('manage-content');
+
+        $fundraiser = Fundraiser::factory()->create([
+            'raised_amount' => 5000,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('admin.fundraisers.raise', $fundraiser->id), [
+            'amount' => 275.50,
+        ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('fundraisers', [
+            'id' => $fundraiser->id,
+            'raised_amount' => 5275.50,
+        ]);
+    }
+}

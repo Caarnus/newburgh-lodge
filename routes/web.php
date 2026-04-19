@@ -280,6 +280,7 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])
         Route::post('/', [FundraiserAdminController::class, 'store'])->name('store');
         Route::get('/{fundraiser:id}/edit', [FundraiserAdminController::class, 'edit'])->name('edit');
         Route::put('/{fundraiser:id}', [FundraiserAdminController::class, 'update'])->name('update');
+        Route::post('/{fundraiser:id}/raise', [FundraiserAdminController::class, 'addRaisedAmount'])->name('raise');
         Route::get('/{fundraiser:id}/qr.png', [FundraiserAdminController::class, 'downloadQrPng'])->name('qr.download');
     });
 

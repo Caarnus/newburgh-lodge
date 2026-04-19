@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { Link, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Card from 'primevue/card'
@@ -10,6 +10,8 @@ import Textarea from 'primevue/textarea'
 import InputNumber from 'primevue/inputnumber'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Message from 'primevue/message'
+import Editor from 'primevue/editor'
+import FileUpload from 'primevue/fileupload'
 
 type ExistingImage = {
     path: string
@@ -30,6 +32,11 @@ type FundraiserDto = {
     images: ExistingImage[]
 }
 
+type SelectedImagePreview = {
+    name: string
+    url: string
+}
+
 const props = defineProps<{
     fundraiser: FundraiserDto | null
     qr_download_url: string | null
@@ -39,20 +46,21 @@ const props = defineProps<{
 const page = usePage()
 const isEdit = computed(() => !!props.fundraiser?.id)
 const pageTitle = computed(() => (isEdit.value ? 'Edit Fundraiser' : 'Create Fundraiser'))
+const descriptionMode = ref<'visual' | 'html'>('visual')
+const selectedImagePreviews = ref<SelectedImagePreview[]>([])
 
-function toDateTimeLocalValue(iso: string | null): string {
+function toDateValue(iso: string | null): string {
     if (!iso) return ''
     const date = new Date(iso)
     if (Number.isNaN(date.getTime())) return ''
 
     const pad = (n: number) => String(n).padStart(2, '0')
 
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
-const startsAtLocal = ref(toDateTimeLocalValue(props.fundraiser?.starts_at ?? null))
-const endsAtLocal = ref(toDateTimeLocalValue(props.fundraiser?.ends_at ?? null))
-const selectedImageNames = ref<string[]>([])
+const startsAtDate = ref(toDateValue(props.fundraiser?.starts_at ?? null))
+const endsAtDate = ref(toDateValue(props.fundraiser?.ends_at ?? null))
 
 const form = useForm({
     title: props.fundraiser?.title ?? '',
@@ -66,13 +74,48 @@ const form = useForm({
     ends_at: props.fundraiser?.ends_at ?? null as string | null,
     images: [] as File[],
     remove_image_paths: [] as string[],
+    _method: '' as '' | 'put',
 })
 
-function onPickImages(event: Event) {
-    const input = event.target as HTMLInputElement
-    const files = Array.from(input.files ?? [])
+function revokePreviewUrls() {
+    for (const preview of selectedImagePreviews.value) {
+        URL.revokeObjectURL(preview.url)
+    }
+    selectedImagePreviews.value = []
+}
+
+function setSelectedImages(files: File[]) {
     form.images = files
-    selectedImageNames.value = files.map((file) => file.name)
+    revokePreviewUrls()
+
+    selectedImagePreviews.value = files.map((file) => ({
+        name: file.name,
+        url: URL.createObjectURL(file),
+    }))
+}
+
+function onImageSelect(event: any) {
+    setSelectedImages(Array.isArray(event?.files) ? event.files : [])
+}
+
+function onImageRemove(event: any) {
+    if (Array.isArray(event?.files)) {
+        setSelectedImages(event.files)
+        return
+    }
+
+    const removed = event?.file as File | undefined
+    if (!removed) {
+        return
+    }
+
+    setSelectedImages(
+        form.images.filter((file) => !(file.name === removed.name && file.size === removed.size))
+    )
+}
+
+function onImageClear() {
+    setSelectedImages([])
 }
 
 function updateRemoval(path: string, checked: boolean) {
@@ -91,22 +134,33 @@ function onToggleRemove(path: string, event: Event) {
 }
 
 function submit() {
-    form.starts_at = startsAtLocal.value || null
-    form.ends_at = endsAtLocal.value || null
+    form.starts_at = startsAtDate.value || null
+    form.ends_at = endsAtDate.value || null
+    form.goal_amount = Number(form.goal_amount ?? 0)
+    form.raised_amount = Number(form.raised_amount ?? 0)
 
     if (isEdit.value && props.fundraiser?.id) {
-        form.put(route('admin.fundraisers.update', props.fundraiser.id), {
+        form._method = 'put'
+        form.post(route('admin.fundraisers.update', props.fundraiser.id), {
             preserveScroll: true,
             forceFormData: true,
+            onFinish: () => {
+                form._method = ''
+            },
         })
         return
     }
 
+    form._method = ''
     form.post(route('admin.fundraisers.store'), {
         preserveScroll: true,
         forceFormData: true,
     })
 }
+
+onUnmounted(() => {
+    revokePreviewUrls()
+})
 </script>
 
 <template>
@@ -175,8 +229,36 @@ function submit() {
                             </div>
 
                             <div class="sm:col-span-2">
-                                <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Full Description</label>
-                                <Textarea v-model="form.description" rows="7" class="w-full mt-1" :invalid="!!form.errors.description" />
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Full Description</label>
+                                    <div class="flex gap-2">
+                                        <Button
+                                            label="Visual"
+                                            size="small"
+                                            :severity="descriptionMode === 'visual' ? undefined : 'secondary'"
+                                            :outlined="descriptionMode !== 'visual'"
+                                            @click="descriptionMode = 'visual'"
+                                        />
+                                        <Button
+                                            label="HTML"
+                                            size="small"
+                                            :severity="descriptionMode === 'html' ? undefined : 'secondary'"
+                                            :outlined="descriptionMode !== 'html'"
+                                            @click="descriptionMode = 'html'"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div v-if="descriptionMode === 'visual'" class="pv-editor rounded-md border border-[color:var(--p-content-border-color)] overflow-hidden mt-1">
+                                    <Editor v-model="form.description" class="pv-editor__inner" />
+                                </div>
+                                <Textarea
+                                    v-else
+                                    v-model="form.description"
+                                    rows="12"
+                                    class="w-full mt-1 font-mono text-sm"
+                                    :invalid="!!form.errors.description"
+                                />
                                 <p v-if="form.errors.description" class="mt-1 text-sm text-red-500">{{ form.errors.description }}</p>
                             </div>
 
@@ -193,14 +275,14 @@ function submit() {
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Starts At (optional)</label>
-                                <input v-model="startsAtLocal" type="datetime-local" class="mt-1 w-full rounded-md border-surface-300 dark:border-surface-700 dark:bg-surface-900" />
+                                <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Starts On (optional)</label>
+                                <input v-model="startsAtDate" type="date" class="mt-1 w-full rounded-md border-surface-300 dark:border-surface-700 dark:bg-surface-900" />
                                 <p v-if="form.errors.starts_at" class="mt-1 text-sm text-red-500">{{ form.errors.starts_at }}</p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Ends At (optional)</label>
-                                <input v-model="endsAtLocal" type="datetime-local" class="mt-1 w-full rounded-md border-surface-300 dark:border-surface-700 dark:bg-surface-900" />
+                                <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Ends On (optional)</label>
+                                <input v-model="endsAtDate" type="date" class="mt-1 w-full rounded-md border-surface-300 dark:border-surface-700 dark:bg-surface-900" />
                                 <p v-if="form.errors.ends_at" class="mt-1 text-sm text-red-500">{{ form.errors.ends_at }}</p>
                             </div>
 
@@ -222,13 +304,33 @@ function submit() {
                                 </a>
                             </div>
 
-                            <div>
-                                <input type="file" accept="image/*" multiple class="block w-full text-sm" @change="onPickImages" />
-                                <p v-if="form.errors.images" class="mt-1 text-sm text-red-500">{{ form.errors.images }}</p>
-                                <p v-if="form.errors['images.0']" class="mt-1 text-sm text-red-500">{{ form.errors['images.0'] }}</p>
-                                <p v-if="selectedImageNames.length" class="mt-2 text-sm text-surface-600 dark:text-surface-300">
-                                    Selected: {{ selectedImageNames.join(', ') }}
-                                </p>
+                            <FileUpload
+                                mode="advanced"
+                                name="images[]"
+                                accept="image/*"
+                                :multiple="true"
+                                :maxFileSize="5242880"
+                                :customUpload="true"
+                                :showUploadButton="false"
+                                chooseLabel="Choose Images"
+                                cancelLabel="Clear"
+                                @select="onImageSelect"
+                                @remove="onImageRemove"
+                                @clear="onImageClear"
+                            />
+
+                            <p v-if="form.errors.images" class="mt-1 text-sm text-red-500">{{ form.errors.images }}</p>
+                            <p v-if="form.errors['images.0']" class="mt-1 text-sm text-red-500">{{ form.errors['images.0'] }}</p>
+
+                            <div v-if="selectedImagePreviews.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div
+                                    v-for="preview in selectedImagePreviews"
+                                    :key="preview.url"
+                                    class="rounded-lg border border-surface-200 dark:border-surface-700 p-2 space-y-2"
+                                >
+                                    <img :src="preview.url" :alt="preview.name" class="w-full aspect-[4/3] object-cover rounded" />
+                                    <p class="text-xs text-surface-500 dark:text-surface-400 truncate">{{ preview.name }}</p>
+                                </div>
                             </div>
 
                             <div
@@ -240,7 +342,7 @@ function submit() {
                                     :key="image.path"
                                     class="rounded-lg border border-surface-200 dark:border-surface-700 p-2 space-y-2"
                                 >
-                                    <img :src="image.url" alt="Fundraiser image" class="w-full h-44 object-cover rounded" />
+                                    <img :src="image.url" alt="Fundraiser image" class="w-full aspect-[4/3] object-cover rounded" />
                                     <label class="flex items-center gap-2 text-sm text-surface-700 dark:text-surface-300">
                                         <input
                                             type="checkbox"
@@ -265,3 +367,10 @@ function submit() {
         </div>
     </AppLayout>
 </template>
+
+<style scoped>
+.pv-editor__inner :deep(.ql-container) {
+    min-height: 14rem;
+}
+</style>
+

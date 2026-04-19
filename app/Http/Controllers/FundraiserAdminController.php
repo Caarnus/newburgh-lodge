@@ -103,6 +103,21 @@ class FundraiserAdminController extends Controller
         return back()->with('success', 'Fundraiser updated.');
     }
 
+    public function addRaisedAmount(Request $request, Fundraiser $fundraiser)
+    {
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'gt:0', 'max:99999999.99'],
+        ]);
+
+        $fundraiser->raised_amount = round(
+            (float) $fundraiser->raised_amount + (float) $data['amount'],
+            2
+        );
+        $fundraiser->save();
+
+        return back()->with('success', 'Raised amount updated.');
+    }
+
     public function downloadQrPng(Fundraiser $fundraiser): Response
     {
         try {
@@ -222,4 +237,3 @@ class FundraiserAdminController extends Controller
         ];
     }
 }
-
