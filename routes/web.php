@@ -23,6 +23,7 @@ use App\Http\Controllers\Manage\PersonContactLogController;
 use App\Http\Controllers\Manage\PersonDirectoryController;
 use App\Http\Controllers\Manage\PersonRelationshipController;
 use App\Http\Controllers\Manage\RelativeDirectoryController;
+use App\Http\Controllers\Manage\RitualistProgramController;
 use App\Http\Controllers\Manage\UserPersonLinkController;
 use App\Http\Controllers\Manage\WidowDirectoryController;
 use App\Http\Controllers\MerchandiseController;
@@ -178,6 +179,9 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () use ($newsletterRoute) {
+    Route::get('/ritualist-program', [RitualistProgramController::class, 'show'])
+        ->name('ritualist.index');
+
     Route::prefix('jeopardy')->name('jeopardy.')->group(function () {
         Route::get('/', [JeopardyQuestionController::class, 'index'])->name('index');
         Route::get('/board', [JeopardyQuestionController::class, 'getBoard'])->name('board');
@@ -433,6 +437,37 @@ Route::middleware(['auth'])
         Route::put('officers', [OfficerAssignmentController::class, 'update'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
             ->name('officers.update');
+
+        Route::get('ritualist-program', [RitualistProgramController::class, 'index'])
+            ->middleware('can:' . PeoplePermissions::MANAGE_RITUALIST_PROGRAM)
+            ->name('ritualist.index');
+
+        Route::post('ritualist-program/enrollments', [RitualistProgramController::class, 'storeEnrollment'])
+            ->middleware('can:' . PeoplePermissions::MANAGE_RITUALIST_PROGRAM)
+            ->name('ritualist.enrollments.store');
+
+        Route::delete('ritualist-program/enrollments/{ritualEnrollment}', [RitualistProgramController::class, 'destroyEnrollment'])
+            ->middleware('can:' . PeoplePermissions::MANAGE_RITUALIST_PROGRAM)
+            ->name('ritualist.enrollments.destroy');
+
+        Route::put(
+            'ritualist-program/enrollments/{ritualEnrollment}/completions',
+            [RitualistProgramController::class, 'syncCompletions']
+        )
+            ->middleware('can:' . PeoplePermissions::MANAGE_RITUALIST_PROGRAM)
+            ->name('ritualist.enrollments.completions.update');
+
+        Route::post('ritualist-program/programs', [RitualistProgramController::class, 'storeProgram'])
+            ->middleware('can:' . PeoplePermissions::MANAGE_RITUALIST_PROGRAM)
+            ->name('ritualist.programs.store');
+
+        Route::put('ritualist-program/programs/{ritualProgram}', [RitualistProgramController::class, 'updateProgram'])
+            ->middleware('can:' . PeoplePermissions::MANAGE_RITUALIST_PROGRAM)
+            ->name('ritualist.programs.update');
+
+        Route::delete('ritualist-program/programs/{ritualProgram}', [RitualistProgramController::class, 'destroyProgram'])
+            ->middleware('can:' . PeoplePermissions::MANAGE_RITUALIST_PROGRAM)
+            ->name('ritualist.programs.destroy');
 
         Route::get('people/create', [PersonDirectoryController::class, 'create'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)

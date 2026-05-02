@@ -42,6 +42,7 @@ const navMenuItems = ref([
             { label: 'History', url: route('history') },
             { label: 'Officers', url: route('officers') },
             { label: 'Past Masters', url: route('past-masters.index') },
+            { label: 'Ritualist Program', url: route('ritualist.index'), visible: canManagePeople.viewRitualist },
             { label: 'Member Directory', url: route('manage.member-directory.index'), visible: canManagePeople.directory },
             { label: 'Masonic FAQ', url: route('faq') },
             {
@@ -77,7 +78,8 @@ const navMenuItems = ref([
             || canManagePeople.mergeRecords
             || canManagePeople.logContacts
             || canManagePeople.editContacts
-            || canManagePeople.exportDirectory,
+            || canManagePeople.exportDirectory
+            || canManagePeople.manageRitualist,
         items: [
             { label: 'Users', url: route('admin.users.index') },
             { label: 'Jeopardy', url: route('jeopardy.index'), visible: $page.props.can.manage.content },

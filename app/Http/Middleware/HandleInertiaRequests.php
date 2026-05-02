@@ -62,6 +62,9 @@ class HandleInertiaRequests extends Middleware
             'logContacts' => $user?->hasPermissionTo(PeoplePermissions::LOG_CARE_CONTACTS, $guard) ?? false,
             'editContacts' => $user?->hasPermissionTo(PeoplePermissions::EDIT_CARE_CONTACTS, $guard) ?? false,
             'exportDirectory' => $user?->hasPermissionTo(PeoplePermissions::EXPORT_MEMBER_DIRECTORY, $guard) ?? false,
+            'viewRitualist' => ($user?->hasPermissionTo(PeoplePermissions::VIEW_RITUALIST_PROGRAM, $guard) ?? false)
+                || ($user?->hasPermissionTo(PeoplePermissions::MANAGE_RITUALIST_PROGRAM, $guard) ?? false),
+            'manageRitualist' => $user?->hasPermissionTo(PeoplePermissions::MANAGE_RITUALIST_PROGRAM, $guard) ?? false,
             'viewOwnProfile' => $user?->hasPermissionTo(PeoplePermissions::VIEW_OWN_PERSON_PROFILE, $guard) ?? false,
             'updateOwnProfile' => $user?->hasPermissionTo(PeoplePermissions::UPDATE_OWN_PERSON_PROFILE, $guard) ?? false,
         ];
@@ -74,7 +77,9 @@ class HandleInertiaRequests extends Middleware
             || $peopleCan['mergeRecords']
             || $peopleCan['logContacts']
             || $peopleCan['editContacts']
-            || $peopleCan['exportDirectory'];
+            || $peopleCan['exportDirectory']
+            || $peopleCan['viewRitualist']
+            || $peopleCan['manageRitualist'];
 
         return array_merge(parent::share($request), [
             'flash' => [

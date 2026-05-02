@@ -16,6 +16,8 @@ final class PeoplePermissions
     public const VIEW_OWN_PERSON_PROFILE = 'view own person profile';
     public const UPDATE_OWN_PERSON_PROFILE = 'update own person profile';
     public const EXPORT_MEMBER_DIRECTORY = 'export member directory';
+    public const VIEW_RITUALIST_PROGRAM = 'view ritualist program';
+    public const MANAGE_RITUALIST_PROGRAM = 'manage ritualist program';
 
     /**
      * @return array<int, string>
@@ -35,6 +37,8 @@ final class PeoplePermissions
             self::VIEW_OWN_PERSON_PROFILE,
             self::UPDATE_OWN_PERSON_PROFILE,
             self::EXPORT_MEMBER_DIRECTORY,
+            self::VIEW_RITUALIST_PROGRAM,
+            self::MANAGE_RITUALIST_PROGRAM,
         ];
     }
 

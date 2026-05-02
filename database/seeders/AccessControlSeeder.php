@@ -79,6 +79,8 @@ class AccessControlSeeder extends Seeder
             PeoplePermissions::VIEW_MEMBER_DETAILS,
             PeoplePermissions::LOG_CARE_CONTACTS,
             PeoplePermissions::EDIT_CARE_CONTACTS,
+            PeoplePermissions::VIEW_RITUALIST_PROGRAM,
+            PeoplePermissions::MANAGE_RITUALIST_PROGRAM,
         ]);
 
         $roles[RoleEnum::SECRETARY->value]?->syncPermissions([
@@ -103,6 +105,21 @@ class AccessControlSeeder extends Seeder
             PeoplePermissions::LOG_CARE_CONTACTS,
             PeoplePermissions::EDIT_CARE_CONTACTS,
             PeoplePermissions::EXPORT_MEMBER_DIRECTORY,
+            PeoplePermissions::VIEW_RITUALIST_PROGRAM,
+            PeoplePermissions::MANAGE_RITUALIST_PROGRAM,
+        ]);
+
+        $roles[RoleEnum::MASTER_MASON->value]?->syncPermissions([
+            'view newsletter',
+            'view event',
+            'view member photos',
+            PeoplePermissions::VIEW_MEMBER_DIRECTORY,
+            PeoplePermissions::VIEW_WIDOW_DIRECTORY,
+            PeoplePermissions::VIEW_ORPHAN_DIRECTORY,
+            PeoplePermissions::VIEW_MEMBER_DETAILS,
+            PeoplePermissions::VIEW_OWN_PERSON_PROFILE,
+            PeoplePermissions::UPDATE_OWN_PERSON_PROFILE,
+            PeoplePermissions::VIEW_RITUALIST_PROGRAM,
         ]);
 
         $roles['Care Committee']?->syncPermissions([
