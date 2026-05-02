@@ -11,6 +11,7 @@ use App\Http\Controllers\GalleryAdminController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\JeopardyQuestionController;
 use App\Http\Controllers\Manage\OfficerAssignmentController;
+use App\Http\Controllers\Manage\PastMasterManagementController;
 use App\Helpers\People\PeoplePermissions;
 use App\Helpers\RoleEnum;
 use App\Http\Controllers\Manage\AllPeopleDirectoryController;
@@ -433,6 +434,18 @@ Route::middleware(['auth'])
         Route::put('officers', [OfficerAssignmentController::class, 'update'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
             ->name('officers.update');
+
+        Route::post('past-masters', [PastMasterManagementController::class, 'store'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
+            ->name('past-masters.store');
+
+        Route::put('past-masters/{pastMaster}', [PastMasterManagementController::class, 'update'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
+            ->name('past-masters.update');
+
+        Route::delete('past-masters/{pastMaster}', [PastMasterManagementController::class, 'destroy'])
+            ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)
+            ->name('past-masters.destroy');
 
         Route::get('people/create', [PersonDirectoryController::class, 'create'])
             ->middleware('can:' . PeoplePermissions::UPDATE_MEMBER_RECORDS)

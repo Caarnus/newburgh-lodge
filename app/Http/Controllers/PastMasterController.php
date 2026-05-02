@@ -2,15 +2,31 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MemberProfile;
 use App\Models\PastMaster;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class PastMasterController extends Controller
 {
     public function index()
     {
-        $pastMasters = PastMaster::orderByDesc('year')->get();
+        $pastMasters = PastMaster::query()
+            ->with('person')
+            ->orderByDesc('year')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (PastMaster $pastMaster) => [
+                'id' => $pastMaster->id,
+                'name' => $pastMaster->name,
+                'year' => $pastMaster->year,
+                'deceased' => (bool) $pastMaster->deceased,
+                'person_id' => $pastMaster->person_id,
+                'is_deceased' => (bool) ($pastMaster->deceased || $pastMaster->person?->is_deceased),
+            ])
+            ->values()
+            ->all();
 
         return Inertia::render('PastMasters', [
             'pastMasters' => $pastMasters
@@ -20,12 +36,18 @@ class PastMasterController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => ['required'],
-            'year' => ['required'],
-            'deceased' => ['boolean'],
+            'name' => ['required', 'string', 'max:255'],
+            'year' => ['required', 'string', 'max:32'],
+            'deceased' => ['nullable', 'boolean'],
+            'person_id' => ['nullable', 'integer', Rule::exists('member_profiles', 'person_id')],
         ]);
 
-        return PastMaster::create($data);
+        $data['deceased'] = $request->boolean('deceased');
+
+        $pastMaster = PastMaster::create($data);
+        $this->markLinkedPersonAsPastMaster($pastMaster->person_id);
+
+        return $pastMaster;
     }
 
     public function show(PastMaster $pastMaster)
@@ -36,12 +58,16 @@ class PastMasterController extends Controller
     public function update(Request $request, PastMaster $pastMaster)
     {
         $data = $request->validate([
-            'name' => ['required'],
-            'year' => ['required'],
-            'deceased' => ['boolean'],
+            'name' => ['required', 'string', 'max:255'],
+            'year' => ['required', 'string', 'max:32'],
+            'deceased' => ['nullable', 'boolean'],
+            'person_id' => ['nullable', 'integer', Rule::exists('member_profiles', 'person_id')],
         ]);
 
+        $data['deceased'] = $request->boolean('deceased');
+
         $pastMaster->update($data);
+        $this->markLinkedPersonAsPastMaster($pastMaster->person_id);
 
         return $pastMaster;
     }
@@ -51,5 +77,16 @@ class PastMasterController extends Controller
         $pastMaster->delete();
 
         return response()->json();
+    }
+
+    protected function markLinkedPersonAsPastMaster(?int $personId): void
+    {
+        if (! $personId) {
+            return;
+        }
+
+        MemberProfile::query()
+            ->where('person_id', $personId)
+            ->update(['past_master' => true]);
     }
 }

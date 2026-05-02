@@ -6,6 +6,7 @@ use App\Helpers\Audit;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Officers\UpdateOfficerAssignmentsRequest;
 use App\Models\LodgeOfficer;
+use App\Models\PastMaster;
 use App\Models\Person;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -21,17 +22,26 @@ class OfficerAssignmentController extends Controller
             ->orderBy('display_order')
             ->get();
 
-        $memberOptions = Person::query()
+        $members = Person::query()
             ->select('people.*')
             ->join('member_profiles', 'member_profiles.person_id', '=', 'people.id')
             ->with('memberProfile')
             ->orderBy('people.last_name')
             ->orderBy('people.first_name')
-            ->get()
+            ->get();
+
+        $pastMasters = PastMaster::query()
+            ->with('person.memberProfile')
+            ->orderByDesc('year')
+            ->orderBy('name')
+            ->get();
+
+        $memberOptions = $members
             ->map(fn (Person $person) => [
                 'id' => $person->id,
                 'display_name' => $person->display_name,
                 'member_number' => $person->memberProfile?->member_number,
+                'is_deceased' => (bool) $person->is_deceased,
             ])
             ->values()
             ->all();
@@ -52,6 +62,23 @@ class OfficerAssignmentController extends Controller
                 ->values()
                 ->all(),
             'memberOptions' => $memberOptions,
+            'pastMasters' => $pastMasters
+                ->map(fn (PastMaster $pastMaster) => [
+                    'id' => $pastMaster->id,
+                    'name' => $pastMaster->name,
+                    'year' => $pastMaster->year,
+                    'deceased' => (bool) $pastMaster->deceased,
+                    'person_id' => $pastMaster->person_id,
+                    'person' => $pastMaster->person ? [
+                        'id' => $pastMaster->person->id,
+                        'display_name' => $pastMaster->person->display_name,
+                        'member_number' => $pastMaster->person->memberProfile?->member_number,
+                        'is_deceased' => (bool) $pastMaster->person->is_deceased,
+                    ] : null,
+                    'is_deceased' => (bool) ($pastMaster->deceased || $pastMaster->person?->is_deceased),
+                ])
+                ->values()
+                ->all(),
         ]);
     }
 

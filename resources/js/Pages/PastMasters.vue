@@ -10,6 +10,7 @@ type PastMaster = {
     name: string
     year: string
     deceased: boolean
+    is_deceased: boolean
 }
 
 const pastMasters = usePage().props.pastMasters;
@@ -17,9 +18,7 @@ const pastMasters = usePage().props.pastMasters;
 const formattedMasters = computed(() => {
     return pastMasters.map(pm => ({
         ...pm,
-        displayName: pm.deceased
-            ? `${pm.name}<span class='text-primary-600 dark:text-primary-400'>*</span>`
-            : pm.name
+        displayName: pm.name
     }));
 });
 
@@ -57,7 +56,10 @@ const columns = computed(() => {
                                     ]"
                                 >
                                     <span class="w-20 shrink-0">{{ pm.year }}</span>
-                                    <span class="truncate" v-html="pm.displayName"></span>
+                                    <span class="truncate">
+                                        {{ pm.displayName }}
+                                        <span v-if="pm.is_deceased" class="text-primary-600 dark:text-primary-400">*</span>
+                                    </span>
                                 </li>
                             </ul>
                         </div>
