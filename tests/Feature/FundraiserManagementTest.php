@@ -24,6 +24,7 @@ class FundraiserManagementTest extends TestCase
         $response = $this->actingAs($user)->post(route('admin.fundraisers.store'), [
             'title' => 'Roof Repair Campaign',
             'category_id' => $category->id,
+            'sort_order' => 15,
             'slug' => '',
             'short_description' => 'Raise funds for roof repair.',
             'description' => 'Longer detail text for the campaign.',
@@ -37,6 +38,7 @@ class FundraiserManagementTest extends TestCase
         $this->assertDatabaseHas('fundraisers', [
             'title' => 'Roof Repair Campaign',
             'category_id' => $category->id,
+            'sort_order' => 15,
             'slug' => 'roof-repair-campaign',
             'goal_amount' => 15000.00,
             'raised_amount' => 3200.00,

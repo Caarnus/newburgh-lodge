@@ -19,14 +19,20 @@ class FundraiserAdminController extends Controller
     public function index(): InertiaResponse
     {
         $fundraisers = Fundraiser::query()
-            ->with('category:id,name')
+            ->with('category:id,name,sort_order')
+            ->leftJoin('fundraiser_categories', 'fundraiser_categories.id', '=', 'fundraisers.category_id')
+            ->select('fundraisers.*')
             ->orderByDesc('is_active')
+            ->orderByRaw('CASE WHEN fundraisers.category_id IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('fundraiser_categories.sort_order')
+            ->orderBy('fundraisers.sort_order')
             ->orderByDesc('updated_at')
             ->get()
             ->map(fn (Fundraiser $fundraiser) => [
                 'id' => $fundraiser->id,
                 'title' => $fundraiser->title,
                 'slug' => $fundraiser->slug,
+                'sort_order' => $fundraiser->sort_order,
                 'category' => $fundraiser->category ? [
                     'id' => $fundraiser->category->id,
                     'name' => $fundraiser->category->name,
@@ -64,6 +70,7 @@ class FundraiserAdminController extends Controller
         $fundraiser = Fundraiser::create([
             'title' => $data['title'],
             'category_id' => $data['category_id'],
+            'sort_order' => $data['sort_order'],
             'slug' => $data['slug'],
             'short_description' => $data['short_description'] ?? null,
             'description' => $data['description'] ?? null,
@@ -99,6 +106,7 @@ class FundraiserAdminController extends Controller
         $fundraiser->fill([
             'title' => $data['title'],
             'category_id' => $data['category_id'],
+            'sort_order' => $data['sort_order'],
             'slug' => $data['slug'],
             'short_description' => $data['short_description'] ?? null,
             'description' => $data['description'] ?? null,
@@ -134,11 +142,13 @@ class FundraiserAdminController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:1000000'],
         ]);
 
         FundraiserCategory::create([
             'name' => $data['name'],
             'slug' => $this->ensureUniqueCategorySlug($data['name']),
+            'sort_order' => (int) ($data['sort_order'] ?? 0),
         ]);
 
         return back()->with('success', 'Category created.');
@@ -148,11 +158,13 @@ class FundraiserAdminController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:1000000'],
         ]);
 
         $fundraiserCategory->update([
             'name' => $data['name'],
             'slug' => $this->ensureUniqueCategorySlug($data['name'], $fundraiserCategory->id),
+            'sort_order' => (int) ($data['sort_order'] ?? 0),
         ]);
 
         return back()->with('success', 'Category updated.');
@@ -201,6 +213,7 @@ class FundraiserAdminController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'category_id' => ['required', 'integer', 'exists:fundraiser_categories,id'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'slug' => ['nullable', 'string', 'max:120', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
             'short_description' => ['nullable', 'string', 'max:300'],
             'description' => ['nullable', 'string'],
@@ -222,6 +235,7 @@ class FundraiserAdminController extends Controller
         $data['goal_amount'] = round((float) $data['goal_amount'], 2);
         $data['raised_amount'] = round((float) ($data['raised_amount'] ?? 0), 2);
         $data['is_active'] = (bool) ($data['is_active'] ?? false);
+        $data['sort_order'] = (int) ($data['sort_order'] ?? 0);
 
         return $data;
     }
@@ -304,6 +318,7 @@ class FundraiserAdminController extends Controller
             'id' => $fundraiser->id,
             'title' => $fundraiser->title,
             'category_id' => $fundraiser->category_id,
+            'sort_order' => $fundraiser->sort_order,
             'slug' => $fundraiser->slug,
             'short_description' => $fundraiser->short_description,
             'description' => $fundraiser->description,
@@ -325,12 +340,14 @@ class FundraiserAdminController extends Controller
     {
         return FundraiserCategory::query()
             ->when($withCounts, fn ($query) => $query->withCount('fundraisers'))
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
             ->map(fn (FundraiserCategory $category) => [
                 'id' => $category->id,
                 'name' => $category->name,
                 'slug' => $category->slug,
+                'sort_order' => $category->sort_order,
                 'fundraisers_count' => $withCounts ? (int) ($category->fundraisers_count ?? 0) : null,
             ])
             ->values();

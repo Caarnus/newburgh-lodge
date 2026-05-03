@@ -9,9 +9,11 @@ type FundraiserCard = {
     id: number
     title: string
     slug: string
+    sort_order: number
     category: {
         id: number
         name: string
+        sort_order: number
     } | null
     short_description: string | null
     goal_amount: number
@@ -44,11 +46,6 @@ const groupedFundraisers = computed<FundraiserGroup[]>(() => {
     }
 
     return Array.from(groups.entries())
-        .sort(([a], [b]) => {
-            if (a === 'Uncategorized') return 1
-            if (b === 'Uncategorized') return -1
-            return a.localeCompare(b)
-        })
         .map(([category, fundraisers]) => ({ category, fundraisers }))
 })
 

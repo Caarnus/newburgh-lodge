@@ -20,6 +20,7 @@ class FundraiserFactory extends Factory
         return [
             'title' => $title,
             'category_id' => FundraiserCategory::factory(),
+            'sort_order' => $this->faker->numberBetween(0, 200),
             'slug' => Str::slug($title) . '-' . $this->faker->unique()->numerify('####'),
             'short_description' => $this->faker->sentence(16),
             'description' => $this->faker->paragraphs(3, true),

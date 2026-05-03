@@ -17,7 +17,7 @@ class FundraiserCategoryFactory extends Factory
         return [
             'name' => $name,
             'slug' => Str::slug($name) . '-' . $this->faker->unique()->numerify('###'),
+            'sort_order' => $this->faker->numberBetween(0, 100),
         ];
     }
 }
-

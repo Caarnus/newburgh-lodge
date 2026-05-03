@@ -14,6 +14,7 @@ class Fundraiser extends Model
     protected $fillable = [
         'title',
         'category_id',
+        'sort_order',
         'slug',
         'short_description',
         'description',
@@ -29,6 +30,7 @@ class Fundraiser extends Model
         'goal_amount' => 'decimal:2',
         'raised_amount' => 'decimal:2',
         'category_id' => 'integer',
+        'sort_order' => 'integer',
         'is_active' => 'boolean',
         'starts_at' => 'datetime',
         'ends_at' => 'datetime',
