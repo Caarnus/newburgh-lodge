@@ -23,6 +23,7 @@ type FundraiserDto = {
     id: number
     title: string
     category_id: number | null
+    sort_order: number
     slug: string
     short_description: string | null
     description: string | null
@@ -75,6 +76,7 @@ const fallbackCategoryId = props.categories[0]?.id ?? null
 const form = useForm({
     title: props.fundraiser?.title ?? '',
     category_id: props.fundraiser?.category_id ?? fallbackCategoryId,
+    sort_order: props.fundraiser?.sort_order ?? 0,
     slug: props.fundraiser?.slug ?? '',
     short_description: props.fundraiser?.short_description ?? '',
     description: props.fundraiser?.description ?? '',
@@ -148,6 +150,7 @@ function submit() {
     form.starts_at = startsAtDate.value || null
     form.ends_at = endsAtDate.value || null
     form.category_id = form.category_id ? Number(form.category_id) : null
+    form.sort_order = Number(form.sort_order ?? 0)
     form.goal_amount = Number(form.goal_amount ?? 0)
     form.raised_amount = Number(form.raised_amount ?? 0)
 
@@ -245,6 +248,12 @@ onUnmounted(() => {
                                     Leave blank to auto-generate from the title.
                                 </p>
                                 <p v-if="form.errors.slug" class="mt-1 text-sm text-red-500">{{ form.errors.slug }}</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Sort Order</label>
+                                <InputNumber v-model="form.sort_order" class="w-full mt-1" :min="0" :max="1000000" />
+                                <p v-if="form.errors.sort_order" class="mt-1 text-sm text-red-500">{{ form.errors.sort_order }}</p>
                             </div>
 
                             <div class="sm:col-span-2">

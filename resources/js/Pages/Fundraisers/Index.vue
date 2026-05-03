@@ -16,6 +16,7 @@ type FundraiserRow = {
     id: number
     title: string
     slug: string
+    sort_order: number
     category: { id: number; name: string } | null
     is_active: boolean
     goal_amount: number
@@ -30,6 +31,7 @@ type CategoryRow = {
     id: number
     name: string
     slug: string
+    sort_order: number
     fundraisers_count: number
 }
 
@@ -51,12 +53,14 @@ const addRaisedForm = useForm({
 const createCategoryVisible = ref(false)
 const createCategoryForm = useForm({
     name: '',
+    sort_order: 0 as number | null,
 })
 
 const editCategoryVisible = ref(false)
 const selectedCategory = ref<CategoryRow | null>(null)
 const editCategoryForm = useForm({
     name: '',
+    sort_order: 0 as number | null,
 })
 
 const deleteCategoryForm = useForm({})
@@ -81,6 +85,7 @@ function submitAddRaised() {
 
 function openCreateCategory() {
     createCategoryForm.name = ''
+    createCategoryForm.sort_order = 0
     createCategoryForm.clearErrors()
     createCategoryVisible.value = true
 }
@@ -97,6 +102,7 @@ function submitCreateCategory() {
 function openEditCategory(category: CategoryRow) {
     selectedCategory.value = category
     editCategoryForm.name = category.name
+    editCategoryForm.sort_order = Number(category.sort_order ?? 0)
     editCategoryForm.clearErrors()
     editCategoryVisible.value = true
 }
@@ -150,6 +156,8 @@ function deleteCategory(category: CategoryRow) {
                                 <span class="text-sm">{{ data.category?.name ?? 'Uncategorized' }}</span>
                             </template>
                         </Column>
+
+                        <Column field="sort_order" header="Sort" />
 
                         <Column field="is_active" header="Status">
                             <template #body="{ data }">
@@ -209,6 +217,7 @@ function deleteCategory(category: CategoryRow) {
                     <DataTable :value="props.categories" dataKey="id" striped-rows>
                         <Column field="name" header="Name" />
                         <Column field="slug" header="Slug" />
+                        <Column field="sort_order" header="Sort" />
                         <Column field="fundraisers_count" header="Fundraisers" />
                         <Column header="Actions" style="width: 210px;">
                             <template #body="{ data }">
@@ -290,6 +299,12 @@ function deleteCategory(category: CategoryRow) {
                     <p v-if="createCategoryForm.errors.name" class="mt-1 text-sm text-red-500">{{ createCategoryForm.errors.name }}</p>
                 </div>
 
+                <div>
+                    <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Sort Order</label>
+                    <InputNumber v-model="createCategoryForm.sort_order" class="w-full mt-1" :min="0" :max="1000000" />
+                    <p v-if="createCategoryForm.errors.sort_order" class="mt-1 text-sm text-red-500">{{ createCategoryForm.errors.sort_order }}</p>
+                </div>
+
                 <div class="flex justify-end gap-2">
                     <Button label="Cancel" severity="secondary" text @click="createCategoryVisible = false" />
                     <Button
@@ -316,6 +331,12 @@ function deleteCategory(category: CategoryRow) {
                     <p v-if="editCategoryForm.errors.name" class="mt-1 text-sm text-red-500">{{ editCategoryForm.errors.name }}</p>
                 </div>
 
+                <div>
+                    <label class="block text-sm font-medium text-surface-700 dark:text-surface-300">Sort Order</label>
+                    <InputNumber v-model="editCategoryForm.sort_order" class="w-full mt-1" :min="0" :max="1000000" />
+                    <p v-if="editCategoryForm.errors.sort_order" class="mt-1 text-sm text-red-500">{{ editCategoryForm.errors.sort_order }}</p>
+                </div>
+
                 <div class="flex justify-end gap-2">
                     <Button label="Cancel" severity="secondary" text @click="editCategoryVisible = false" />
                     <Button
@@ -329,4 +350,3 @@ function deleteCategory(category: CategoryRow) {
         </Dialog>
     </AppLayout>
 </template>
-

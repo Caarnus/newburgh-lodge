@@ -13,6 +13,11 @@ class FundraiserCategory extends Model
     protected $fillable = [
         'name',
         'slug',
+        'sort_order',
+    ];
+
+    protected $casts = [
+        'sort_order' => 'integer',
     ];
 
     public function fundraisers(): HasMany
@@ -20,4 +25,3 @@ class FundraiserCategory extends Model
         return $this->hasMany(Fundraiser::class, 'category_id');
     }
 }
-
