@@ -9,7 +9,7 @@ const grid = page.props.grid as { cols:number, gap:string }
 </script>
 
 <template>
-    <AppLayout>
+    <AppLayout title="Welcome">
         <template #header>
             <h2 class="font-semibold text-xl leading-tight">
                 Home

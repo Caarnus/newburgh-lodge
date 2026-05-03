@@ -9,6 +9,7 @@ use App\Models\OrgEventType;
 use App\Models\User;
 use App\Services\EventSignupReminderService;
 use App\Services\OrgEventRecurrenceService;
+use App\Services\VolunteerSignupReminderService;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use DateTimeZone;
@@ -34,7 +35,7 @@ class OrgEventController extends Controller
         $svc = app(OrgEventRecurrenceService::class);
 
         $events = OrgEvent::query()
-            ->with(['type:id,name,color,category', 'occurrenceOverrides'])
+            ->with(['type:id,name,color,category', 'occurrenceOverrides', 'volunteerSignupSheet:id,org_event_id,is_enabled,slug'])
             ->orderBy('start')
             ->get()
             ->flatMap(function (OrgEvent $event) use ($actor, $windowStart, $windowEnd, $svc) {
@@ -221,6 +222,10 @@ class OrgEventController extends Controller
         ]);
 
         app(EventSignupReminderService::class)->syncForEvent($event->fresh('signupPage'));
+        $volunteerSheet = $event->fresh('volunteerSignupSheet')->volunteerSignupSheet;
+        if ($volunteerSheet) {
+            app(VolunteerSignupReminderService::class)->syncForSheet($volunteerSheet);
+        }
 
         return redirect()->route('events.index')->with('success', 'Event updated.');
     }
@@ -512,6 +517,13 @@ class OrgEventController extends Controller
             'repeat_options'  => $event->rrule
                 ? app(OrgEventRecurrenceService::class)->parseRepeatOptions($event->rrule, $tz)
                 : null,
+
+            'volunteer_public_url' => ($event->relationLoaded('volunteerSignupSheet')
+                && $event->volunteerSignupSheet
+                && $event->volunteerSignupSheet->is_enabled
+                && $event->volunteerSignupSheet->slug)
+                ? route('public.volunteer-signups.show', $event->volunteerSignupSheet->slug)
+                : null,
         ];
 
         if ($withType && $event->relationLoaded('type')) {
@@ -525,6 +537,12 @@ class OrgEventController extends Controller
 
         if ($actor) {
             $dto['can_edit'] = $actor->can('update', $event);
+            $dto['volunteer_manage_url'] = $actor->can('update', $event)
+                ? route('events.volunteers.edit', $event)
+                : null;
+            $dto['reminder_manage_url'] = $actor->can('update', $event)
+                ? route('events.edit', $event)
+                : null;
         }
 
         return $dto;

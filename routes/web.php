@@ -35,6 +35,9 @@ use App\Http\Controllers\PastMasterController;
 use App\Http\Controllers\ScholarshipApplicationController;
 use App\Http\Controllers\ScholarshipApplicationReviewController;
 use App\Http\Controllers\UserAdminController;
+use App\Http\Controllers\VolunteerSignupPublicController;
+use App\Http\Controllers\VolunteerSignupSheetController;
+use App\Http\Controllers\VolunteerSignupTemplateController;
 use App\Models\Newsletter;
 use App\Models\OrgEvent;
 use Illuminate\Support\Facades\Route;
@@ -150,6 +153,15 @@ Route::prefix('signup')
             });
     });
 
+Route::prefix('volunteer-signups')
+    ->name('public.volunteer-signups.')
+    ->group(function () {
+        Route::get('{volunteerSignupSheet}', [VolunteerSignupPublicController::class, 'show'])->name('show');
+        Route::post('{volunteerSignupSheet}', [VolunteerSignupPublicController::class, 'store'])
+            ->middleware('throttle:event-signups')
+            ->name('store');
+    });
+
 /*
 |--------------------------------------------------------------------------
 | Public Scholarship Pages
@@ -243,6 +255,37 @@ Route::middleware([
                 ->name('occurrence-overrides.upsert');
             Route::delete('/{event}/occurrence-overrides', [OrgEventController::class, 'destroyOccurrenceOverride'])
                 ->name('occurrence-overrides.destroy');
+
+            Route::get('/{event}/volunteers', [VolunteerSignupSheetController::class, 'edit'])
+                ->whereNumber('event')
+                ->name('volunteers.edit');
+            Route::put('/{event}/volunteers', [VolunteerSignupSheetController::class, 'upsert'])
+                ->whereNumber('event')
+                ->name('volunteers.upsert');
+            Route::post('/{event}/volunteers/apply-template', [VolunteerSignupSheetController::class, 'applyTemplate'])
+                ->whereNumber('event')
+                ->name('volunteers.apply-template');
+            Route::post('/{event}/volunteers/save-template', [VolunteerSignupSheetController::class, 'saveAsTemplate'])
+                ->whereNumber('event')
+                ->name('volunteers.save-template');
+            Route::delete('/{event}/volunteers/assignments/{assignment}', [VolunteerSignupSheetController::class, 'cancelAssignment'])
+                ->whereNumber('event')
+                ->whereNumber('assignment')
+                ->name('volunteers.assignments.cancel');
+        });
+
+    Route::prefix('admin/volunteer-signup-templates')
+        ->name('admin.volunteer-signup-templates.')
+        ->middleware('can:create event')
+        ->group(function () {
+            Route::get('/', [VolunteerSignupTemplateController::class, 'index'])->name('index');
+            Route::post('/', [VolunteerSignupTemplateController::class, 'store'])->name('store');
+            Route::put('/{volunteerSignupTemplate}', [VolunteerSignupTemplateController::class, 'update'])
+                ->whereNumber('volunteerSignupTemplate')
+                ->name('update');
+            Route::delete('/{volunteerSignupTemplate}', [VolunteerSignupTemplateController::class, 'destroy'])
+                ->whereNumber('volunteerSignupTemplate')
+                ->name('destroy');
         });
 });
 
