@@ -44,6 +44,9 @@ type OrgEventDto = {
     parent_id?: number | null
     occurrence_id?: string | null
     timezone?: string | null
+    volunteer_public_url?: string | null
+    volunteer_manage_url?: string | null
+    reminder_manage_url?: string | null
 }
 
 type Role = {
@@ -153,6 +156,16 @@ function onEditSelected() {
     const id = (selected.value as any).parent_id ?? selected.value.id
     const url = route('events.edit', id)
     if (url) window.location.href = url
+}
+
+function openVolunteerManage() {
+    if (!selected.value?.volunteer_manage_url) return
+    window.location.href = selected.value.volunteer_manage_url
+}
+
+function openReminderManage() {
+    if (!selected.value?.reminder_manage_url) return
+    window.location.href = selected.value.reminder_manage_url
 }
 
 const deleteForm = useForm({})
@@ -325,6 +338,28 @@ const legendTypes = computed(() => props.types || [])
                         <Button v-if="canManage && selected" icon="pi pi-delete" label="Delete" severity="danger" @click="onDeleteSelected" />
                     </div>
                     <div class="flex justify-end gap-2">
+                        <Button
+                            v-if="selected?.volunteer_public_url"
+                            icon="pi pi-users"
+                            label="Volunteer Signup"
+                            severity="secondary"
+                            text
+                            @click="window.open(selected.volunteer_public_url, '_blank')"
+                        />
+                        <Button
+                            v-if="canManage && selected?.volunteer_manage_url"
+                            icon="pi pi-users"
+                            label="Volunteers"
+                            severity="secondary"
+                            @click="openVolunteerManage"
+                        />
+                        <Button
+                            v-if="canManage && selected?.reminder_manage_url"
+                            icon="pi pi-bell"
+                            label="Reminders"
+                            severity="secondary"
+                            @click="openReminderManage"
+                        />
                         <Button v-if="canManage && selected" icon="pi pi-pencil" label="Edit" @click="onEditSelected" />
                         <Button icon="pi pi-times" label="Close" severity="secondary" text @click="showDialog = false" />
                     </div>

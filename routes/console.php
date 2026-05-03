@@ -10,3 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('event-signups:send-reminders')->everyMinute();
 Schedule::command('event-signups:sync-reminders --days=90')->dailyAt('02:10');
+Schedule::command('volunteer-signups:send-reminders')->everyMinute();
+Schedule::command('volunteer-signups:sync-reminders --days=90')->dailyAt('02:20');

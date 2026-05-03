@@ -47,6 +47,11 @@ class OrgEvent extends Model
         return $this->hasOne(EventSignupPage::class, 'org_event_id');
     }
 
+    public function volunteerSignupSheet(): HasOne
+    {
+        return $this->hasOne(VolunteerSignupSheet::class, 'org_event_id');
+    }
+
     public function occurrenceOverrides(): HasMany
     {
         return $this->hasMany(OrgEventOccurrenceOverride::class, 'org_event_id');
