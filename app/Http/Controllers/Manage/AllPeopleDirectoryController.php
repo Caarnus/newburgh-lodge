@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Manage;
 use App\Helpers\People\DirectoryPersonPresenter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\People\IndexAllPeopleDirectoryRequest;
+use App\Services\People\Directory\DirectoryAddressLabelExporter;
 use App\Services\People\Directory\DirectoryCsvExporter;
 use App\Services\People\Directory\DirectoryFilterBuilder;
 use App\Services\People\Directory\PeopleDirectoryService;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -75,6 +77,20 @@ class AllPeopleDirectoryController extends Controller
                 $row['death_date'] ?? null,
                 $row['last_contact_at'] ?? null,
             ],
+        );
+    }
+
+    public function addressLabels(
+        IndexAllPeopleDirectoryRequest $request,
+        PeopleDirectoryService $directoryService,
+        DirectoryFilterBuilder $filterBuilder,
+        DirectoryAddressLabelExporter $labelExporter,
+    ): HttpResponse {
+        $filters = $filterBuilder->fromRequest($request, defaultSort: 'name', includePagination: false);
+
+        return $labelExporter->download(
+            prefix: 'all-people-address-labels',
+            people: $directoryService->exportAllPeople($filters),
         );
     }
 }

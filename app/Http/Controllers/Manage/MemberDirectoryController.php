@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Manage;
 use App\Helpers\People\DirectoryPersonPresenter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\People\IndexMemberDirectoryRequest;
+use App\Services\People\Directory\DirectoryAddressLabelExporter;
 use App\Services\People\Directory\DirectoryCsvExporter;
 use App\Services\People\Directory\DirectoryFilterBuilder;
 use App\Services\People\Directory\PeopleDirectoryService;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -123,6 +125,20 @@ class MemberDirectoryController extends Controller
                 $row['notes'] ?? null,
                 $row['last_contact_at'] ?? null,
             ],
+        );
+    }
+
+    public function addressLabels(
+        IndexMemberDirectoryRequest $request,
+        PeopleDirectoryService $directoryService,
+        DirectoryFilterBuilder $filterBuilder,
+        DirectoryAddressLabelExporter $labelExporter,
+    ): HttpResponse {
+        $filters = $filterBuilder->fromRequest($request, defaultSort: 'name', includePagination: false);
+
+        return $labelExporter->download(
+            prefix: 'member-address-labels',
+            people: $directoryService->exportMembers($filters),
         );
     }
 }

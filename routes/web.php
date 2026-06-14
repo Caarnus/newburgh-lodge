@@ -415,6 +415,9 @@ Route::middleware(['auth'])
         Route::get('all/export', [AllPeopleDirectoryController::class, 'export'])
             ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
             ->name('all.export');
+        Route::get('all/address-labels', [AllPeopleDirectoryController::class, 'addressLabels'])
+            ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
+            ->name('all.address-labels');
 
         Route::get('members', [MemberDirectoryController::class, 'index'])
             ->name('members.index');
@@ -422,6 +425,9 @@ Route::middleware(['auth'])
         Route::get('members/export', [MemberDirectoryController::class, 'export'])
             ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
             ->name('members.export');
+        Route::get('members/address-labels', [MemberDirectoryController::class, 'addressLabels'])
+            ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
+            ->name('members.address-labels');
 
         Route::get('self-profile', [MemberSelfProfileController::class, 'show'])
             ->name('self-profile.show');
@@ -431,24 +437,36 @@ Route::middleware(['auth'])
         Route::get('widows/export', [WidowDirectoryController::class, 'export'])
             ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
             ->name('widows.export');
+        Route::get('widows/address-labels', [WidowDirectoryController::class, 'addressLabels'])
+            ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
+            ->name('widows.address-labels');
 
         Route::get('orphans', [OrphanDirectoryController::class, 'index'])
             ->name('orphans.index');
         Route::get('orphans/export', [OrphanDirectoryController::class, 'export'])
             ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
             ->name('orphans.export');
+        Route::get('orphans/address-labels', [OrphanDirectoryController::class, 'addressLabels'])
+            ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
+            ->name('orphans.address-labels');
 
         Route::get('relatives', [RelativeDirectoryController::class, 'index'])
             ->name('relatives.index');
         Route::get('relatives/export', [RelativeDirectoryController::class, 'export'])
             ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
             ->name('relatives.export');
+        Route::get('relatives/address-labels', [RelativeDirectoryController::class, 'addressLabels'])
+            ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
+            ->name('relatives.address-labels');
 
         Route::get('others', [OtherPeopleDirectoryController::class, 'index'])
             ->name('others.index');
         Route::get('others/export', [OtherPeopleDirectoryController::class, 'export'])
             ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
             ->name('others.export');
+        Route::get('others/address-labels', [OtherPeopleDirectoryController::class, 'addressLabels'])
+            ->middleware('can:' . PeoplePermissions::EXPORT_MEMBER_DIRECTORY)
+            ->name('others.address-labels');
 
         Route::get('imports', [MemberRosterImportController::class, 'index'])
             ->middleware('can:' . PeoplePermissions::IMPORT_MEMBER_ROSTER)

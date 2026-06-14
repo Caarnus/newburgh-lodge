@@ -67,8 +67,18 @@ const exportRouteNameBySection = {
     others: 'manage.member-directory.others.export',
 };
 
+const addressLabelRouteNameBySection = {
+    all: 'manage.member-directory.all.address-labels',
+    members: 'manage.member-directory.members.address-labels',
+    widows: 'manage.member-directory.widows.address-labels',
+    orphans: 'manage.member-directory.orphans.address-labels',
+    relatives: 'manage.member-directory.relatives.address-labels',
+    others: 'manage.member-directory.others.address-labels',
+};
+
 const currentRoute = computed(() => routeNameBySection[props.section] ?? routeNameBySection.all);
 const currentExportRoute = computed(() => exportRouteNameBySection[props.section] ?? null);
+const currentAddressLabelRoute = computed(() => addressLabelRouteNameBySection[props.section] ?? null);
 const countLabel = computed(() => ({
     all: 'people',
     members: 'members',
@@ -233,13 +243,21 @@ onBeforeUnmount(() => {
                 <div class="text-sm text-surface-600 dark:text-surface-300">
                     Showing {{ records.from ?? 0 }}–{{ records.to ?? 0 }} of {{ records.total ?? 0 }} {{ countLabel }}.
                 </div>
-                <a
-                    v-if="canExportDirectory && currentExportRoute"
-                    :href="route(currentExportRoute, exportFilters)"
-                    class="inline-flex items-center rounded-lg border border-surface-300 px-3 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
-                >
-                    Export
-                </a>
+                <div v-if="canExportDirectory && currentExportRoute" class="flex flex-wrap items-center gap-2">
+                    <a
+                        :href="route(currentExportRoute, exportFilters)"
+                        class="inline-flex items-center rounded-lg border border-surface-300 px-3 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
+                    >
+                        Export
+                    </a>
+                    <a
+                        v-if="currentAddressLabelRoute"
+                        :href="route(currentAddressLabelRoute, exportFilters)"
+                        class="inline-flex items-center rounded-lg border border-surface-300 px-3 py-2 text-sm font-medium text-surface-700 transition hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800"
+                    >
+                        Address Labels
+                    </a>
+                </div>
                 <Button v-else label="Export" severity="secondary" outlined disabled />
             </div>
 
