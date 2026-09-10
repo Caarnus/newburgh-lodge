@@ -36,6 +36,7 @@ use App\Http\Controllers\OrgEventController;
 use App\Http\Controllers\PastMasterController;
 use App\Http\Controllers\ScholarshipApplicationController;
 use App\Http\Controllers\ScholarshipApplicationReviewController;
+use App\Http\Controllers\SpecialRegistrationController;
 use App\Http\Controllers\UserAdminController;
 use App\Http\Controllers\VolunteerSignupPublicController;
 use App\Http\Controllers\VolunteerSignupSheetController;
@@ -73,6 +74,16 @@ Route::post('/merchandise/checkout', [MerchandiseController::class, 'submitCheck
     ->middleware('throttle:10,1');
 
 Route::get('/past-masters', [PastMasterController::class, 'index'])->name('past-masters.index');
+
+Route::get('/open-air-2026', [SpecialRegistrationController::class, 'openAir'])->name('open-air-2026');
+Route::post('/open-air-2026', [SpecialRegistrationController::class, 'storeOpenAir'])
+    ->middleware('throttle:event-signups')
+    ->name('open-air-2026.store');
+
+Route::get('/golf-scramble-2027', [SpecialRegistrationController::class, 'golfScramble'])->name('golf-scramble-2027');
+Route::post('/golf-scramble-2027', [SpecialRegistrationController::class, 'storeGolfScramble'])
+    ->middleware('throttle:event-signups')
+    ->name('golf-scramble-2027.store');
 
 /*
 |--------------------------------------------------------------------------
@@ -328,6 +339,10 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])
         Route::post('/reorder', [ContentTileController::class, 'reorder'])->name('reorder');
         Route::post('/upload', [ContentTileController::class, 'upload'])->name('upload');
     });
+
+Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])
+    ->get('/admin/special-registrations', [SpecialRegistrationController::class, 'index'])
+    ->name('admin.special-registrations.index');
 
 Route::middleware(['auth:sanctum', 'verified', 'can:manage-content'])
     ->prefix('admin/merchandise')

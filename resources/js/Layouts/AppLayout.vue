@@ -84,6 +84,7 @@ const navMenuItems = ref([
             { label: 'Users', url: route('admin.users.index') },
             { label: 'Jeopardy', url: route('jeopardy.index'), visible: $page.props.can.manage.content },
             { label: 'Manage Content', url: route('admin.content.index'), visible: $page.props.can.manage.content },
+            { label: 'Special Registrations', url: route('admin.special-registrations.index'), visible: $page.props.can.manage.content },
             { label: 'Manage Fundraisers', url: route('admin.fundraisers.index'), visible: $page.props.can.manage.content },
             { label: 'Volunteer Templates', url: route('admin.volunteer-signup-templates.index'), visible: $page.props.can.manage.content },
             { label: 'Merchandise Catalog', url: route('admin.merchandise.index'), visible: $page.props.can.manage.content },
