@@ -52,6 +52,7 @@ const localFilters = reactive({
         props.filters.status ?? defaultMemberStatuses()
     ),
     relationship_type: props.filters.relationship_type ?? null,
+    past_master: props.filters.past_master ?? null,
     has_email: props.filters.has_email ?? null,
     has_phone: props.filters.has_phone ?? null,
     last_contact_older_than_days: props.filters.last_contact_older_than_days ?? null,
@@ -67,6 +68,7 @@ watch(
             filters.status ?? defaultMemberStatuses()
         );
         localFilters.relationship_type = filters.relationship_type ?? null;
+        localFilters.past_master = filters.past_master ?? null;
         localFilters.has_email = filters.has_email ?? null;
         localFilters.has_phone = filters.has_phone ?? null;
         localFilters.last_contact_older_than_days = filters.last_contact_older_than_days ?? null;
@@ -81,6 +83,7 @@ watch(
     () => {
         localFilters.status = defaultMemberStatuses();
         localFilters.relationship_type = null;
+        localFilters.past_master = null;
         localFilters.sort = 'name';
     }
 );
@@ -92,6 +95,10 @@ const perPageOptions = [10, 25, 50, 100].map((value) => ({
 
 const showStatusFilter = computed(() => props.statusOptions.length > 0);
 const showRelationshipFilter = computed(() => props.section === 'relatives');
+const pastMasterOptions = [
+    { label: 'Yes', value: 'yes' },
+    { label: 'No', value: 'no' },
+];
 const yesNoOptions = [
     { label: 'Has Value', value: 'yes' },
     { label: 'No Value', value: 'no' },
@@ -118,6 +125,7 @@ const submit = () => {
         q: localFilters.q,
         status: localFilters.status.length > 0 ? localFilters.status : null,
         relationship_type: localFilters.relationship_type,
+        past_master: props.section === 'members' ? localFilters.past_master : null,
         has_email: localFilters.has_email,
         has_phone: localFilters.has_phone,
         last_contact_older_than_days: localFilters.last_contact_older_than_days,
@@ -131,6 +139,7 @@ const reset = () => {
     localFilters.q = null;
     localFilters.status = defaultMemberStatuses();
     localFilters.relationship_type = null;
+    localFilters.past_master = null;
     localFilters.has_email = null;
     localFilters.has_phone = null;
     localFilters.last_contact_older_than_days = null;
@@ -141,6 +150,7 @@ const reset = () => {
         q: null,
         status: localFilters.status.length > 0 ? localFilters.status : null,
         relationship_type: null,
+        past_master: null,
         has_email: null,
         has_phone: null,
         last_contact_older_than_days: null,
@@ -181,6 +191,22 @@ const reset = () => {
                     selected-items-label="{0} selected"
                     :show-clear="true"
                     placeholder="Any statuses"
+                />
+            </div>
+
+            <div v-if="section === 'members'">
+                <label for="past-master-filter" class="mb-2 block text-sm font-medium text-surface-700 dark:text-surface-200">
+                    Past Master
+                </label>
+                <Select
+                    v-model="localFilters.past_master"
+                    input-id="past-master-filter"
+                    :options="pastMasterOptions"
+                    option-label="label"
+                    option-value="value"
+                    class="w-full"
+                    show-clear
+                    placeholder="Any"
                 />
             </div>
 

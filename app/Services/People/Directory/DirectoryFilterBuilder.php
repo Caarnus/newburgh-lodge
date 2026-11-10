@@ -12,6 +12,7 @@ class DirectoryFilterBuilder
             'q' => $this->stringOrNull($request->input('q')),
             'status' => $this->statusListOrNull($request->input('status')),
             'relationship_type' => $this->stringOrNull($request->input('relationship_type')),
+            'past_master' => $this->stringOrNull($request->input('past_master')),
             'has_email' => $this->stringOrNull($request->input('has_email')),
             'has_phone' => $this->stringOrNull($request->input('has_phone')),
             'last_contact_older_than_days' => $this->integerOrNull($request->input('last_contact_older_than_days')),

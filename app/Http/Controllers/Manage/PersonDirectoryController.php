@@ -354,6 +354,7 @@ class PersonDirectoryController extends Controller
             'q' => $request->string('q')->toString() ?: null,
             'status' => $normalizedStatus,
             'relationship_type' => $request->string('relationship_type')->toString() ?: null,
+            'past_master' => $request->string('past_master')->toString() ?: null,
             'has_email' => $request->string('has_email')->toString() ?: null,
             'has_phone' => $request->string('has_phone')->toString() ?: null,
             'last_contact_older_than_days' => $request->filled('last_contact_older_than_days')

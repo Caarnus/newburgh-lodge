@@ -196,6 +196,10 @@ class PeopleDirectoryService
         $this->applyCommonSearch($query, $filters['q'] ?? null, includeMemberNumber: true);
         $this->applyDirectoryFilters($query, $filters);
         $query->whereIn('member_profiles.status', $this->selectedStatuses($filters));
+
+        if (in_array($filters['past_master'] ?? null, ['yes', 'no'], true)) {
+            $query->where('member_profiles.past_master', $filters['past_master'] === 'yes');
+        }
         $this->applyDeceasedVisibility($query, $filters);
 
         $this->applyMemberSort($query, $filters['sort'] ?? 'name');

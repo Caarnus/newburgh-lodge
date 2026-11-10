@@ -132,6 +132,7 @@ const personDetailRouteParams = (personId) => pruneFilters({
     q: props.filters.q ?? undefined,
     status: props.filters.status ?? undefined,
     relationship_type: props.filters.relationship_type ?? undefined,
+    past_master: props.filters.past_master ?? undefined,
     has_email: props.filters.has_email ?? undefined,
     has_phone: props.filters.has_phone ?? undefined,
     last_contact_older_than_days: props.filters.last_contact_older_than_days ?? undefined,
